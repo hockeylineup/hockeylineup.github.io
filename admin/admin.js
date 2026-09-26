@@ -159,7 +159,7 @@ async function preparerCode() {
     for (const f of facteurs) await authJeton('DELETE', 'factors/' + f.id).catch(() => {});
     const ins = await authJeton('POST', 'factors', { factor_type: 'totp', friendly_name: 'LineUp Gestion' });
     etat.facteur = ins.id;
-    $('qr').src = ins.totp.qr_code;
+    $('qr').src = imageQr(ins.totp.qr_code);
     $('secret').textContent = ins.totp.secret;
     $('inscription-totp').hidden = false;
   }
@@ -168,6 +168,14 @@ async function preparerCode() {
   $('erreur-code').textContent = '';
   $('code').value = '';
   $('code').focus();
+}
+
+// Supabase rend le QR en SVG brut dans une adresse `data:` non encodée : un
+// `#` ou un `%` du SVG la coupe. On le réencode.
+function imageQr(brut) {
+  const i = brut.indexOf('<svg');
+  if (i < 0) return brut;
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(brut.slice(i));
 }
 
 async function validerCode(ev) {
