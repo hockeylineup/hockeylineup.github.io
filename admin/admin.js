@@ -21,7 +21,7 @@ if (window.top !== window.self) {
   throw new Error('cadre refusé');
 }
 
-const etat = { jeton: null, rafraichir: null, expire: 0, courriel: '', proprietaire: false,
+const etat = { facteur: null, jeton: null, rafraichir: null, expire: 0, courriel: '', proprietaire: false,
                onglet: 'tableau', minuterie: null, regions: [] };
 
 // --- Petits outils -------------------------------------------------------
@@ -125,9 +125,65 @@ async function connecter(ev) {
     }
     etat.courriel = courriel;
     etat.proprietaire = moi.proprietaire;
-    ouvrir();
+    await preparerCode();
   } catch (e) {
     $('erreur-connexion').textContent = e.message;
+  } finally {
+    bouton.disabled = false;
+  }
+}
+
+// --- Double authentification (TOTP) --------------------------------------
+// La base refuse toute fonction `admin_*` à une session qui n'a pas passé un
+// code (`aal2`). Premier passage : on inscrit l'app d'authentification.
+async function authJeton(methode, chemin, corps) {
+  const r = await fetch(SUPABASE + '/auth/v1/' + chemin, {
+    method: methode, credentials: 'omit', cache: 'no-store',
+    headers: { apikey: CLE, Authorization: 'Bearer ' + etat.jeton, 'Content-Type': 'application/json' },
+    body: corps ? JSON.stringify(corps) : undefined,
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.msg || d.error_description || d.message || 'Erreur ' + r.status);
+  return d;
+}
+
+async function preparerCode() {
+  const moi = await authJeton('GET', 'user');
+  const facteurs = (moi.factors || []).filter((f) => f.factor_type === 'totp');
+  const verifie = facteurs.find((f) => f.status === 'verified');
+  if (verifie) {
+    etat.facteur = verifie.id;
+    $('inscription-totp').hidden = true;
+  } else {
+    // Une inscription abandonnée laisse un facteur non vérifié : on le retire.
+    for (const f of facteurs) await authJeton('DELETE', 'factors/' + f.id).catch(() => {});
+    const ins = await authJeton('POST', 'factors', { factor_type: 'totp', friendly_name: 'LineUp Gestion' });
+    etat.facteur = ins.id;
+    $('qr').src = ins.totp.qr_code;
+    $('secret').textContent = ins.totp.secret;
+    $('inscription-totp').hidden = false;
+  }
+  $('formulaire-connexion').hidden = true;
+  $('formulaire-code').hidden = false;
+  $('erreur-code').textContent = '';
+  $('code').value = '';
+  $('code').focus();
+}
+
+async function validerCode(ev) {
+  ev.preventDefault();
+  const bouton = ev.submitter;
+  bouton.disabled = true;
+  try {
+    const defi = await authJeton('POST', 'factors/' + etat.facteur + '/challenge', {});
+    poserJetons(await authJeton('POST', 'factors/' + etat.facteur + '/verify',
+                                { challenge_id: defi.id, code: $('code').value.trim() }));
+    $('code').value = '';
+    $('qr').removeAttribute('src');
+    $('secret').textContent = '';
+    ouvrir();
+  } catch (e) {
+    $('erreur-code').textContent = e.message;
   } finally {
     bouton.disabled = false;
   }
@@ -149,6 +205,8 @@ function deconnecter(raison) {
   $('app').hidden = true;
   $('contenu').replaceChildren();
   $('connexion').hidden = false;
+  $('formulaire-connexion').hidden = false;
+  $('formulaire-code').hidden = true;
   $('erreur-connexion').textContent = raison || '';
 }
 
@@ -430,5 +488,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('connexion').hidden = false;
   $('formulaire-connexion').addEventListener('submit', connecter);
   $('deconnexion').addEventListener('click', () => deconnecter(''));
+  $('formulaire-code').addEventListener('submit', validerCode);
+  $('annuler-code').addEventListener('click', () => deconnecter(''));
   for (const ev of ['click', 'keydown']) document.addEventListener(ev, () => etat.jeton && reveiller());
 });

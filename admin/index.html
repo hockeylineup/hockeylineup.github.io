@@ -6,7 +6,7 @@
   <!-- Rien ne se charge d'ailleurs : aucun script tiers, aucun style en ligne,
        et la page ne parle qu'à Supabase. GitHub Pages ne pose pas d'en-têtes :
        la politique vit ici. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://wkjyeyswlvdkaalhslvw.supabase.co; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https://wkjyeyswlvdkaalhslvw.supabase.co; base-uri 'none'; form-action 'none'">
   <meta name="referrer" content="no-referrer">
   <meta name="robots" content="noindex, nofollow">
   <title>LineUp · Gestion</title>
@@ -23,6 +23,18 @@
       <label>Mot de passe <input id="mdp" type="password" autocomplete="current-password" required></label>
       <button type="submit">Se connecter</button>
       <p id="erreur-connexion" class="erreur" role="alert"></p>
+    </form>
+    <form id="formulaire-code" hidden>
+      <div id="inscription-totp" hidden>
+        <p>Scanne ce code dans ton app d'authentification (Google Authenticator, 1Password, Authy…).</p>
+        <img id="qr" class="qr" alt="Code QR de la double authentification">
+        <p class="doux">Ou entre la clé : <code id="secret"></code></p>
+      </div>
+      <label>Code à 6 chiffres <input id="code" inputmode="numeric" autocomplete="one-time-code"
+             pattern="[0-9]{6}" maxlength="6" required></label>
+      <button type="submit">Valider</button>
+      <button type="button" id="annuler-code" class="discret">Annuler</button>
+      <p id="erreur-code" class="erreur" role="alert"></p>
     </form>
   </main>
 
