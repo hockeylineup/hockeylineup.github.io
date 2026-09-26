@@ -24,11 +24,20 @@
       <button type="submit">Se connecter</button>
       <p id="erreur-connexion" class="erreur" role="alert"></p>
     </form>
+    <section id="approbation" class="approbation" hidden>
+      <p>Ouvre LineUp sur ton téléphone et entre ce nombre.</p>
+      <p id="nombre" class="nombre"></p>
+      <p id="etat-approbation" class="doux" role="status"></p>
+      <button type="button" id="reessayer" hidden>Réessayer</button>
+      <button type="button" id="utiliser-code" class="discret">Utiliser un code à la place</button>
+      <button type="button" id="annuler-approbation" class="discret">Annuler</button>
+    </section>
     <form id="formulaire-code" hidden>
       <div id="inscription-totp" hidden>
         <p>Scanne ce code dans ton app d'authentification (Google Authenticator, 1Password, Authy…).</p>
         <img id="qr" class="qr" alt="Code QR de la double authentification">
         <p class="doux">Ou entre la clé : <code id="secret"></code></p>
+        <p class="doux">Ensuite, dans l'app : Administration ▸ Approuver depuis ce téléphone.</p>
       </div>
       <label>Code à 6 chiffres <input id="code" inputmode="numeric" autocomplete="one-time-code"
              pattern="[0-9]{6}" maxlength="6" required></label>

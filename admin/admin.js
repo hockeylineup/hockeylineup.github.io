@@ -21,7 +21,7 @@ if (window.top !== window.self) {
   throw new Error('cadre refusé');
 }
 
-const etat = { facteur: null, jeton: null, rafraichir: null, expire: 0, courriel: '', proprietaire: false,
+const etat = { attente: null, facteur: null, jeton: null, rafraichir: null, expire: 0, courriel: '', proprietaire: false,
                onglet: 'tableau', minuterie: null, regions: [] };
 
 // --- Petits outils -------------------------------------------------------
@@ -125,7 +125,9 @@ async function connecter(ev) {
     }
     etat.courriel = courriel;
     etat.proprietaire = moi.proprietaire;
-    await preparerCode();
+    if (moi.deux_facteurs) ouvrir();
+    else if (moi.appareil) await demanderApprobation();
+    else await preparerCode();
   } catch (e) {
     $('erreur-connexion').textContent = e.message;
   } finally {
@@ -147,7 +149,42 @@ async function authJeton(methode, chemin, corps) {
   return d;
 }
 
+// --- Approbation par le téléphone ------------------------------------------
+// Le site montre un nombre ; le téléphone enregistré le fait taper. La base
+// ouvre alors l'administration à cette session-ci.
+function montrer(id) {
+  for (const x of ['formulaire-connexion', 'approbation', 'formulaire-code']) $(x).hidden = x !== id;
+}
+
+async function demanderApprobation() {
+  clearInterval(etat.attente);
+  montrer('approbation');
+  $('reessayer').hidden = true;
+  $('nombre').textContent = '';
+  $('etat-approbation').textContent = 'Envoi au téléphone…';
+  try {
+    const d = await rpc('admin_demander_approbation');
+    $('nombre').textContent = d.nombre;
+    $('etat-approbation').textContent = 'En attente de ton téléphone…';
+    const debut = Date.now();
+    etat.attente = setInterval(async () => {
+      let statut = 'attente';
+      try { statut = await rpc('admin_etat_approbation', { p_id: d.id }); } catch (e) { return; }
+      if (statut === 'attente' && Date.now() - debut < 125000) return;
+      clearInterval(etat.attente);
+      if (statut === 'approuvee') { ouvrir(); return; }
+      $('nombre').textContent = '';
+      $('etat-approbation').textContent = statut === 'refusee' ? 'Connexion refusée.' : 'Délai écoulé.';
+      $('reessayer').hidden = false;
+    }, 2000);
+  } catch (e) {
+    $('etat-approbation').textContent = e.message;
+    $('reessayer').hidden = false;
+  }
+}
+
 async function preparerCode() {
+  clearInterval(etat.attente);
   const moi = await authJeton('GET', 'user');
   const facteurs = (moi.factors || []).filter((f) => f.factor_type === 'totp');
   const verifie = facteurs.find((f) => f.status === 'verified');
@@ -163,8 +200,7 @@ async function preparerCode() {
     $('secret').textContent = ins.totp.secret;
     $('inscription-totp').hidden = false;
   }
-  $('formulaire-connexion').hidden = true;
-  $('formulaire-code').hidden = false;
+  montrer('formulaire-code');
   $('erreur-code').textContent = '';
   $('code').value = '';
   $('code').focus();
@@ -213,8 +249,8 @@ function deconnecter(raison) {
   $('app').hidden = true;
   $('contenu').replaceChildren();
   $('connexion').hidden = false;
-  $('formulaire-connexion').hidden = false;
-  $('formulaire-code').hidden = true;
+  clearInterval(etat.attente);
+  montrer('formulaire-connexion');
   $('erreur-connexion').textContent = raison || '';
 }
 
@@ -498,5 +534,10 @@ document.addEventListener('DOMContentLoaded', () => {
   $('deconnexion').addEventListener('click', () => deconnecter(''));
   $('formulaire-code').addEventListener('submit', validerCode);
   $('annuler-code').addEventListener('click', () => deconnecter(''));
+  $('reessayer').addEventListener('click', demanderApprobation);
+  $('utiliser-code').addEventListener('click', () => preparerCode().catch((e) => {
+    $('etat-approbation').textContent = e.message;
+  }));
+  $('annuler-approbation').addEventListener('click', () => deconnecter(''));
   for (const ev of ['click', 'keydown']) document.addEventListener(ev, () => etat.jeton && reveiller());
 });
