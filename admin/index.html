@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Rien ne se charge d'ailleurs : aucun script tiers, aucun style en ligne,
+       et la page ne parle qu'à Supabase. GitHub Pages ne pose pas d'en-têtes :
+       la politique vit ici. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://wkjyeyswlvdkaalhslvw.supabase.co; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex, nofollow">
+  <title>LineUp · Gestion</title>
+  <link rel="icon" type="image/png" href="../favicon.png">
+  <link rel="stylesheet" href="admin.css">
+  <script src="admin.js" defer></script>
+</head>
+<body>
+  <main id="connexion" class="connexion" hidden>
+    <img class="logo" src="../favicon.png" alt="">
+    <h1>Line<span>Up</span> · Gestion</h1>
+    <form id="formulaire-connexion" autocomplete="on">
+      <label>Courriel <input id="courriel" type="email" autocomplete="username" required></label>
+      <label>Mot de passe <input id="mdp" type="password" autocomplete="current-password" required></label>
+      <button type="submit">Se connecter</button>
+      <p id="erreur-connexion" class="erreur" role="alert"></p>
+    </form>
+  </main>
+
+  <div id="app" hidden>
+    <header class="barre">
+      <strong>Line<span>Up</span> · Gestion</strong>
+      <nav id="onglets"></nav>
+      <span id="qui" class="doux"></span>
+      <button id="deconnexion" class="discret">Se déconnecter</button>
+    </header>
+    <p id="message" class="message" role="status" hidden></p>
+    <main id="contenu"></main>
+  </div>
+</body>
+</html>
