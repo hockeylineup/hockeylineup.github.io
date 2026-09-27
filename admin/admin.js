@@ -114,24 +114,64 @@ async function connecter(ev) {
   bouton.disabled = true;
   $('erreur-connexion').textContent = '';
   try {
-    const courriel = $('courriel').value.trim();
     poserJetons(await auth('token?grant_type=password',
-                           { email: courriel, password: $('mdp').value }));
+                           { email: $('courriel').value.trim(), password: $('mdp').value }));
     $('mdp').value = '';
-    const moi = await rpc('admin_moi');
-    if (!moi.admin) {
-      await fermerSession();
-      throw new Error('Ce compte n’a pas accès à la gestion.');
-    }
-    etat.courriel = courriel;
-    etat.proprietaire = moi.proprietaire;
-    if (moi.deux_facteurs) ouvrir();
-    else if (moi.appareil) await demanderApprobation();
-    else await preparerCode();
+    await apresConnexion();
   } catch (e) {
     $('erreur-connexion').textContent = e.message;
   } finally {
     bouton.disabled = false;
+  }
+}
+
+// Session ouverte (courriel ou Apple) : l'accès, puis le 2e facteur.
+async function apresConnexion() {
+  const moi = await rpc('admin_moi');
+  if (!moi.admin) {
+    await fermerSession();
+    throw new Error('Ce compte n’a pas accès à la gestion.');
+  }
+  etat.courriel = (await authJeton('GET', 'user')).email || '';
+  etat.proprietaire = moi.proprietaire;
+  if (moi.deux_facteurs) ouvrir();
+  else if (moi.appareil) await demanderApprobation();
+  else await preparerCode();
+}
+
+// --- Apple (redirection, PKCE) ---------------------------------------------
+// Apple ne rend la main qu'en rechargeant la page : le vérificateur PKCE est le
+// seul secret posé dans le navigateur (sessionStorage), lu une fois puis effacé.
+// Le jeton, lui, reste en mémoire comme pour le courriel.
+const B64URL = (octets) => btoa(String.fromCharCode(...new Uint8Array(octets)))
+  .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const RETOUR = location.origin + location.pathname;
+
+async function continuerAvecApple() {
+  const verif = B64URL(crypto.getRandomValues(new Uint8Array(48)));
+  const defi = B64URL(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verif)));
+  try { sessionStorage.setItem('lineup-pkce', verif); } catch (e) {
+    $('erreur-connexion').textContent = 'Le navigateur bloque le stockage de session.';
+    return;
+  }
+  location.assign(SUPABASE + '/auth/v1/authorize?' + new URLSearchParams({
+    provider: 'apple', redirect_to: RETOUR, code_challenge: defi, code_challenge_method: 's256',
+  }));
+}
+
+async function retourApple() {
+  const p = new URLSearchParams(location.search);
+  if (!p.has('code') && !p.has('error')) return;
+  history.replaceState(null, '', RETOUR);
+  let verif = null;
+  try { verif = sessionStorage.getItem('lineup-pkce'); sessionStorage.removeItem('lineup-pkce'); } catch (e) {}
+  try {
+    if (p.has('error')) throw new Error(p.get('error_description') || 'Apple a refusé la connexion.');
+    if (!verif) throw new Error('Connexion Apple expirée. Réessaie.');
+    poserJetons(await auth('token?grant_type=pkce', { auth_code: p.get('code'), code_verifier: verif }));
+    await apresConnexion();
+  } catch (e) {
+    $('erreur-connexion').textContent = e.message;
   }
 }
 
@@ -531,6 +571,8 @@ async function vueJournal() {
 document.addEventListener('DOMContentLoaded', () => {
   $('connexion').hidden = false;
   $('formulaire-connexion').addEventListener('submit', connecter);
+  $('apple').addEventListener('click', continuerAvecApple);
+  retourApple();
   $('deconnexion').addEventListener('click', () => deconnecter(''));
   $('formulaire-code').addEventListener('submit', validerCode);
   $('annuler-code').addEventListener('click', () => deconnecter(''));

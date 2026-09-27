@@ -84,3 +84,8 @@ tr.cliquable:hover td { background: var(--carte); }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; }
 ul.simple { margin: 0; padding-left: 18px; }
 pre { white-space: pre-wrap; word-break: break-word; margin: 0; font-size: .8rem; color: var(--doux); }
+
+/* Le bouton d'Apple : noir, logo et texte blancs (règles d'Apple). */
+button.apple { background: #000; color: #fff; border: 1px solid #555; display: flex; align-items: center; justify-content: center; gap: 8px; }
+button.apple svg { width: 15px; height: 18px; margin-top: -3px; }
+.connexion .ou { text-align: center; color: var(--doux); margin: 0; }
