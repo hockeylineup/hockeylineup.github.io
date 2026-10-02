@@ -1,0 +1,12 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["A662J6RJ6V.com.lineup.mandam"],
+        "components": [
+          { "/": "/match/*", "comment": "Un match, depuis le calendrier du téléphone" }
+        ]
+      }
+    ]
+  }
+}
