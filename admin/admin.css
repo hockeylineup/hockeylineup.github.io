@@ -1,4 +1,5 @@
 :root {
+  color-scheme: dark;
   --fond: #0a1428;
   --fond-2: #0f1e3d;
   --carte: #13244a;
@@ -9,6 +10,24 @@
   --rouge: #ff5a5f;
   --vert: #35c07a;
 }
+:root[data-theme="light"] {
+  color-scheme: light;
+  --fond: #f3f6fb;
+  --fond-2: #ffffff;
+  --carte: #ffffff;
+  --ligne: #d5deec;
+  --texte: #0b1730;
+  --doux: #5a6a85;
+  --bleu: #1a5fe0;
+  --rouge: #d42a1e;
+  --vert: #14804a;
+}
+:root[data-theme="light"] .tuile, :root[data-theme="light"] .fiche,
+:root[data-theme="light"] .carte-formulaire, :root[data-theme="light"] .graphique,
+:root[data-theme="light"] .graphe-anneau { border: 1px solid var(--ligne); }
+:root[data-theme="light"] .ambre { color: #a35a00; }
+button.theme { background: transparent; color: var(--doux); border: 1px solid var(--ligne); padding: 6px 10px; }
+.connexion button.theme { position: fixed; top: 12px; right: 12px; }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
 body {

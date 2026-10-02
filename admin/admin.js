@@ -289,6 +289,9 @@ function deconnecter(raison) {
   clearTimeout(etat.minuterie);
   $('app').hidden = true;
   $('contenu').replaceChildren();
+  poserTheme(themeChoisi());
+  $('theme').addEventListener('click', basculerTheme);
+  $('theme-connexion').addEventListener('click', basculerTheme);
   $('connexion').hidden = false;
   clearInterval(etat.attente);
   montrer('formulaire-connexion');
@@ -784,6 +787,29 @@ function vueCategories(categories) {
         p_ordre: 99, p_masquee: false }, 'Catégorie ajoutée.'); } },
       sens, nom, couleur, el('button', { type: 'submit' }, 'Ajouter')));
 }
+
+// --- Thème clair ou foncé ------------------------------------------------
+// Une préférence d'affichage, gardée dans ce navigateur : rien de sensible.
+// Sans choix, la page suit le système.
+function themeChoisi() {
+  try { const t = localStorage.getItem('theme'); if (t === 'light' || t === 'dark') return t; } catch (e) { /* bloqué */ }
+  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
+function poserTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  for (const id of ['theme', 'theme-connexion']) {
+    const b = $(id);
+    if (!b) continue;
+    b.textContent = t === 'light' ? '☾ Foncé' : '☀︎ Clair';
+    b.setAttribute('aria-label', t === 'light' ? 'Passer au thème foncé' : 'Passer au thème clair');
+  }
+}
+function basculerTheme() {
+  const t = themeChoisi() === 'light' ? 'dark' : 'light';
+  try { localStorage.setItem('theme', t); } catch (e) { /* bloqué */ }
+  poserTheme(t);
+}
+poserTheme(themeChoisi());
 
 // --- Démarrage ------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
