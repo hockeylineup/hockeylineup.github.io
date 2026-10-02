@@ -89,3 +89,19 @@ pre { white-space: pre-wrap; word-break: break-word; margin: 0; font-size: .8rem
 button.apple { background: #000; color: #fff; border: 1px solid #555; display: flex; align-items: center; justify-content: center; gap: 8px; }
 button.apple svg { width: 15px; height: 18px; margin-top: -3px; }
 .connexion .ou { text-align: center; color: var(--doux); margin: 0; }
+
+/* Finances : graphiques SVG faits ici. */
+.vert { color: var(--vert); }
+.rouge { color: var(--rouge); }
+.ambre { color: #f5b642; }
+.graphique { width: 100%; height: auto; display: block; background: var(--carte); border-radius: 12px; padding: 8px; }
+.legende { display: flex; flex-wrap: wrap; gap: 14px; margin: 8px 4px; color: var(--doux); font-size: .85rem; }
+.legende span { display: inline-flex; align-items: center; gap: 6px; }
+svg.point { width: 10px; height: 10px; vertical-align: middle; }
+.graphe-anneau { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; background: var(--carte); border-radius: 12px; padding: 12px; }
+.anneau { width: 160px; height: 160px; }
+ul.parts { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; flex: 1; min-width: 180px; }
+ul.parts li { display: flex; align-items: center; gap: 8px; }
+ul.parts li b { margin-left: auto; font-weight: 500; }
+.deux-colonnes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+label.case { display: inline-flex; align-items: center; gap: 6px; }

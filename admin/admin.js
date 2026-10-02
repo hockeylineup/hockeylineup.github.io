@@ -22,7 +22,8 @@ if (window.top !== window.self) {
 }
 
 const etat = { attente: null, facteur: null, jeton: null, rafraichir: null, expire: 0, courriel: '', proprietaire: false,
-               onglet: 'tableau', minuterie: null, regions: [] };
+               onglet: 'tableau', minuterie: null, regions: [],
+               finances: { periode: 'douze', volet: 'lineup' } };
 
 // --- Petits outils -------------------------------------------------------
 const $ = (id) => document.getElementById(id);
@@ -306,6 +307,7 @@ const ONGLETS = [
   ['ligues', 'Ligues', vueLigues],
   ['utilisateurs', 'Utilisateurs', vueUtilisateurs],
   ['admins', 'Administrateurs', vueAdmins],
+  ['finances', 'Finances', vueFinances],
   ['regions', 'Régions', vueRegions],
   ['parametres', 'Paramètres', vueParametres],
   ['journal', 'Journal', vueJournal],
@@ -565,6 +567,211 @@ async function vueJournal() {
     tableau(['Quand', 'Qui', 'Action', 'Détail'], js.map((j) => el('tr', {},
       el('td', {}, date(j.fait_le, true)), el('td', {}, j.auteur), el('td', {}, j.action),
       el('td', {}, el('pre', {}, JSON.stringify(j.detail)))))));
+}
+
+// --- Finances (2 octobre 2026) -------------------------------------------
+// Deux volets, comme dans les apps : l'entreprise LineUp (revenus et dépenses
+// saisis, en catégories gérées) et l'argent des ligues. Les graphiques sont du
+// SVG dessiné ici : aucun script tiers (CSP).
+const SVG = 'http://www.w3.org/2000/svg';
+function svg(balise, attrs, ...enfants) {
+  const n = document.createElementNS(SVG, balise);
+  for (const [k, v] of Object.entries(attrs || {})) n.setAttribute(k, v);
+  for (const e of enfants.flat()) if (e) n.append(e instanceof Node ? e : document.createTextNode(String(e)));
+  return n;
+}
+
+const PERIODES = [['mois', 'Ce mois'], ['trimestre', '3 mois'], ['annee', 'Cette année'], ['douze', '12 mois']];
+const PALETTE = ['#22C55E', '#14B8A6', '#84CC16', '#3B82F6', '#A855F7', '#F59E0B', '#EC4899', '#EF4444', '#06B6D4', '#94A3B8'];
+const argent = (c) => (c / 100).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD' });
+const jourIso = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+
+function bornes(periode) {
+  const a = new Date(); const ce = new Date(a.getFullYear(), a.getMonth(), 1);
+  const finMois = new Date(a.getFullYear(), a.getMonth() + 1, 0);
+  if (periode === 'mois') return [ce, finMois];
+  if (periode === 'trimestre') return [new Date(a.getFullYear(), a.getMonth() - 2, 1), finMois];
+  if (periode === 'annee') return [new Date(a.getFullYear(), 0, 1), new Date(a.getFullYear(), 11, 31)];
+  return [new Date(a.getFullYear(), a.getMonth() - 11, 1), finMois];
+}
+
+function moisEntre(debut, fin) {
+  const ms = []; const d = new Date(debut.getFullYear(), debut.getMonth(), 1);
+  while (d <= fin) { ms.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')); d.setMonth(d.getMonth() + 1); }
+  return ms;
+}
+
+// Barres groupées par mois ; `series` : [{ nom, couleur, valeurs: [cents par mois] }].
+function graphiqueBarres(mois, series) {
+  const L = 640, H = 220, bas = 24;
+  const max = Math.max(1, ...series.flatMap((s) => s.valeurs));
+  const groupe = L / Math.max(1, mois.length), barre = (groupe * 0.7) / series.length;
+  const g = svg('svg', { viewBox: '0 0 ' + L + ' ' + H, class: 'graphique', role: 'img' });
+  mois.forEach((m, i) => {
+    series.forEach((s, k) => {
+      const h = (H - bas - 8) * s.valeurs[i] / max;
+      g.append(svg('rect', { x: i * groupe + groupe * 0.15 + k * barre, y: H - bas - h, width: barre * 0.9,
+                             height: h, fill: s.couleur, rx: 2 },
+                   svg('title', {}, s.nom + ' · ' + m + ' · ' + argent(s.valeurs[i]))));
+    });
+    if (mois.length <= 6 || i % 2 === 0) {
+      const [an, mm] = m.split('-');
+      g.append(svg('text', { x: i * groupe + groupe / 2, y: H - 6, 'text-anchor': 'middle', fill: '#9fb0cc', 'font-size': 12 },
+        new Date(an, mm - 1, 1).toLocaleDateString('fr-CA', { month: 'short' })));
+    }
+  });
+  return el('div', {}, g, legende(series.map((s) => [s.nom, s.couleur])));
+}
+
+// Un anneau ; `parts` : [[nom, couleur, cents]].
+function graphiqueAnneau(parts) {
+  const total = parts.reduce((t, p) => t + p[2], 0) || 1;
+  const r = 70, c = 2 * Math.PI * r;
+  const g = svg('svg', { viewBox: '0 0 200 200', class: 'anneau', role: 'img' });
+  let decalage = 0;
+  for (const [nom, couleur, cents] of parts) {
+    const long = c * cents / total;
+    g.append(svg('circle', { cx: 100, cy: 100, r, fill: 'none', stroke: couleur, 'stroke-width': 28,
+                             'stroke-dasharray': Math.max(0, long - 2) + ' ' + c, 'stroke-dashoffset': -decalage,
+                             transform: 'rotate(-90 100 100)' },
+                 svg('title', {}, nom + ' · ' + argent(cents))));
+    decalage += long;
+  }
+  return el('div', { classe: 'graphe-anneau' }, g,
+    el('ul', { classe: 'parts' }, parts.map(([nom, couleur, cents]) =>
+      el('li', {}, pastille(couleur), el('span', {}, nom), el('b', {}, argent(cents))))));
+}
+
+function pastille(couleur) {
+  return svg('svg', { viewBox: '0 0 10 10', class: 'point' }, svg('circle', { cx: 5, cy: 5, r: 5, fill: couleur }));
+}
+function legende(elements) {
+  return el('div', { classe: 'legende' }, elements.map(([t, c]) => el('span', {}, pastille(c), t)));
+}
+
+async function vueFinances() {
+  const f0 = etat.finances;
+  const [debut, fin] = bornes(f0.periode);
+  const f = await rpc('admin_finances', { p_debut: jourIso(debut), p_fin: jourIso(fin) });
+  const categorie = (id) => f.categories.find((c) => c.id === id);
+  const visibles = f.ecritures.filter((e) => !(categorie(e.categorie_id) || {}).masquee);
+  const mois = moisEntre(debut, fin);
+  const choix = el('div', { classe: 'outils' },
+    el('select', { onchange: (ev) => { f0.volet = ev.target.value; afficher(); } },
+      el('option', { value: 'lineup', selected: f0.volet === 'lineup' }, 'LineUp'),
+      el('option', { value: 'ligues', selected: f0.volet === 'ligues' }, 'Ligues')),
+    el('select', { onchange: (ev) => { f0.periode = ev.target.value; afficher(); } },
+      PERIODES.map(([k, t]) => el('option', { value: k, selected: f0.periode === k }, t))));
+
+  if (f0.volet === 'ligues') {
+    const l = f.ligues;
+    return el('section', {}, el('h2', {}, 'Finances · Ligues'), choix,
+      el('div', { classe: 'tuiles' },
+        el('div', { classe: 'tuile' }, el('b', { classe: 'vert' }, argent(l.paye_cents)), el('span', { classe: 'doux' }, 'Payé')),
+        el('div', { classe: 'tuile' }, el('b', { classe: 'ambre' }, argent(l.du_cents)), el('span', { classe: 'doux' }, 'À payer'))),
+      el('h3', {}, 'Par mois'),
+      graphiqueBarres(l.par_mois.map((m) => m.mois), [
+        { nom: 'Payé', couleur: '#35c07a', valeurs: l.par_mois.map((m) => m.paye_cents) },
+        { nom: 'À payer', couleur: '#f5b642', valeurs: l.par_mois.map((m) => m.du_cents) }]),
+      l.par_methode.length ? [el('h3', {}, 'Paiements par méthode'),
+        graphiqueAnneau(l.par_methode.map((m, i) => [({ carte: 'Carte', debit_preautorise: 'Prélèvement', interac: 'Interac',
+          comptant: 'Comptant' })[m.methode] || 'Autre', PALETTE[(i + 3) % PALETTE.length], m.cents]))] : null,
+      el('h3', {}, 'Par ligue'),
+      tableau(['Ligue', 'Payé', 'À payer'], l.par_ligue.map((x) => el('tr', {},
+        el('td', {}, x.ligue), el('td', {}, argent(x.paye_cents)), el('td', {}, argent(x.du_cents))))));
+  }
+
+  const total = (s) => visibles.filter((e) => e.sens === s).reduce((t, e) => t + e.montant_cents, 0);
+  const revenus = total('revenu'), depenses = total('depense');
+  const parCategorie = (sens) => {
+    const m = new Map();
+    for (const e of visibles.filter((x) => x.sens === sens)) m.set(e.categorie_id, (m.get(e.categorie_id) || 0) + e.montant_cents);
+    return [...m].map(([id, cents]) => { const c = categorie(id);
+      return [c ? c.nom : 'Sans catégorie', c ? c.couleur : '#94A3B8', cents]; }).sort((a, b) => b[2] - a[2]);
+  };
+  const parMois = (sens) => mois.map((m) => visibles.filter((e) => e.sens === sens && e.jour.startsWith(m))
+    .reduce((t, e) => t + e.montant_cents, 0));
+  return el('section', {}, el('h2', {}, 'Finances · LineUp'), choix,
+    el('div', { classe: 'tuiles' },
+      el('div', { classe: 'tuile' }, el('b', { classe: 'vert' }, argent(revenus)), el('span', { classe: 'doux' }, 'Revenus')),
+      el('div', { classe: 'tuile' }, el('b', { classe: 'rouge' }, argent(depenses)), el('span', { classe: 'doux' }, 'Dépenses')),
+      el('div', { classe: 'tuile' }, el('b', { classe: revenus >= depenses ? '' : 'rouge' }, argent(revenus - depenses)),
+         el('span', { classe: 'doux' }, 'Solde'))),
+    el('h3', {}, 'Par mois'),
+    graphiqueBarres(mois, [{ nom: 'Revenus', couleur: '#35c07a', valeurs: parMois('revenu') },
+                           { nom: 'Dépenses', couleur: '#ff5a5f', valeurs: parMois('depense') }]),
+    el('div', { classe: 'deux-colonnes' },
+      [['revenu', 'Revenus par catégorie'], ['depense', 'Dépenses par catégorie']].map(([s, t]) => {
+        const parts = parCategorie(s);
+        return parts.length ? el('div', {}, el('h3', {}, t), graphiqueAnneau(parts)) : null;
+      })),
+    el('h3', {}, 'Ajouter une écriture'), formulaireEcriture(f.categories, null),
+    el('h3', {}, 'Écritures'),
+    tableau(['Date', 'Catégorie', 'Note', 'Montant', ''], f.ecritures.map((e) => {
+      const c = categorie(e.categorie_id);
+      return el('tr', {},
+        el('td', {}, date(e.jour + 'T12:00:00')),
+        el('td', {}, c ? [pastille(c.couleur), ' ', c.nom] : 'Sans catégorie', e.recurrence === 'mensuelle' ? el('span', { classe: 'doux' }, ' · chaque mois') : null),
+        el('td', {}, e.note || ''),
+        el('td', { classe: e.sens === 'revenu' ? 'vert' : '' }, (e.sens === 'revenu' ? '+' : '−') + argent(e.montant_cents)),
+        el('td', {}, el('button', { classe: 'discret', onclick: () => {
+          if (confirmer('Supprimer cette écriture' + (e.recurrence === 'mensuelle' ? ' et tous ses mois' : '') + ' ?', 'SUPPRIMER')) {
+            agir('admin_supprimer_ecriture', { p_id: e.id }, 'Écriture supprimée.');
+          }
+        } }, 'Supprimer')));
+    })),
+    el('h3', {}, 'Catégories'), vueCategories(f.categories));
+}
+
+function formulaireEcriture(categories) {
+  const sens = el('select', {}, el('option', { value: 'depense' }, 'Dépense'), el('option', { value: 'revenu' }, 'Revenu'));
+  const cat = el('select', {});
+  const remplir = () => cat.replaceChildren(el('option', { value: '' }, 'Sans catégorie'),
+    ...categories.filter((c) => c.sens === sens.value).map((c) => el('option', { value: c.id }, c.nom)));
+  sens.addEventListener('change', remplir); remplir();
+  const montant = el('input', { inputmode: 'decimal', placeholder: 'Montant ($)', required: true });
+  const jour = el('input', { type: 'date', value: jourIso(new Date()), required: true });
+  const note = el('input', { placeholder: 'Note' });
+  const mensuelle = el('input', { type: 'checkbox' });
+  const fin = el('input', { type: 'date' });
+  return el('form', { classe: 'outils', onsubmit: (ev) => {
+    ev.preventDefault();
+    const cents = Math.round(parseFloat(montant.value.replace(',', '.').replace(/[^0-9.]/g, '')) * 100);
+    if (!(cents > 0)) { dire('Le montant n’est pas valide.', true); return; }
+    agir('admin_enregistrer_ecriture', { p_id: null, p_jour: jour.value, p_sens: sens.value, p_montant_cents: cents,
+      p_categorie: cat.value || null, p_note: note.value, p_recurrence: mensuelle.checked ? 'mensuelle' : 'aucune',
+      p_fin: mensuelle.checked && fin.value ? fin.value : null }, 'Écriture enregistrée.');
+  } }, sens, montant, jour, cat, note, el('label', { classe: 'case' }, mensuelle, 'Chaque mois'),
+     el('label', {}, 'Fin (facultative)', fin), el('button', { type: 'submit' }, 'Ajouter'));
+}
+
+function vueCategories(categories) {
+  const ligne = (c) => {
+    const nom = el('input', { value: c.nom });
+    const couleur = el('select', {}, PALETTE.map((p) => el('option', { value: p, selected: p === c.couleur }, p)));
+    const visible = el('input', { type: 'checkbox', checked: !c.masquee });
+    return el('tr', {},
+      el('td', {}, c.sens === 'revenu' ? 'Revenu' : 'Dépense'),
+      el('td', {}, nom), el('td', {}, pastille(c.couleur), ' ', couleur),
+      el('td', {}, el('label', { classe: 'case' }, visible, 'Graphiques')),
+      el('td', { classe: 'actions' },
+        el('button', { onclick: () => agir('admin_enregistrer_categorie', { p_id: c.id, p_nom: nom.value, p_sens: c.sens,
+          p_couleur: couleur.value, p_ordre: c.ordre, p_masquee: !visible.checked }, 'Catégorie enregistrée.') }, 'Enregistrer'),
+        el('button', { classe: 'discret', onclick: () => {
+          if (confirmer('Supprimer « ' + c.nom + ' » ? Ses écritures restent, sans catégorie.', 'SUPPRIMER')) {
+            agir('admin_supprimer_categorie', { p_id: c.id }, 'Catégorie supprimée.');
+          }
+        } }, 'Supprimer')));
+  };
+  const sens = el('select', {}, el('option', { value: 'depense' }, 'Dépense'), el('option', { value: 'revenu' }, 'Revenu'));
+  const nom = el('input', { placeholder: 'Nouvelle catégorie', required: true });
+  const couleur = el('select', {}, PALETTE.map((p) => el('option', { value: p }, p)));
+  return el('div', {},
+    tableau(['Sens', 'Nom', 'Couleur', '', ''], categories.map(ligne)),
+    el('form', { classe: 'outils', onsubmit: (ev) => { ev.preventDefault();
+      agir('admin_enregistrer_categorie', { p_id: null, p_nom: nom.value, p_sens: sens.value, p_couleur: couleur.value,
+        p_ordre: 99, p_masquee: false }, 'Catégorie ajoutée.'); } },
+      sens, nom, couleur, el('button', { type: 'submit' }, 'Ajouter')));
 }
 
 // --- Démarrage ------------------------------------------------------------
