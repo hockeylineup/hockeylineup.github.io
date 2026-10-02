@@ -67,14 +67,47 @@ button.discret { background: transparent; color: var(--doux); border: 1px solid 
 button.danger { background: var(--rouge); }
 button:disabled { opacity: .5; cursor: default; }
 
-.barre {
-  position: sticky; top: 0; z-index: 1;
-  display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px;
-  padding: 12px 16px; background: var(--fond-2); border-bottom: 1px solid var(--ligne);
+/* La coquille : une colonne de navigation à gauche, le contenu à droite. */
+.coquille { display: grid; grid-template-columns: 232px 1fr; min-height: 100vh; }
+.cote {
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 20px;
+  padding: 20px 14px; background: var(--fond-2); border-right: 1px solid var(--ligne);
 }
-.barre nav { display: flex; flex-wrap: wrap; gap: 4px; flex: 1; }
-.barre nav button { background: transparent; color: var(--doux); padding: 6px 10px; }
-.barre nav button.actif { background: var(--carte); color: var(--texte); }
+.marque { display: flex; align-items: center; gap: 10px; padding: 0 8px; }
+.marque img { width: 32px; height: 32px; border-radius: 22%; }
+.marque strong { font-size: 1.15rem; }
+.marque em { font-style: normal; color: var(--doux); font-size: .85rem; margin-left: auto; }
+.cote nav { display: grid; gap: 2px; }
+.cote nav button {
+  text-align: left; background: transparent; color: var(--doux); font-weight: 500;
+  padding: 9px 12px; border-radius: 8px;
+}
+.cote nav button:hover { background: var(--carte); color: var(--texte); }
+.cote nav button.actif { background: var(--bleu); color: #fff; }
+.compte { margin-top: auto; display: grid; gap: 10px; padding: 12px 8px 0; border-top: 1px solid var(--ligne); }
+.compte #qui { display: grid; gap: 6px; justify-items: start; font-size: .8rem; }
+.compte .courriel { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.compte-actions { display: flex; gap: 8px; }
+.compte-actions button { padding: 7px 10px; font-size: .85rem; white-space: nowrap; }
+.compte-actions #deconnexion { flex: 1; }
+.principal { min-width: 0; }
+
+/* Téléphone : la colonne devient une bande, les sections défilent. */
+@media (max-width: 800px) {
+  .coquille { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .cote {
+    position: sticky; top: 0; z-index: 1; height: auto; display: grid; gap: 10px;
+    grid-template-columns: 1fr auto; padding: 10px 12px; border-right: 0; border-bottom: 1px solid var(--ligne);
+  }
+  .marque { padding: 0; }
+  .marque em, .compte #qui { display: none; }
+  .compte { grid-column: 2; grid-row: 1; margin: 0; padding: 0; border: 0; }
+  .compte-actions button { padding: 6px 10px; }
+  .cote nav { grid-column: 1 / -1; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+  .cote nav::-webkit-scrollbar { display: none; }
+  .cote nav button { white-space: nowrap; padding: 7px 14px; border-radius: 999px; background: var(--fond); }
+}
 
 .message { margin: 12px 16px 0; padding: 10px 12px; border-radius: 8px; background: var(--carte); }
 .message.erreur { color: #fff; background: var(--rouge); }
@@ -96,7 +129,7 @@ th { color: var(--doux); font-weight: 500; font-size: .85rem; }
 tr.cliquable { cursor: pointer; }
 tr.cliquable:hover td { background: var(--carte); }
 .pastille { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--ligne); font-size: .8rem; }
-.pastille.proprio { background: var(--bleu); }
+.pastille.proprio { background: var(--bleu); color: #fff; }
 
 .fiche { background: var(--carte); border-radius: 12px; padding: 16px; display: grid; gap: 12px; }
 .fiche .grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }

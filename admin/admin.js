@@ -316,7 +316,8 @@ const ONGLETS = [
 function ouvrir() {
   $('connexion').hidden = true;
   $('app').hidden = false;
-  $('qui').textContent = etat.courriel + (etat.proprietaire ? ' · propriétaire' : '');
+  $('qui').replaceChildren(el('span', { classe: 'courriel', title: etat.courriel }, etat.courriel),
+    etat.proprietaire ? el('span', { classe: 'pastille proprio' }, 'Propriétaire') : null);
   reveiller();
   aller('tableau');
 }

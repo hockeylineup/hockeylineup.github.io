@@ -11,8 +11,8 @@
   <meta name="robots" content="noindex, nofollow">
   <title>LineUp · Gestion</title>
   <link rel="icon" type="image/png" href="../favicon.png">
-  <link rel="stylesheet" href="admin.css?v=6">
-  <script src="admin.js?v=6" defer></script>
+  <link rel="stylesheet" href="admin.css?v=9">
+  <script src="admin.js?v=9" defer></script>
 </head>
 <body>
   <main id="connexion" class="connexion" hidden>
@@ -53,16 +53,22 @@
     </form>
   </main>
 
-  <div id="app" hidden>
-    <header class="barre">
-      <strong>Line<span>Up</span> · Gestion</strong>
-      <nav id="onglets"></nav>
-      <span id="qui" class="doux"></span>
-      <button id="theme" class="theme" type="button"></button>
-      <button id="deconnexion" class="discret">Se déconnecter</button>
-    </header>
-    <p id="message" class="message" role="status" hidden></p>
-    <main id="contenu"></main>
+  <div id="app" class="coquille" hidden>
+    <aside class="cote">
+      <div class="marque"><img src="../favicon.png" alt=""><strong>Line<span>Up</span></strong><em>Gestion</em></div>
+      <nav id="onglets" aria-label="Sections"></nav>
+      <div class="compte">
+        <span id="qui" class="doux"></span>
+        <div class="compte-actions">
+          <button id="theme" class="theme" type="button"></button>
+          <button id="deconnexion" class="discret">Se déconnecter</button>
+        </div>
+      </div>
+    </aside>
+    <div class="principal">
+      <p id="message" class="message" role="status" hidden></p>
+      <main id="contenu"></main>
+    </div>
   </div>
 </body>
 </html>
