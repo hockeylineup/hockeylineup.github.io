@@ -289,9 +289,6 @@ function deconnecter(raison) {
   clearTimeout(etat.minuterie);
   $('app').hidden = true;
   $('contenu').replaceChildren();
-  poserTheme(document.documentElement.getAttribute('data-theme') || themeChoisi());
-  $('theme').addEventListener('click', basculerTheme);
-  $('theme-connexion').addEventListener('click', basculerTheme);
   $('connexion').hidden = false;
   clearInterval(etat.attente);
   montrer('formulaire-connexion');
@@ -813,6 +810,8 @@ poserTheme(themeChoisi());
 
 // --- Démarrage ------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
+  $('theme').addEventListener('click', basculerTheme);
+  $('theme-connexion').addEventListener('click', basculerTheme);
   $('connexion').hidden = false;
   $('formulaire-connexion').addEventListener('submit', connecter);
   $('apple').addEventListener('click', continuerAvecApple);
