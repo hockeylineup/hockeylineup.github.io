@@ -88,9 +88,8 @@ button:disabled { opacity: .5; cursor: default; }
 .compte { margin-top: auto; display: grid; gap: 10px; padding: 12px 8px 0; border-top: 1px solid var(--ligne); }
 .compte #qui { display: grid; gap: 6px; justify-items: start; font-size: .8rem; }
 .compte .courriel { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.compte-actions { display: flex; gap: 8px; }
-.compte-actions button { padding: 7px 10px; font-size: .85rem; white-space: nowrap; }
-.compte-actions #deconnexion { flex: 1; }
+.compte-actions { display: grid; gap: 8px; }
+.compte-actions button { width: 100%; padding: 8px 10px; font-size: .85rem; white-space: nowrap; }
 .principal { min-width: 0; }
 
 /* Téléphone : la colonne devient une bande, les sections défilent. */
@@ -103,7 +102,8 @@ button:disabled { opacity: .5; cursor: default; }
   .marque { padding: 0; }
   .marque em, .compte #qui { display: none; }
   .compte { grid-column: 2; grid-row: 1; margin: 0; padding: 0; border: 0; }
-  .compte-actions button { padding: 6px 10px; }
+  .compte-actions { display: flex; }
+  .compte-actions button { width: auto; padding: 6px 10px; }
   .cote nav { grid-column: 1 / -1; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
   .cote nav::-webkit-scrollbar { display: none; }
   .cote nav button { white-space: nowrap; padding: 7px 14px; border-radius: 999px; background: var(--fond); }
