@@ -104,4 +104,13 @@ ul.parts { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; fle
 ul.parts li { display: flex; align-items: center; gap: 8px; }
 ul.parts li b { margin-left: auto; font-weight: 500; }
 .deux-colonnes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
-label.case { display: inline-flex; align-items: center; gap: 6px; }
+label.case { display: inline-flex; align-items: center; gap: 8px; color: var(--texte); font-size: .95rem; }
+label.case input { width: 18px; height: 18px; margin: 0; accent-color: var(--bleu); }
+.carte-formulaire { background: var(--carte); border-radius: 12px; padding: 16px; display: grid; gap: 16px; }
+.carte-formulaire .champs { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.carte-formulaire .champs .large { grid-column: span 2; }
+.carte-formulaire input, .carte-formulaire select { width: 100%; height: 40px; }
+.carte-formulaire .pied-formulaire { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; }
+.carte-formulaire .pied-formulaire label:not(.case) { min-width: 180px; }
+.carte-formulaire .pied-formulaire button { margin-left: auto; height: 40px; }
+@media (max-width: 520px) { .carte-formulaire .champs .large { grid-column: auto; } }

@@ -729,20 +729,31 @@ function formulaireEcriture(categories) {
   const remplir = () => cat.replaceChildren(el('option', { value: '' }, 'Sans catégorie'),
     ...categories.filter((c) => c.sens === sens.value).map((c) => el('option', { value: c.id }, c.nom)));
   sens.addEventListener('change', remplir); remplir();
-  const montant = el('input', { inputmode: 'decimal', placeholder: 'Montant ($)', required: true });
+  const montant = el('input', { inputmode: 'decimal', placeholder: '0,00 $', required: true });
   const jour = el('input', { type: 'date', value: jourIso(new Date()), required: true });
-  const note = el('input', { placeholder: 'Note' });
+  const note = el('input', { placeholder: 'Facultative' });
   const mensuelle = el('input', { type: 'checkbox' });
   const fin = el('input', { type: 'date' });
-  return el('form', { classe: 'outils', onsubmit: (ev) => {
+  const champFin = el('label', { hidden: true }, 'Jusqu’au (facultatif)', fin);
+  mensuelle.addEventListener('change', () => { champFin.hidden = !mensuelle.checked; });
+  return el('form', { classe: 'carte-formulaire', onsubmit: (ev) => {
     ev.preventDefault();
     const cents = Math.round(parseFloat(montant.value.replace(',', '.').replace(/[^0-9.]/g, '')) * 100);
     if (!(cents > 0)) { dire('Le montant n’est pas valide.', true); return; }
     agir('admin_enregistrer_ecriture', { p_id: null, p_jour: jour.value, p_sens: sens.value, p_montant_cents: cents,
       p_categorie: cat.value || null, p_note: note.value, p_recurrence: mensuelle.checked ? 'mensuelle' : 'aucune',
       p_fin: mensuelle.checked && fin.value ? fin.value : null }, 'Écriture enregistrée.');
-  } }, sens, montant, jour, cat, note, el('label', { classe: 'case' }, mensuelle, 'Chaque mois'),
-     el('label', {}, 'Fin (facultative)', fin), el('button', { type: 'submit' }, 'Ajouter'));
+  } },
+    el('div', { classe: 'champs' },
+      el('label', {}, 'Type', sens),
+      el('label', {}, 'Montant', montant),
+      el('label', {}, 'Date', jour),
+      el('label', {}, 'Catégorie', cat),
+      el('label', { classe: 'large' }, 'Note', note)),
+    el('div', { classe: 'pied-formulaire' },
+      el('label', { classe: 'case' }, mensuelle, 'Revient chaque mois'),
+      champFin,
+      el('button', { type: 'submit' }, 'Ajouter l’écriture')));
 }
 
 function vueCategories(categories) {
