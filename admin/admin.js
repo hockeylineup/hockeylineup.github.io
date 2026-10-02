@@ -289,7 +289,7 @@ function deconnecter(raison) {
   clearTimeout(etat.minuterie);
   $('app').hidden = true;
   $('contenu').replaceChildren();
-  poserTheme(themeChoisi());
+  poserTheme(document.documentElement.getAttribute('data-theme') || themeChoisi());
   $('theme').addEventListener('click', basculerTheme);
   $('theme-connexion').addEventListener('click', basculerTheme);
   $('connexion').hidden = false;
@@ -805,7 +805,7 @@ function poserTheme(t) {
   }
 }
 function basculerTheme() {
-  const t = themeChoisi() === 'light' ? 'dark' : 'light';
+  const t = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
   try { localStorage.setItem('theme', t); } catch (e) { /* bloqué */ }
   poserTheme(t);
 }
