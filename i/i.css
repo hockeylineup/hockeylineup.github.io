@@ -15,3 +15,4 @@ p { color: #9fb0cc; line-height: 1.4; }
 .bouton.secondaire { background: #18243d; color: #f2f5fa; }
 .lien { color: #6ea2ff; text-decoration: none; padding: 6px; }
 .note { font-size: .85rem; margin: 4px 0 0; }
+[hidden] { display: none !important; }
