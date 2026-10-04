@@ -311,6 +311,7 @@ const ONGLETS = [
   ['regions', 'Régions', vueRegions],
   ['parametres', 'Paramètres', vueParametres],
   ['journal', 'Journal', vueJournal],
+  ['photos', 'Photos', vuePhotos],
 ];
 
 function ouvrir() {
@@ -368,6 +369,7 @@ async function vueTableau() {
     ['saisons_actives', 'Saisons actives'], ['equipes', 'Équipes'],
     ['matchs_a_venir', 'Matchs à venir'], ['remplacants_communs', 'Banque commune'],
     ['demandes_ouvertes', 'Demandes ouvertes'], ['administrateurs', 'Administrateurs'],
+    ['photos_en_attente', 'Photos à approuver'],
   ];
   return el('section', {}, el('h2', {}, 'Vue d’ensemble'),
     el('div', { classe: 'tuiles' }, tuiles.map(([k, titre]) =>
@@ -568,6 +570,53 @@ async function vueJournal() {
     tableau(['Quand', 'Qui', 'Action', 'Détail'], js.map((j) => el('tr', {},
       el('td', {}, date(j.fait_le, true)), el('td', {}, j.auteur), el('td', {}, j.action),
       el('td', {}, el('pre', {}, JSON.stringify(j.detail)))))));
+}
+
+// --- Photos à approuver (4 octobre 2026) ----------------------------------
+// La file des photos des cartes de joueur, traitée en lot. Le dossier
+// `photos` n'est pas public : chaque image se lit avec le jeton, puis
+// s'affiche par une adresse `blob:` (permise par la CSP).
+async function imagePhoto(chemin) {
+  const img = el('img', { classe: 'photo', alt: '' });
+  try {
+    const r = await fetch(SUPABASE + '/storage/v1/object/authenticated/photos/' + chemin, {
+      credentials: 'omit', cache: 'no-store', headers: { apikey: CLE, Authorization: 'Bearer ' + etat.jeton },
+    });
+    if (r.ok) img.src = URL.createObjectURL(await r.blob());
+  } catch (e) { /* l'image manque : la rangée reste, sans elle */ }
+  return img;
+}
+
+async function effacerPhoto(chemin) {
+  await fetch(SUPABASE + '/storage/v1/object/photos/' + chemin, {
+    method: 'DELETE', credentials: 'omit', headers: { apikey: CLE, Authorization: 'Bearer ' + etat.jeton },
+  }).catch(() => {});
+}
+
+// Approuvée : l'ancienne photo du joueur s'efface ; refusée : celle-ci.
+async function moderer(p, approuver) {
+  try {
+    const aEffacer = await rpc('moderer_photo', { p_profil: p.profil_id, p_approuver: approuver });
+    if (aEffacer) await effacerPhoto(aEffacer);
+    dire(approuver ? 'Photo approuvée.' : 'Photo refusée.');
+    await afficher();
+  } catch (e) {
+    dire(e.message, true);
+  }
+}
+
+async function vuePhotos() {
+  const ps = await rpc('admin_photos_en_attente');
+  const images = await Promise.all(ps.map((p) => imagePhoto(p.chemin)));
+  return el('section', {}, el('h2', {}, 'Photos à approuver (' + ps.length + ')'),
+    ps.length === 0 ? el('p', { classe: 'doux' }, 'Aucune photo à approuver.') :
+    el('div', { classe: 'photos' }, ps.map((p, i) => el('div', { classe: 'tuile' },
+      images[i],
+      el('b', {}, [p.prenom, p.nom].filter(Boolean).join(' ')),
+      el('span', { classe: 'doux' }, date(p.soumise_le, true)),
+      el('div', { classe: 'outils' },
+        el('button', { classe: 'discret', onclick: () => moderer(p, false) }, 'Refuser'),
+        el('button', { onclick: () => moderer(p, true) }, 'Approuver'))))));
 }
 
 // --- Finances (2 octobre 2026) -------------------------------------------

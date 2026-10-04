@@ -166,3 +166,8 @@ label.case input { width: 18px; height: 18px; margin: 0; accent-color: var(--ble
 .carte-formulaire .pied-formulaire label:not(.case) { min-width: 180px; }
 .carte-formulaire .pied-formulaire button { margin-left: auto; height: 40px; }
 @media (max-width: 520px) { .carte-formulaire .champs .large { grid-column: auto; } }
+
+/* Photos à approuver */
+.photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.photos .tuile { display: flex; flex-direction: column; gap: 6px; }
+.photos .photo { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; background: var(--fond); }
