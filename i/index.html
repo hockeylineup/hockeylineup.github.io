@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' https://wkjyeyswlvdkaalhslvw.supabase.co; connect-src https://wkjyeyswlvdkaalhslvw.supabase.co; base-uri 'none'; form-action 'none'">
+  <meta name="robots" content="noindex, nofollow">
+  <title>LineUp · Invitation</title>
+  <link rel="icon" type="image/png" href="../favicon.png">
+  <link rel="stylesheet" href="i.css">
+  <script src="i.js" defer></script>
+</head>
+<body>
+  <!-- Avec l'app installée, le téléphone ouvre l'invitation dans LineUp sans
+       passer ici. Sans l'app : le code, et de quoi l'installer. -->
+  <main>
+    <img id="logo" src="../favicon.png" alt="" width="88" height="88">
+    <p class="marque">Line<span>Up</span></p>
+    <h1 id="titre">Invitation</h1>
+    <p id="texte">Chargement…</p>
+    <div id="bloc-code" hidden>
+      <p class="etiquette">Ton code</p>
+      <p id="code" class="code"></p>
+    </div>
+    <div id="magasins" hidden>
+      <a id="ios" class="bouton" href="#">Installer sur iPhone</a>
+      <a id="android" class="bouton secondaire" href="#">Installer sur Android</a>
+      <a id="ouvrir" class="lien" href="#">J'ai déjà l'app : ouvrir l'invitation</a>
+      <p class="note" id="note">Le code est copié : LineUp le retrouvera à la première ouverture.</p>
+    </div>
+  </main>
+</body>
+</html>

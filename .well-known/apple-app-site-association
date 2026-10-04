@@ -2,9 +2,18 @@
   "applinks": {
     "details": [
       {
-        "appIDs": ["A662J6RJ6V.com.lineup.mandam"],
+        "appIDs": [
+          "A662J6RJ6V.com.lineup.mandam"
+        ],
         "components": [
-          { "/": "/match/*", "comment": "Un match, depuis le calendrier du téléphone" }
+          {
+            "/": "/match/*",
+            "comment": "Un match, depuis le calendrier du téléphone"
+          },
+          {
+            "/": "/i/*",
+            "comment": "Une invitation à joindre une ligue"
+          }
         ]
       }
     ]
