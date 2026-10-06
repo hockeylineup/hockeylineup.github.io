@@ -4,7 +4,7 @@ body { margin: 0; min-height: 100vh; display: grid; place-items: center; backgro
 main { width: min(420px, 100% - 32px); padding: 32px 0; }
 #logo { border-radius: 22%; object-fit: cover; }
 #logo.pastille { border-radius: 50%; background: #fff; }
-.marque { margin: 10px 0 0; font-weight: 800; letter-spacing: .04em; } .marque span { color: #1f6fff; }
+.marque { margin: 14px 0 0; } .marque img { display: block; height: 24px; width: auto; margin: 0 auto; }
 h1 { margin: 6px 0 8px; font-size: 1.6rem; }
 p { color: #9fb0cc; line-height: 1.4; }
 .etiquette { margin: 24px 0 4px; font-size: .75rem; text-transform: uppercase; letter-spacing: .12em; }

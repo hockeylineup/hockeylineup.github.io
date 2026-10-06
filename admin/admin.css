@@ -76,7 +76,11 @@ button:disabled { opacity: .5; cursor: default; }
 }
 .marque { display: flex; align-items: center; gap: 10px; padding: 0 8px; }
 .marque img { width: 32px; height: 32px; border-radius: 22%; }
-.marque strong { font-size: 1.15rem; }
+.marque strong { font-size: 1.15rem; display: flex; }
+img.mot { height: .78em; width: auto; vertical-align: baseline; }
+.marque img.mot { width: auto; height: 18px; border-radius: 0; }
+img.mot.clair, :root[data-theme="light"] img.mot.sombre { display: none; }
+:root[data-theme="light"] img.mot.clair { display: inline; }
 .marque em { font-style: normal; color: var(--doux); font-size: .85rem; margin-left: auto; }
 .cote nav { display: grid; gap: 2px; }
 .cote nav button {
