@@ -1,4 +1,4 @@
-# LineUp — site web
+# EspaceLigue — site web
 
-Page d'accueil de LineUp Hockey, publiée par GitHub Pages à chaque push sur `main`.
-Le code de l'app vit dans le dépôt privé `VinceETS/lineup`.
+Page d'accueil d'EspaceLigue Hockey, publiée par GitHub Pages à chaque push sur `main`.
+Le code de l'app (nom de code LineUp, nom anglais de réserve) vit dans le dépôt privé `VinceETS/lineup`.

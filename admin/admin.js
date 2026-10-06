@@ -1,4 +1,4 @@
-// LineUp · Gestion — la page d'administration du système.
+// EspaceLigue · Gestion — la page d'administration du système.
 //
 // La sécurité ne repose pas sur cette page : chaque fonction `admin_*` de la
 // base vérifie elle-même que le compte est administrateur, et le compte du
@@ -235,7 +235,7 @@ async function preparerCode() {
   } else {
     // Une inscription abandonnée laisse un facteur non vérifié : on le retire.
     for (const f of facteurs) await authJeton('DELETE', 'factors/' + f.id).catch(() => {});
-    const ins = await authJeton('POST', 'factors', { factor_type: 'totp', friendly_name: 'LineUp Gestion' });
+    const ins = await authJeton('POST', 'factors', { factor_type: 'totp', friendly_name: 'EspaceLigue Gestion' });
     etat.facteur = ins.id;
     $('qr').src = imageQr(ins.totp.qr_code);
     $('secret').textContent = ins.totp.secret;
@@ -620,7 +620,7 @@ async function vuePhotos() {
 }
 
 // --- Finances (2 octobre 2026) -------------------------------------------
-// Deux volets, comme dans les apps : l'entreprise LineUp (revenus et dépenses
+// Deux volets, comme dans les apps : l'entreprise EspaceLigue (revenus et dépenses
 // saisis, en catégories gérées) et l'argent des ligues. Les graphiques sont du
 // SVG dessiné ici : aucun script tiers (CSP).
 const SVG = 'http://www.w3.org/2000/svg';
@@ -708,7 +708,7 @@ async function vueFinances() {
   const mois = moisEntre(debut, fin);
   const choix = el('div', { classe: 'outils' },
     el('select', { onchange: (ev) => { f0.volet = ev.target.value; afficher(); } },
-      el('option', { value: 'lineup', selected: f0.volet === 'lineup' }, 'LineUp'),
+      el('option', { value: 'lineup', selected: f0.volet === 'lineup' }, 'EspaceLigue'),
       el('option', { value: 'ligues', selected: f0.volet === 'ligues' }, 'Ligues')),
     el('select', { onchange: (ev) => { f0.periode = ev.target.value; afficher(); } },
       PERIODES.map(([k, t]) => el('option', { value: k, selected: f0.periode === k }, t))));
@@ -741,7 +741,7 @@ async function vueFinances() {
   };
   const parMois = (sens) => mois.map((m) => visibles.filter((e) => e.sens === sens && e.jour.startsWith(m))
     .reduce((t, e) => t + e.montant_cents, 0));
-  return el('section', {}, el('h2', {}, 'Finances · LineUp'), choix,
+  return el('section', {}, el('h2', {}, 'Finances · EspaceLigue'), choix,
     el('div', { classe: 'tuiles' },
       el('div', { classe: 'tuile' }, el('b', { classe: 'vert' }, argent(revenus)), el('span', { classe: 'doux' }, 'Revenus')),
       el('div', { classe: 'tuile' }, el('b', { classe: 'rouge' }, argent(depenses)), el('span', { classe: 'doux' }, 'Dépenses')),

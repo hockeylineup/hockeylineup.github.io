@@ -3,7 +3,7 @@
 // l'app installée, le téléphone ne vient jamais ici. Sans elle : le nom et le
 // logo de la ligue (`apercu_invitation`, ouvert sans compte), le code, et les
 // magasins. Toucher un magasin copie le lien : à la première ouverture,
-// LineUp le lit dans le presse-papiers et propose de joindre la ligue.
+// EspaceLigue le lit dans le presse-papiers et propose de joindre la ligue.
 
 const SUPABASE = 'https://wkjyeyswlvdkaalhslvw.supabase.co';
 // La clé publiable : faite pour vivre dans une page, RLS fait le reste.
@@ -53,7 +53,7 @@ async function charger() {
   const inv = lignes[0];
   if (!inv) return introuvable();
 
-  document.title = 'LineUp · ' + inv.ligue;
+  document.title = 'EspaceLigue · ' + inv.ligue;
   if (inv.logo) {
     $('logo').src = SUPABASE + '/storage/v1/object/public/logos/' + inv.logo;
     if (inv.logo_pastille) $('logo').classList.add('pastille');
