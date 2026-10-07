@@ -457,7 +457,7 @@ async function vueLigue(id) {
         ' Paiement manuel permis'),
       el('p', { classe: 'doux' }, 'Comptant et Interac, notés par le gérant. Sans commission.')),
 
-    // Le défaut, ou un tarif négocié avec la ligue : le propriétaire seul.
+    // Le défaut, ou un tarif négocié avec la ligue : tout administrateur.
     el('h3', {}, 'Commission EspaceLigue'),
     commissionLigue(l, defaut),
 
@@ -589,7 +589,7 @@ async function vueParametres() {
 // --- Commission (7 octobre 2026) -------------------------------------------
 // Ce qu'EspaceLigue retient sur chaque paiement par carte : un pourcentage
 // (en centièmes) et un montant fixe (en cents), pris sur ce que reçoit la
-// ligue. Le propriétaire seul la change.
+// ligue. Tout administrateur la règle.
 function surPaiement(c, cents) {
   return Math.min(cents, Math.max(0, Math.round(cents * c.pourcentage / 10000) + c.fixe));
 }
@@ -614,7 +614,6 @@ function commissionLigue(l, defaut) {
   const fiche = el('div', { classe: 'fiche' },
     el('p', {}, 'En vigueur : ', el('strong', {}, texteCommission(c)), negociee ? ' (négociée)' : ' (défaut)',
       el('span', { classe: 'doux' }, ' · sur 25,00 $ : ' + argent(surPaiement(c, 2500)))));
-  if (!etat.proprietaire) return fiche;
   const pourcentage = el('input', { inputmode: 'decimal', value: versTexte(c.pourcentage) });
   const fixe = el('input', { inputmode: 'decimal', value: versTexte(c.fixe) });
   fiche.append(
@@ -634,8 +633,8 @@ function commissionLigue(l, defaut) {
 async function vueCommission() {
   const c = await rpc('commission_plateforme');
   const versTexte = (n) => (n / 100).toLocaleString('fr-CA', { maximumFractionDigits: 2 });
-  const pourcentage = el('input', { inputmode: 'decimal', value: versTexte(c.pourcentage), disabled: !etat.proprietaire });
-  const fixe = el('input', { inputmode: 'decimal', value: versTexte(c.fixe), disabled: !etat.proprietaire });
+  const pourcentage = el('input', { inputmode: 'decimal', value: versTexte(c.pourcentage) });
+  const fixe = el('input', { inputmode: 'decimal', value: versTexte(c.fixe) });
   const exemple = el('p', { classe: 'doux' });
   const saisie = () => ({ pourcentage: dollarsVersCents(pourcentage.value), fixe: dollarsVersCents(fixe.value) });
   const majExemple = () => {
@@ -650,8 +649,7 @@ async function vueCommission() {
       el('div', { classe: 'grille' },
         el('label', {}, 'Pourcentage (%)', pourcentage), el('label', {}, 'Montant fixe ($)', fixe)),
       exemple,
-      etat.proprietaire
-        ? el('div', { classe: 'actions' }, el('button', { onclick: async () => {
+      el('div', { classe: 'actions' }, el('button', { onclick: async () => {
             const s = saisie();
             if (s.pourcentage > 10000 || s.fixe > 10000) { dire('Au plus 100 % et 100 $.', true); return; }
             try {
@@ -660,8 +658,7 @@ async function vueCommission() {
               dire('Commission enregistrée.');
               await afficher();
             } catch (e) { dire(e.message, true); }
-          } }, 'Enregistrer'))
-        : el('p', { classe: 'doux' }, 'Réservé au propriétaire.')));
+          } }, 'Enregistrer'))));
 }
 
 async function vueJournal() {
