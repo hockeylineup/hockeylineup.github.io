@@ -439,6 +439,18 @@ async function vueLigue(id) {
         agir('admin_nommer_gerant', { p_ligue: id, p_courriel: courrielGerant.value }, 'Gérant nommé.'); } },
         courrielGerant, el('button', { type: 'submit' }, 'Nommer gérant'))),
 
+    // La carte par défaut ; le manuel, ligue par ligue (Vincent, 7 octobre 2026).
+    el('h3', {}, 'Paiements'),
+    el('div', { classe: 'fiche' },
+      el('p', {}, 'Carte (Stripe) : ', el('strong', {}, l.stripe && l.stripe.paiements_actifs ? 'active'
+        : l.stripe ? 'dossier en cours' : 'inactive')),
+      el('label', {}, el('input', { type: 'checkbox', checked: !!l.paiement_manuel,
+        onchange: (ev) => agir('admin_permettre_paiement_manuel',
+          { p_ligue: id, p_permis: ev.target.checked },
+          ev.target.checked ? 'Paiement manuel permis.' : 'Paiement manuel retiré.') }),
+        ' Paiement manuel permis'),
+      el('p', { classe: 'doux' }, 'Comptant et Interac, notés par le gérant. Sans commission.')),
+
     el('h3', {}, 'Saisons et équipes'),
     l.saisons.length ? l.saisons.map((s) => el('div', { classe: 'fiche' },
       el('strong', {}, s.nom, ' ', el('span', { classe: 'doux' },
