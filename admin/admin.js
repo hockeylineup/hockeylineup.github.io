@@ -312,6 +312,7 @@ const ONGLETS = [
   ['utilisateurs', 'Utilisateurs', vueUtilisateurs],
   ['admins', 'Administrateurs', vueAdmins],
   ['finances', 'Finances', vueFinances],
+  ['commission', 'Commission', vueCommission],
   ['regions', 'Régions', vueRegions],
   ['parametres', 'Paramètres', vueParametres],
   ['journal', 'Journal', vueJournal],
@@ -578,6 +579,52 @@ async function vueParametres() {
         el('td', {}, el('button', { onclick: () => agir('admin_changer_parametre',
           { p_cle: p.cle, p_valeur: valeur() }, 'Paramètre enregistré.') }, 'Enregistrer')));
     })));
+}
+
+// --- Commission (7 octobre 2026) -------------------------------------------
+// Ce qu'EspaceLigue retient sur chaque paiement par carte : un pourcentage
+// (en centièmes) et un montant fixe (en cents), pris sur ce que reçoit la
+// ligue. Le propriétaire seul la change.
+function surPaiement(c, cents) {
+  return Math.min(cents, Math.max(0, Math.round(cents * c.pourcentage / 10000) + c.fixe));
+}
+
+function dollarsVersCents(texte) {
+  const n = Number(String(texte).replace(',', '.').replace(/[^0-9.]/g, ''));
+  return Number.isFinite(n) ? Math.max(0, Math.round(n * 100)) : 0;
+}
+
+async function vueCommission() {
+  const c = await rpc('commission_plateforme');
+  const versTexte = (n) => (n / 100).toLocaleString('fr-CA', { maximumFractionDigits: 2 });
+  const pourcentage = el('input', { inputmode: 'decimal', value: versTexte(c.pourcentage), disabled: !etat.proprietaire });
+  const fixe = el('input', { inputmode: 'decimal', value: versTexte(c.fixe), disabled: !etat.proprietaire });
+  const exemple = el('p', { classe: 'doux' });
+  const saisie = () => ({ pourcentage: dollarsVersCents(pourcentage.value), fixe: dollarsVersCents(fixe.value) });
+  const majExemple = () => {
+    exemple.textContent = 'Sur 25,00 $ : ' + argent(surPaiement(saisie(), 2500))
+      + ' pour EspaceLigue, pris sur ce que reçoit la ligue.';
+  };
+  pourcentage.oninput = majExemple;
+  fixe.oninput = majExemple;
+  majExemple();
+  return el('section', {}, el('h2', {}, 'Commission'),
+    el('div', { classe: 'fiche' },
+      el('div', { classe: 'grille' },
+        el('label', {}, 'Pourcentage (%)', pourcentage), el('label', {}, 'Montant fixe ($)', fixe)),
+      exemple,
+      etat.proprietaire
+        ? el('div', { classe: 'actions' }, el('button', { onclick: async () => {
+            const s = saisie();
+            if (s.pourcentage > 10000 || s.fixe > 10000) { dire('Au plus 100 % et 100 $.', true); return; }
+            try {
+              await rpc('admin_changer_parametre', { p_cle: 'commission_pourcentage', p_valeur: s.pourcentage });
+              await rpc('admin_changer_parametre', { p_cle: 'commission_fixe', p_valeur: s.fixe });
+              dire('Commission enregistrée.');
+              await afficher();
+            } catch (e) { dire(e.message, true); }
+          } }, 'Enregistrer'))
+        : el('p', { classe: 'doux' }, 'Réservé au propriétaire.')));
 }
 
 async function vueJournal() {
