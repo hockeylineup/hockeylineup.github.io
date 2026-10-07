@@ -410,6 +410,7 @@ async function chargerRegions() {
 async function vueLigue(id) {
   await chargerRegions();
   const l = await rpc('admin_ligue', { p_ligue: id });
+  const defaut = await rpc('commission_plateforme');
   const nom = el('input', { value: l.nom, required: true });
   const fuseau = el('input', { value: l.fuseau });
   const region = el('select', {}, el('option', { value: '' }, '— Aucune —'),
@@ -455,6 +456,10 @@ async function vueLigue(id) {
           ev.target.checked ? 'Paiement manuel permis.' : 'Paiement manuel retiré.') }),
         ' Paiement manuel permis'),
       el('p', { classe: 'doux' }, 'Comptant et Interac, notés par le gérant. Sans commission.')),
+
+    // Le défaut, ou un tarif négocié avec la ligue : le propriétaire seul.
+    el('h3', {}, 'Commission EspaceLigue'),
+    commissionLigue(l, defaut),
 
     el('h3', {}, 'Saisons et équipes'),
     l.saisons.length ? l.saisons.map((s) => el('div', { classe: 'fiche' },
@@ -594,6 +599,38 @@ function dollarsVersCents(texte) {
   return Number.isFinite(n) ? Math.max(0, Math.round(n * 100)) : 0;
 }
 
+function texteCommission(c) {
+  const pc = (c.pourcentage / 100).toLocaleString('fr-CA', { maximumFractionDigits: 2 }) + ' %';
+  if (!c.pourcentage && !c.fixe) return 'aucune';
+  if (!c.pourcentage) return argent(c.fixe);
+  return c.fixe ? pc + ' + ' + argent(c.fixe) : pc;
+}
+
+function commissionLigue(l, defaut) {
+  const negociee = l.commission_pourcentage != null && l.commission_fixe != null
+    ? { pourcentage: l.commission_pourcentage, fixe: l.commission_fixe } : null;
+  const c = negociee || defaut;
+  const versTexte = (n) => (n / 100).toLocaleString('fr-CA', { maximumFractionDigits: 2 });
+  const fiche = el('div', { classe: 'fiche' },
+    el('p', {}, 'En vigueur : ', el('strong', {}, texteCommission(c)), negociee ? ' (négociée)' : ' (défaut)',
+      el('span', { classe: 'doux' }, ' · sur 25,00 $ : ' + argent(surPaiement(c, 2500)))));
+  if (!etat.proprietaire) return fiche;
+  const pourcentage = el('input', { inputmode: 'decimal', value: versTexte(c.pourcentage) });
+  const fixe = el('input', { inputmode: 'decimal', value: versTexte(c.fixe) });
+  fiche.append(
+    el('div', { classe: 'grille' },
+      el('label', {}, 'Pourcentage (%)', pourcentage), el('label', {}, 'Montant fixe ($)', fixe)),
+    el('div', { classe: 'actions' },
+      el('button', { onclick: () => {
+        const p = dollarsVersCents(pourcentage.value), f = dollarsVersCents(fixe.value);
+        if (p > 10000 || f > 10000) { dire('Au plus 100 % et 100 $.', true); return; }
+        agir('admin_commission_ligue', { p_ligue: l.id, p_pourcentage: p, p_fixe: f }, 'Tarif négocié appliqué.');
+      } }, 'Appliquer ce tarif à la ligue'),
+      negociee ? el('button', { classe: 'danger', onclick: () => agir('admin_commission_ligue',
+        { p_ligue: l.id, p_pourcentage: null, p_fixe: null }, 'Retour au défaut.') }, 'Revenir au défaut') : null));
+  return fiche;
+}
+
 async function vueCommission() {
   const c = await rpc('commission_plateforme');
   const versTexte = (n) => (n / 100).toLocaleString('fr-CA', { maximumFractionDigits: 2 });
@@ -608,7 +645,7 @@ async function vueCommission() {
   pourcentage.oninput = majExemple;
   fixe.oninput = majExemple;
   majExemple();
-  return el('section', {}, el('h2', {}, 'Commission'),
+  return el('section', {}, el('h2', {}, 'Commission par défaut'),
     el('div', { classe: 'fiche' },
       el('div', { classe: 'grille' },
         el('label', {}, 'Pourcentage (%)', pourcentage), el('label', {}, 'Montant fixe ($)', fixe)),
