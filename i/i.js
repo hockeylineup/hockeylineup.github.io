@@ -5,9 +5,13 @@
 // magasins. Toucher un magasin copie le lien : à la première ouverture,
 // EspaceLigue le lit dans le presse-papiers et propose de joindre la ligue.
 
-const SUPABASE = 'https://wkjyeyswlvdkaalhslvw.supabase.co';
+// Servie depuis le Mac (`lancer-site.sh` du dépôt lineup), la page parle à la
+// base de développement du M1 ; en ligne, à la production. Comme les apps :
+// Debug au M1, Release à la production (7 octobre 2026).
+const LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
+const SUPABASE = LOCAL ? 'https://supabase.lautmandam.mywire.org' : 'https://wkjyeyswlvdkaalhslvw.supabase.co';
 // La clé publiable : faite pour vivre dans une page, RLS fait le reste.
-const CLE = 'sb_publishable_aDtOKUHIXbnSLWX6qPBpuQ_bixLx_ft';
+const CLE = LOCAL ? 'sb_publishable_sHSVbbwMhsDTqjYb93S1md_P0EIsxy4' : 'sb_publishable_aDtOKUHIXbnSLWX6qPBpuQ_bixLx_ft';
 // ⚠️ À remplir quand l'app sera publiée. Vides : le bouton dit « Bientôt ».
 const APP_STORE = '';
 const PLAY_STORE = '';

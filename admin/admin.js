@@ -11,9 +11,13 @@
 // - refuse de s'afficher dans un cadre (détournement de clic).
 'use strict';
 
-const SUPABASE = 'https://wkjyeyswlvdkaalhslvw.supabase.co';
+// Servie depuis le Mac (`lancer-site.sh` du dépôt lineup), la page parle à la
+// base de développement du M1 ; en ligne, à la production. Comme les apps :
+// Debug au M1, Release à la production (7 octobre 2026).
+const LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
+const SUPABASE = LOCAL ? 'https://supabase.lautmandam.mywire.org' : 'https://wkjyeyswlvdkaalhslvw.supabase.co';
 // Publique par construction : c'est la même que dans les apps.
-const CLE = 'sb_publishable_aDtOKUHIXbnSLWX6qPBpuQ_bixLx_ft';
+const CLE = LOCAL ? 'sb_publishable_sHSVbbwMhsDTqjYb93S1md_P0EIsxy4' : 'sb_publishable_aDtOKUHIXbnSLWX6qPBpuQ_bixLx_ft';
 const INACTIVITE_MS = 15 * 60 * 1000;
 
 if (window.top !== window.self) {
