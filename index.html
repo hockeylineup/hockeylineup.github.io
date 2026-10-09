@@ -3,8 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>EspaceLigue Hockey</title>
-  <meta name="description" content="EspaceLigue : gestion de ligues de hockey — horaire, alignements, absences, remplacements et paiements.">
+  <title>EspaceLigue — Gestion de ligues de hockey : horaire, alignements, remplaçants</title>
+  <meta name="description" content="Application pour gérer une ligue de hockey : horaire des matchs, alignements, absences, remplaçants et paiements des joueurs. Sur iPhone et Android.">
+  <link rel="canonical" href="https://espaceligue.ca/">
+  <meta property="og:url" content="https://espaceligue.ca/">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="fr_CA">
+  <meta property="og:site_name" content="EspaceLigue">
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <meta property="og:title" content="EspaceLigue Hockey">
@@ -13,6 +18,36 @@
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://espaceligue.ca/#org",
+        "name": "EspaceLigue",
+        "url": "https://espaceligue.ca/",
+        "logo": "https://espaceligue.ca/logo.png"
+      },
+      {
+        "@type": "WebSite",
+        "name": "EspaceLigue",
+        "url": "https://espaceligue.ca/",
+        "inLanguage": "fr-CA",
+        "publisher": { "@id": "https://espaceligue.ca/#org" }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "name": "EspaceLigue",
+        "applicationCategory": "SportsApplication",
+        "operatingSystem": "iOS, Android",
+        "inLanguage": "fr-CA",
+        "description": "Gestion de ligues de hockey : horaire, alignements, absences, remplaçants et paiements.",
+        "publisher": { "@id": "https://espaceligue.ca/#org" }
+      }
+    ]
+  }
+  </script>
   <style>
     :root {
       --fond: #0a1428;
@@ -53,15 +88,26 @@
       color: var(--texte);
       font-weight: 600;
     }
+    .cache { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .atouts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; width: 100%; max-width: 60rem; margin-top: 48px; text-align: left; }
+    .atouts section { padding: 20px; border-radius: 16px; background: rgba(255, 255, 255, .04); border: 1px solid rgba(255, 255, 255, .08); }
+    .atouts h2 { margin: 0 0 6px; font-size: 1.05rem; }
+    .atouts p { margin: 0; font-size: .95rem; }
     footer { margin-top: 48px; color: var(--doux); font-size: .85rem; }
     footer a { color: var(--doux); }
   </style>
 </head>
 <body>
   <img class="logo" src="logo.png" alt="Logo EspaceLigue Hockey">
-  <h1><img class="mot" src="marque/mot-sombre.svg" alt="EspaceLigue"></h1>
+  <h1><img class="mot" src="marque/mot-sombre.svg" alt="EspaceLigue"><span class="cache"> — gestion de ligues de hockey</span></h1>
   <p>La gestion de ligues de hockey, simplement : horaire, alignements, absences, remplacements et paiements.</p>
   <span class="bientot">Bientôt sur iOS et Android</span>
+  <div class="atouts">
+    <section><h2>Horaire et alignements</h2><p>Les matchs de la saison et les équipes, à jour pour tous.</p></section>
+    <section><h2>Absences et remplaçants</h2><p>Un joueur s'absente, un remplaçant est appelé.</p></section>
+    <section><h2>Paiements</h2><p>Saison et remplacements payés par carte ou Apple Pay.</p></section>
+    <section><h2>Joueurs et gérants</h2><p>Les joueurs disent présent ; le gérant mène la ligue.</p></section>
+  </div>
   <footer>© 2026 EspaceLigue · <a href="admin/">Gestion</a></footer>
 </body>
 </html>
