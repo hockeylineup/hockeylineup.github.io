@@ -127,6 +127,13 @@
     h1 { margin: 32px 0 8px; font-size: clamp(2rem, 6vw, 3rem); letter-spacing: -.02em; }
     h1 img.mot { display: block; height: clamp(30px, 7vw, 44px); width: auto; margin: 0 auto; }
     p { margin: 0 auto; max-width: 32rem; color: var(--doux); font-size: 1.1rem; line-height: 1.5; }
+    a.inscription {
+      display: inline-block; margin-top: 28px; padding: 14px 40px; border-radius: 999px;
+      background: var(--bleu); color: #fff; font-weight: 700; font-size: 1.15rem; text-decoration: none;
+      box-shadow: 0 10px 30px rgba(31, 111, 255, .45);
+    }
+    a.inscription:hover { filter: brightness(1.1); }
+    a.inscription + .bientot { margin-top: 16px; }
     .bientot {
       display: inline-block;
       margin-top: 28px;
@@ -159,6 +166,7 @@
   <img class="logo" src="logo.png" alt="Logo EspaceLigue Hockey">
   <h1><img class="mot" src="marque/mot-sombre.svg" alt="EspaceLigue"><span class="cache"> — gestion de ligues de hockey</span></h1>
   <p>La gestion de ligues de hockey, simplement : horaire, alignements, absences, remplacements et paiements.</p>
+  <a class="inscription" href="inscription/">S'inscrire</a>
   <span class="bientot">Bientôt sur iOS et Android</span>
   <div class="atouts">
     <section><h2>Horaire et alignements</h2><p>Les matchs de la saison et les équipes, à jour pour tous.</p></section>
