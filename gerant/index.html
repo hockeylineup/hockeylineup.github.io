@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Même politique que l'administration : rien d'ailleurs, ne parle qu'à Supabase. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https://wkjyeyswlvdkaalhslvw.supabase.co https://supabase.lautmandam.mywire.org; connect-src https://wkjyeyswlvdkaalhslvw.supabase.co https://supabase.lautmandam.mywire.org; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex, nofollow">
+  <title>EspaceLigue · Espace gérant</title>
+  <link rel="icon" type="image/png" href="../favicon.png">
+  <link rel="stylesheet" href="../admin/admin.css?v=13">
+  <link rel="stylesheet" href="gerant.css?v=1">
+  <script src="../commun/session.js?v=1" defer></script>
+  <script src="gerant.js?v=1" defer></script>
+</head>
+<body>
+  <main id="connexion" class="connexion" hidden>
+    <button id="theme-connexion" class="theme" type="button"></button>
+    <img class="logo" src="../marque/icone-256.png" alt="">
+    <h1><img class="mot sombre" src="../marque/mot-sombre.svg" alt="EspaceLigue"><img class="mot clair" src="../marque/mot-clair.svg" alt="EspaceLigue"> · Espace gérant</h1>
+    <form id="formulaire-connexion" autocomplete="on">
+      <button type="button" id="apple" class="apple">
+        <svg viewBox="0 0 17 20" aria-hidden="true"><path fill="currentColor" d="M14.1 10.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9C3.5 4.8 1.9 5.8 1 7.4c-1.8 3.2-.5 7.8 1.3 10.4.9 1.3 1.9 2.7 3.2 2.6 1.3-.1 1.8-.8 3.3-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.3 3.1-2.6 1-1.5 1.4-2.9 1.4-3-.1 0-2.7-1-2.6-4.2zM11.6 3c.7-.9 1.2-2 1-3.2-1 0-2.3.7-3 1.6-.7.8-1.2 2-1.1 3.1 1.2.1 2.3-.6 3.1-1.5z"/></svg>
+        Continuer avec Apple
+      </button>
+      <p class="ou">ou</p>
+      <label>Courriel <input id="courriel" type="email" autocomplete="username" required></label>
+      <label>Mot de passe <input id="mdp" type="password" autocomplete="current-password" required></label>
+      <button type="submit">Se connecter</button>
+      <p id="erreur-connexion" class="erreur" role="alert"></p>
+      <p class="doux centre">Pas de compte ? <a href="../inscription/">S'inscrire</a></p>
+    </form>
+  </main>
+
+  <div id="app" class="coquille" hidden>
+    <aside class="cote">
+      <div class="marque"><img src="../marque/icone-256.png" alt=""><strong><img class="mot sombre" src="../marque/mot-sombre.svg" alt="EspaceLigue"><img class="mot clair" src="../marque/mot-clair.svg" alt="EspaceLigue"></strong><em>Gérant</em></div>
+      <label id="choix-ligue" hidden>Ligue <select id="ligue"></select></label>
+      <nav id="onglets" aria-label="Sections"></nav>
+      <div class="compte">
+        <span id="qui" class="doux"></span>
+        <div class="compte-actions">
+          <button id="theme" class="theme" type="button"></button>
+          <button id="deconnexion" class="discret">Se déconnecter</button>
+        </div>
+      </div>
+    </aside>
+    <div class="principal">
+      <p id="message" class="message" role="status" hidden></p>
+      <main id="contenu"></main>
+    </div>
+  </div>
+</body>
+</html>
