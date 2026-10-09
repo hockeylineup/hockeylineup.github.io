@@ -7,6 +7,8 @@
   <meta name="description" content="EspaceLigue, la gestion de ligues de hockey, sera bientôt disponible sur iOS et Android.">
   <link rel="canonical" href="https://espaceligue.ca/inscription/">
   <link rel="icon" type="image/png" href="../favicon.png">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; connect-src https://wkjyeyswlvdkaalhslvw.supabase.co https://supabase.lautmandam.mywire.org; base-uri 'none'; form-action 'none'">
+  <script src="attente.js?v=1" defer></script>
   <link rel="apple-touch-icon" href="../apple-touch-icon.png">
   <!-- Page d'attente : l'inscription (formulaire, code, Apple) reviendra ici à l'ouverture. -->
   <style>
@@ -24,6 +26,14 @@
     h1 img { display: block; height: clamp(30px, 7vw, 44px); width: auto; margin: 0 auto; }
     p { margin: 0 auto 12px; max-width: 32rem; color: var(--doux); font-size: 1.1rem; line-height: 1.5; }
     a { color: var(--texte); }
+    form { width: min(360px, 100%); display: grid; gap: 10px; margin: 20px auto 24px; text-align: left; }
+    form h2 { margin: 0 0 4px; font-size: 1.15rem; text-align: center; }
+    label { display: grid; gap: 4px; color: var(--doux); font-size: .9rem; }
+    input { font: inherit; color: var(--texte); background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .15); border-radius: 10px; padding: 11px 12px; }
+    button { font: inherit; font-weight: 700; color: #fff; background: var(--bleu); border: 0; border-radius: 999px; padding: 12px; cursor: pointer; box-shadow: 0 10px 30px rgba(31, 111, 255, .4); }
+    button:disabled { opacity: .5; cursor: default; }
+    #reponse { min-height: 1.4em; margin: 0; text-align: center; font-size: 1rem; }
+    #reponse.erreur { color: #ff7a7f; }
     footer { margin-top: 40px; color: var(--doux); font-size: .85rem; }
     footer a { color: var(--doux); }
   </style>
@@ -32,6 +42,13 @@
   <a href="../"><img class="logo" src="../logo.png" alt="Logo EspaceLigue Hockey"></a>
   <h1><img src="../marque/mot-sombre.svg" alt="EspaceLigue"></h1>
   <p>EspaceLigue sera bientôt disponible.</p>
+  <form id="attente">
+    <h2>Préviens-moi à l'ouverture</h2>
+    <label>Courriel <input id="courriel" type="email" autocomplete="email" required maxlength="254"></label>
+    <label>Nom de ta ligue (facultatif) <input id="ligue" autocomplete="organization" maxlength="120"></label>
+    <button type="submit">M'avertir</button>
+    <p id="reponse" role="status"></p>
+  </form>
   <p>Pour toute question : <a href="mailto:info@espaceligue.ca">info@espaceligue.ca</a></p>
   <footer><a href="../">Retour à l'accueil</a></footer>
 </body>
