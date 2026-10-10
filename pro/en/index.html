@@ -52,27 +52,11 @@
     .vedette h1 em { font-style: normal; color: var(--bleu); }
     .vedette p { margin: 0 0 30px; color: var(--doux); font-size: 1.2rem; max-width: 32rem; }
 
-    /* Aperçu : l'écran d'affichage de l'aréna */
+    /* Aperçu : les écrans d'affichage en boucle (ecrans.html) */
     .ecran {
-      border-radius: 18px; padding: 18px; background: #06101f; border: 1px solid var(--bord);
-      box-shadow: 0 30px 80px rgba(31, 111, 255, .3);
-      font-variant-numeric: tabular-nums;
+      display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: 14px; background: #05080f;
+      box-shadow: 0 0 0 1px var(--bord), 0 30px 80px rgba(31, 111, 255, .3);
     }
-    .ecran .titre { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
-    .ecran .titre strong { font-size: 1rem; }
-    .ecran .titre span { color: var(--doux); font-size: .9rem; }
-    .ecran .ligne {
-      display: grid; grid-template-columns: 52px 1fr auto; gap: 12px; align-items: center;
-      padding: 10px 12px; border-radius: 10px; background: var(--carte); margin-top: 6px; font-size: .92rem;
-    }
-    .ecran .heure { color: var(--doux); }
-    .ecran .vest { color: var(--doux); font-size: .82rem; }
-    .ecran .direct { color: var(--vert); font-weight: 700; font-size: .8rem; }
-    .ecran .direct::before {
-      content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%;
-      background: var(--vert); margin-right: 6px; vertical-align: 1px;
-    }
-    .ecran .ligne.en-cours { border: 1px solid rgba(47, 210, 122, .35); }
 
     /* Sections */
     section.bloc { padding: 56px 0; border-top: 1px solid var(--bord); }
@@ -97,17 +81,16 @@
 
     @media (max-width: 760px) {
       header .marque img { height: 20px; }
-      header .bouton { padding: 8px 14px; font-size: .85rem; }
       header .bouton { display: none; }
+      .vedette { grid-template-columns: 1fr; gap: 32px; padding: 24px 0 48px; }
+      section.bloc { padding: 40px 0; }
+      footer span { width: 100%; }
     }
     @media (max-width: 360px) {
       header { gap: 10px; }
       header .marque { gap: 6px; }
       header .marque img { height: 15px; }
       header .marque .pro { font-size: .7rem; padding: 2px 6px; }
-      .vedette { grid-template-columns: 1fr; gap: 32px; padding: 24px 0 48px; }
-      section.bloc { padding: 40px 0; }
-      footer span { width: 100%; }
     }
   </style>
 </head>
@@ -126,13 +109,7 @@
           <p>Ice rinks, gyms and fields: bookings, league seasons, displays and equipment, all in one place.</p>
           <a class="bouton grand" href="mailto:info@espaceligue.ca?subject=EspaceLigue%20Pro%20demo">Request a demo</a>
         </div>
-        <div class="ecran" aria-label="Sample arena display screen">
-          <div class="titre"><strong>Municipal Arena · Rink 1</strong><span>Tuesday</span></div>
-          <div class="ligne"><span class="heure">18:00</span><span>Public skating</span><span class="vest">—</span></div>
-          <div class="ligne en-cours"><span class="heure">19:30</span><span>Requins 3 – 2 Castors</span><span class="direct">Live</span></div>
-          <div class="ligne"><span class="heure">21:00</span><span>Tuesday League · Game 14</span><span class="vest">Rooms 2 · 5</span></div>
-          <div class="ligne"><span class="heure">22:30</span><span>Private rental</span><span class="vest">Room 1</span></div>
-        </div>
+        <iframe class="ecran" src="ecrans.html" title="Sample display screens" loading="lazy"></iframe>
       </div>
 
       <section class="bloc">

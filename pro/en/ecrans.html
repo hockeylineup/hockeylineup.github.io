@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Display screens</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #05080f; overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #e9eef7; }
+  .scene { position: relative; width: 100%; height: 100%; container-type: inline-size; }
+  :root { --bleu: #1f6fff; --vert: #2fd27a; --ambre: #ffb020; }
+  /* Chaque écran est un téléviseur 16:9. */
+  .tv { position: absolute; inset: 0; overflow: hidden; opacity: 0; transition: opacity .8s ease;
+    font-variant-numeric: tabular-nums; container-type: inline-size; }
+  .tv * { line-height: 1.2; }
+  .pastille { display: inline-flex; align-items: center; gap: .5em; font-weight: 700; }
+  .pastille::before { content: ""; width: .6em; height: .6em; border-radius: 50%; background: currentColor;
+    animation: pouls 1.6s ease-in-out infinite; }
+  @keyframes pouls { 50% { opacity: .35; } }
+
+  /* A — Tableau des départs */
+  .tv.a { background: #0b0f17; padding: 3.2cqw 3.6cqw; display: flex; flex-direction: column; }
+  .a .tete { display: flex; align-items: flex-end; justify-content: space-between; border-bottom: .25cqw solid var(--bleu); padding-bottom: 1.6cqw; }
+  .a .tete .lieu { font-size: 1.4cqw; color: #8a97ad; text-transform: uppercase; letter-spacing: .15em; }
+  .a .tete .plateau { font-size: 3.4cqw; font-weight: 800; }
+  .a .tete .heure { font-size: 4.2cqw; font-weight: 300; }
+  .a table { width: 100%; border-collapse: collapse; margin-top: 1.2cqw; }
+  .a th { text-align: left; font-size: 1.1cqw; color: #66738a; text-transform: uppercase; letter-spacing: .14em; font-weight: 600; padding: 1cqw 0; }
+  .a td { font-size: 2.1cqw; padding: 1.55cqw 0; border-bottom: 1px solid #1a2130; }
+  .a td.h { color: #8a97ad; width: 12%; }
+  .a td.v { width: 16%; color: #c3cde0; }
+  .a td.s { width: 18%; text-align: right; font-size: 1.5cqw; }
+  .a th:last-child { text-align: right; }
+  .a tr.actif td { color: #fff; }
+  .a tr.actif td.h { color: var(--vert); }
+  .a .s.direct { color: var(--vert); }
+  .a .s.bientot { color: var(--ambre); font-weight: 700; }
+  .a .s.prevu { color: #66738a; }
+
+  /* B — Vedette & à suivre */
+  .tv.b { background: radial-gradient(ellipse at 20% 0%, #163a8a, #070d1c 60%); display: grid; grid-template-columns: 1.35fr 1fr; }
+  .b .vedette { padding: 3.6cqw; display: flex; flex-direction: column; justify-content: space-between; }
+  .b .etiquette { font-size: 1.3cqw; letter-spacing: .18em; text-transform: uppercase; color: #9fb0cc; }
+  .b .score { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 2cqw; }
+  .b .equipe { text-align: center; }
+  .b .logo { width: 7cqw; height: 7cqw; border-radius: 50%; margin: 0 auto 1cqw; display: grid; place-items: center; font-weight: 900; font-size: 2.4cqw; }
+  .b .nom { font-size: 1.8cqw; font-weight: 700; }
+  .b .chiffres { font-size: 9cqw; font-weight: 800; letter-spacing: -.03em; }
+  .b .chiffres span { color: #4a5a78; margin: 0 .15em; }
+  .b .pied { display: flex; justify-content: space-between; align-items: center; font-size: 1.5cqw; color: #9fb0cc; }
+  .b .pied .pastille { color: var(--vert); }
+  .b .suite { background: rgba(255,255,255,.04); border-left: 1px solid rgba(255,255,255,.08); padding: 3.6cqw 3cqw; display: flex; flex-direction: column; gap: 1.4cqw; }
+  .b .suite h3 { margin: 0 0 .6cqw; font-size: 1.3cqw; letter-spacing: .18em; text-transform: uppercase; color: #9fb0cc; font-weight: 600; }
+  .b .item { display: grid; grid-template-columns: 7cqw 1fr; gap: 1.4cqw; padding: 1.4cqw 0; border-top: 1px solid rgba(255,255,255,.08); }
+  .b .item .h { font-size: 2.2cqw; font-weight: 700; }
+  .b .item .t { font-size: 1.7cqw; font-weight: 600; }
+  .b .item .d { font-size: 1.25cqw; color: #9fb0cc; margin-top: .4cqw; }
+
+  /* C — Clair institutionnel */
+  .tv.c { background: #f4f5f7; color: #111827; display: grid; grid-template-rows: auto 1fr auto; }
+  .c .tete { background: #fff; display: flex; align-items: center; justify-content: space-between; padding: 2.2cqw 3.6cqw; border-bottom: 1px solid #e3e6ec; }
+  .c .tete .plateau { font-size: 2.8cqw; font-weight: 800; letter-spacing: -.01em; }
+  .c .tete .plateau small { display: block; font-size: 1.3cqw; font-weight: 500; color: #6b7280; letter-spacing: 0; }
+  .c .tete .heure { text-align: right; font-size: 3.6cqw; font-weight: 700; }
+  .c .tete .heure small { display: block; font-size: 1.3cqw; font-weight: 500; color: #6b7280; }
+  .c .liste { padding: 2cqw 3.6cqw; display: flex; flex-direction: column; gap: 1.2cqw; }
+  .c .ligne { display: grid; grid-template-columns: 13cqw 1fr auto; align-items: center; background: #fff; border-radius: 1cqw; padding: 1.5cqw 2cqw; border-left: .6cqw solid #d1d5db; }
+  .c .ligne .h { font-size: 2cqw; font-weight: 700; }
+  .c .ligne .h small { display: block; font-size: 1.2cqw; color: #6b7280; font-weight: 500; }
+  .c .ligne .t { font-size: 2cqw; font-weight: 600; }
+  .c .ligne .t small { display: block; font-size: 1.25cqw; color: #6b7280; font-weight: 500; margin-top: .3cqw; }
+  .c .ligne .badge { font-size: 1.25cqw; font-weight: 700; padding: .6cqw 1.2cqw; border-radius: 99px; background: #eef1f6; color: #374151; }
+  .c .ligne.actif { border-left-color: #16a34a; box-shadow: 0 .6cqw 2cqw rgba(0,0,0,.06); }
+  .c .ligne.actif .badge { background: #dcfce7; color: #15803d; }
+  .c .ligne.suivant { border-left-color: var(--bleu); }
+  .c .ligne.suivant .badge { background: #dbe7ff; color: #1d4ed8; }
+  .c .pied { display: flex; justify-content: space-between; padding: 1.4cqw 3.6cqw; font-size: 1.2cqw; color: #6b7280; background: #fff; border-top: 1px solid #e3e6ec; }
+
+  /* D — Ligne du temps */
+  .tv.d { background: #090c14; padding: 3cqw 3.6cqw; display: flex; flex-direction: column; }
+  .d .tete { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2.4cqw; }
+  .d .tete .plateau { font-size: 3cqw; font-weight: 800; }
+  .d .tete .plateau span { color: var(--bleu); }
+  .d .tete .heure { font-size: 3cqw; font-weight: 300; color: #c3cde0; }
+  .d .axe { position: relative; flex: 1; }
+  .d .graduations { display: flex; justify-content: space-between; font-size: 1.15cqw; color: #56627a; padding-bottom: 1cqw; border-bottom: 1px solid #1d2433; }
+  .d .bandes { position: relative; height: 22cqw; margin-top: 3cqw; }
+  .d .bande { position: absolute; top: 0; bottom: 0; border-radius: 1.2cqw; padding: 1.4cqw 1.6cqw; overflow: hidden; }
+  .d .bande .t { font-size: 2cqw; font-weight: 700; white-space: nowrap; }
+  .d .bande .s { font-size: 1.2cqw; opacity: .8; margin-top: .5cqw; white-space: nowrap; }
+  .d .maintenant { position: absolute; top: -1cqw; bottom: -3cqw; width: .25cqw; background: #ff4d5e; }
+  .d .maintenant::before { content: "NOW"; position: absolute; top: -2.4cqw; left: 50%; transform: translateX(-50%); font-size: 1cqw; font-weight: 800; color: #ff4d5e; letter-spacing: .12em; }
+  .d .bas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.6cqw; margin-top: auto; }
+  .d .bas div { background: #111725; border-radius: 1cqw; padding: 1.4cqw 1.6cqw; }
+  .d .bas small { display: block; font-size: 1.05cqw; letter-spacing: .14em; text-transform: uppercase; color: #66738a; margin-bottom: .5cqw; }
+  .d .bas b { font-size: 1.8cqw; }
+
+  /* E — Multi-plateaux (hall d'entrée) */
+  .tv.e { background: #0a0f1a; display: grid; grid-template-rows: auto 1fr; }
+  .e .tete { display: flex; justify-content: space-between; align-items: center; padding: 2cqw 3cqw; background: linear-gradient(90deg, #0f2a66, #0a0f1a); }
+  .e .tete .lieu { font-size: 2.4cqw; font-weight: 800; }
+  .e .tete .heure { font-size: 2.6cqw; font-weight: 300; }
+  .e .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.4cqw; padding: 2cqw 3cqw 3cqw; }
+  .e .col { background: #111827; border-radius: 1.2cqw; overflow: hidden; display: flex; flex-direction: column; }
+  .e .col h3 { margin: 0; padding: 1.4cqw 1.6cqw; font-size: 1.7cqw; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1f2937; }
+  .e .col h3 small { font-size: 1.05cqw; color: #8a97ad; font-weight: 500; }
+  .e .ev { padding: 1.3cqw 1.6cqw; border-bottom: 1px solid #1a2230; }
+  .e .ev .h { font-size: 1.15cqw; color: #8a97ad; }
+  .e .ev .t { font-size: 1.6cqw; font-weight: 600; margin-top: .3cqw; }
+  .e .ev .v { font-size: 1.1cqw; color: #8a97ad; margin-top: .3cqw; }
+  .e .ev.actif { background: linear-gradient(90deg, rgba(47,210,122,.14), transparent); border-left: .4cqw solid var(--vert); }
+  .e .ev.actif .h { color: var(--vert); font-weight: 700; }
+  .e .ev .barre { height: .35cqw; background: #1f2937; border-radius: 1cqw; margin-top: .9cqw; }
+  .e .ev .barre i { display: block; height: 100%; width: 62%; background: var(--vert); border-radius: 1cqw; }
+
+  /* F — Rooms d'abord (grand format, lisible de loin) */
+  .tv.f { background: #000; display: grid; grid-template-columns: 1fr 1.6fr; }
+  .f .gauche { background: var(--bleu); padding: 3.6cqw; display: flex; flex-direction: column; justify-content: space-between; color: #fff; }
+  .f .gauche .heure { font-size: 10cqw; font-weight: 800; letter-spacing: -.04em; line-height: .9; }
+  .f .gauche .date { font-size: 1.8cqw; opacity: .85; margin-top: 1cqw; }
+  .f .gauche .plateau { font-size: 2.6cqw; font-weight: 800; }
+  .f .gauche .plateau small { display: block; font-size: 1.3cqw; font-weight: 500; opacity: .8; }
+  .f .droite { padding: 3.2cqw 3.6cqw; display: flex; flex-direction: column; gap: 1.6cqw; }
+  .f .bloc { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2cqw; padding-bottom: 1.6cqw; border-bottom: 1px solid #1c1c1c; }
+  .f .bloc .h { font-size: 1.4cqw; color: #8a8a8a; font-weight: 600; }
+  .f .bloc .t { font-size: 2.4cqw; font-weight: 700; margin-top: .3cqw; }
+  .f .vest { display: flex; gap: .8cqw; }
+  .f .vest span { width: 5.4cqw; height: 5.4cqw; border-radius: 1cqw; background: #161616; border: 1px solid #2a2a2a; display: grid; place-items: center; font-size: 2.6cqw; font-weight: 800; }
+  .f .vest span small { display: block; font-size: .8cqw; font-weight: 600; color: #8a8a8a; margin-bottom: -.6cqw; text-transform: uppercase; letter-spacing: .1em; }
+  .f .bloc.actif .h { color: var(--vert); }
+  .f .bloc.actif .vest span { border-color: var(--vert); color: var(--vert); }
+  .f .bloc.passe { opacity: .4; }
+
+  .marque { position: absolute; right: 2cqw; bottom: 1.4cqw; font-size: 1cqw; letter-spacing: .14em; font-weight: 800; opacity: .45; }
+  .marque i { font-style: normal; color: var(--bleu); }
+  .c .marque, .c .marque i { color: #111827; } .c .marque i { color: var(--bleu); }
+  .f .marque i { color: #fff; }
+  .tv.visible { opacity: 1; }
+  .points { position: absolute; left: 50%; bottom: 1.2cqw; transform: translateX(-50%); display: flex; gap: .7cqw; z-index: 2; }
+  .points i { width: .8cqw; height: .8cqw; border-radius: 50%; background: rgba(128,140,160,.45); transition: background .3s; }
+  .points i.actif { background: #1f6fff; }
+</style>
+</head>
+<body>
+<!-- Les six pistes d'affichage (espaceligue-pro/docs/maquettes/affichage.html), en boucle. -->
+<div class="scene">
+    <div class="tv a">
+      <div class="tete">
+        <div><div class="lieu">Municipal Arena</div><div class="plateau">Rink 1</div></div>
+        <div class="heure">19:52</div>
+      </div>
+      <table>
+        <tr><th>Time</th><th>Activity</th><th>Rooms</th><th>Status</th></tr>
+        <tr class="passe"><td class="h">18:00</td><td style="color:#66738a">Public skating</td><td class="v" style="color:#66738a">—</td><td class="s prevu">Done</td></tr>
+        <tr class="actif"><td class="h">19:30</td><td>Requins <b>3 – 2</b> Castors</td><td class="v">3 · 4</td><td class="s direct"><span class="pastille"><span>2<sup>nd</sup> period</span></span></td></tr>
+        <tr><td class="h">21:00</td><td>Tuesday League · Game 14</td><td class="v">2 · 5</td><td class="s bientot">Rooms open</td></tr>
+        <tr><td class="h">22:30</td><td>Private rental</td><td class="v">1</td><td class="s prevu">Scheduled</td></tr>
+      </table>
+      <div class="marque">ESPACE<i>LIGUE</i></div>
+    </div>
+    <div class="tv b">
+      <div class="vedette">
+        <div class="etiquette">Rink 1 · Tuesday League</div>
+        <div class="score">
+          <div class="equipe"><div class="logo" style="background:#0e7490">R</div><div class="nom">Requins</div></div>
+          <div class="chiffres">3<span>:</span>2</div>
+          <div class="equipe"><div class="logo" style="background:#b45309">C</div><div class="nom">Castors</div></div>
+        </div>
+        <div class="pied"><span class="pastille"><span>Live · 2<sup>nd</sup> period</span></span><span>Rooms 3 & 4</span></div>
+      </div>
+      <div class="suite">
+        <h3>Up next</h3>
+        <div class="item"><div class="h">21:00</div><div><div class="t">Tuesday League · Game 14</div><div class="d">Rooms 2 & 5</div></div></div>
+        <div class="item"><div class="h">22:30</div><div><div class="t">Private rental</div><div class="d">Room 1</div></div></div>
+        <div class="item"><div class="h">06:30</div><div><div class="t">School hockey</div><div class="d">Tomorrow · Rooms 1 – 4</div></div></div>
+      </div>
+      <div class="marque">ESPACE<i>LIGUE</i></div>
+    </div>
+    <div class="tv c">
+      <div class="tete">
+        <div class="plateau"><small>Municipal Arena</small>Rink 1</div>
+        <div class="heure"><small>Tuesday, October 14</small>19:52</div>
+      </div>
+      <div class="liste">
+        <div class="ligne"><div class="h">18:00<small>– 19:15</small></div><div class="t">Public skating<small>Open to all</small></div><span class="badge">Done</span></div>
+        <div class="ligne actif"><div class="h">19:30<small>– 20:45</small></div><div class="t">Requins 3 – 2 Castors<small>Tuesday League · Rooms 3 & 4</small></div><span class="badge">In progress</span></div>
+        <div class="ligne suivant"><div class="h">21:00<small>– 22:15</small></div><div class="t">Tuesday League · Game 14<small>Rooms 2 & 5</small></div><span class="badge">Next</span></div>
+        <div class="ligne"><div class="h">22:30<small>– 23:30</small></div><div class="t">Private rental<small>Room 1</small></div><span class="badge">Scheduled</span></div>
+      </div>
+      <div class="pied"><span>Schedule subject to change</span><span>espaceligue.ca</span></div>
+    </div>
+    <div class="tv d">
+      <div class="tete"><div class="plateau">Rink 1 <span>·</span> Municipal Arena</div><div class="heure">Tuesday · 19:52</div></div>
+      <div class="axe">
+        <div class="graduations"><span>6 pm</span><span>7 pm</span><span>8 pm</span><span>9 pm</span><span>10 pm</span><span>11 pm</span><span>12 am</span></div>
+        <div class="bandes">
+          <div class="bande" style="left:0;width:20%;background:#1a2130;color:#8a97ad"><div class="t">Public skating</div><div class="s">18:00 – 19:15</div></div>
+          <div class="bande" style="left:25%;width:20.5%;background:linear-gradient(135deg,#127a48,#0d5a36)"><div class="t">Requins 3 – 2 Castors</div><div class="s">Live · Rooms 3 · 4</div></div>
+          <div class="bande" style="left:50%;width:20.5%;background:linear-gradient(135deg,#1f5fe0,#1546ad)"><div class="t">Game 14</div><div class="s">21:00 · Rooms 2 · 5</div></div>
+          <div class="bande" style="left:75%;width:16.6%;background:#2a2f45"><div class="t">Private rental</div><div class="s">22:30 · Room 1</div></div>
+          <div class="maintenant" style="left:31.1%"></div>
+        </div>
+      </div>
+      <div class="bas">
+        <div><small>In progress</small><b>Requins – Castors</b></div>
+        <div><small>Next</small><b>21:00 · Game 14</b></div>
+        <div><small>Ice available</small><b>23:30 →</b></div>
+      </div>
+      <div class="marque">ESPACE<i>LIGUE</i></div>
+    </div>
+    <div class="tv e">
+      <div class="tete"><div class="lieu">Municipal Sports Complex</div><div class="heure">19:52</div></div>
+      <div class="cols">
+        <div class="col"><h3>Rink 1 <small>Rooms 1 – 6</small></h3>
+          <div class="ev actif"><div class="h">LIVE · 19:30</div><div class="t">Requins 3 – 2 Castors</div><div class="v">Rooms 3 · 4</div><div class="barre"><i></i></div></div>
+          <div class="ev"><div class="h">21:00</div><div class="t">Tuesday League · G14</div><div class="v">Rooms 2 · 5</div></div>
+          <div class="ev"><div class="h">22:30</div><div class="t">Private rental</div><div class="v">Room 1</div></div>
+        </div>
+        <div class="col"><h3>Rink 2 <small>Rooms 7 – 12</small></h3>
+          <div class="ev actif"><div class="h">IN PROGRESS · 19:00</div><div class="t">Figure skating</div><div class="v">Les Étoiles Club</div><div class="barre"><i style="width:80%"></i></div></div>
+          <div class="ev"><div class="h">20:15</div><div class="t">Ringette U15</div><div class="v">Rooms 8 · 9</div></div>
+          <div class="ev"><div class="h">21:30</div><div class="t">Adult hockey</div><div class="v">Rooms 10 · 11</div></div>
+        </div>
+        <div class="col"><h3>Gym <small>Courts A · B</small></h3>
+          <div class="ev"><div class="h">20:00</div><div class="t">Rec volleyball</div><div class="v">Court A</div></div>
+          <div class="ev"><div class="h">20:00</div><div class="t">Open pickleball</div><div class="v">Court B</div></div>
+          <div class="ev"><div class="h">21:30</div><div class="t">Corporate basketball</div><div class="v">Courts A + B</div></div>
+        </div>
+      </div>
+      <div class="marque">ESPACE<i>LIGUE</i></div>
+    </div>
+    <div class="tv f">
+      <div class="gauche">
+        <div><div class="heure">19:52</div><div class="date">Tuesday, October 14</div></div>
+        <div class="plateau"><small>Municipal Arena</small>Rink 1</div>
+      </div>
+      <div class="droite">
+        <div class="bloc passe"><div><div class="h">18:00 · Done</div><div class="t">Public skating</div></div><div class="vest"></div></div>
+        <div class="bloc actif"><div><div class="h">19:30 · Live · 3 – 2</div><div class="t">Requins – Castors</div></div><div class="vest"><span><div><small>Room</small>3</div></span><span><div><small>Room</small>4</div></span></div></div>
+        <div class="bloc"><div><div class="h">21:00</div><div class="t">Tuesday League · G14</div></div><div class="vest"><span><div><small>Room</small>2</div></span><span><div><small>Room</small>5</div></span></div></div>
+        <div class="bloc"><div><div class="h">22:30</div><div class="t">Private rental</div></div><div class="vest"><span><div><small>Room</small>1</div></span></div></div>
+      </div>
+      <div class="marque">ESPACE<i>LIGUE</i></div>
+    </div>
+  <div class="points"></div>
+</div>
+<script>
+  const ecrans = [...document.querySelectorAll('.tv')];
+  const points = document.querySelector('.points');
+  ecrans.forEach(() => points.appendChild(document.createElement('i')));
+  let i = 0;
+  function montrer(n) {
+    ecrans.forEach((e, k) => e.classList.toggle('visible', k === n));
+    [...points.children].forEach((p, k) => p.classList.toggle('actif', k === n));
+  }
+  montrer(0);
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    setInterval(() => montrer(i = (i + 1) % ecrans.length), 4500);
+  }
+</script>
+</body>
+</html>
