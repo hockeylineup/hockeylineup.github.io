@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Section cachée : ni indexée, ni dans le sitemap, ni liée depuis l'accueil. -->
+  <meta name="robots" content="noindex, nofollow">
+  <title>EspaceLigue Pro — Gestion de plateaux sportifs</title>
+  <meta name="description" content="Locations de glaces, gymnases et terrains, blocs de saison des ligues, affichage en direct et prêt d'équipement. Pour les villes, les écoles et les organisations.">
+  <link rel="icon" type="image/png" sizes="192x192" href="../favicon-192.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="../favicon-48.png">
+  <link rel="icon" href="../favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+  <style>
+    :root {
+      --fond: #0a1428; --fond-2: #0f1e3d; --carte: rgba(255, 255, 255, .04); --bord: rgba(255, 255, 255, .09);
+      --texte: #f2f5fa; --doux: #9fb0cc; --bleu: #1f6fff; --vert: #2fd27a;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      background: radial-gradient(ellipse 80% 60% at 70% 0%, #14295a, var(--fond) 70%) var(--fond);
+      color: var(--texte); line-height: 1.5;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    a { color: inherit; }
+    .page { width: min(1080px, 100% - 32px); margin: 0 auto; }
+
+    /* En-tête */
+    header { display: flex; align-items: center; gap: 16px; padding: 20px 0; }
+    header .marque { display: flex; align-items: center; gap: 10px; text-decoration: none; margin-right: auto; }
+    header .marque img { height: 26px; width: auto; display: block; }
+    header .marque .pro {
+      padding: 3px 9px; border-radius: 6px; background: var(--bleu); color: #fff;
+      font-weight: 800; font-size: .85rem; letter-spacing: .06em; text-transform: uppercase;
+    }
+    .bouton {
+      display: inline-block; padding: 10px 20px; border-radius: 999px; background: var(--bleu);
+      color: #fff !important; font-weight: 700; text-decoration: none; box-shadow: 0 8px 24px rgba(31, 111, 255, .4);
+      white-space: nowrap;
+    }
+    .bouton:hover { filter: brightness(1.1); }
+    .bouton.grand { padding: 15px 34px; font-size: 1.1rem; }
+
+    /* Haut de page */
+    .vedette { display: grid; grid-template-columns: 1.15fr 1fr; align-items: center; gap: 48px; padding: 56px 0 72px; }
+    .vedette h1 { margin: 0 0 18px; font-size: clamp(2.1rem, 5vw, 3.4rem); line-height: 1.08; letter-spacing: -.025em; }
+    .vedette h1 em { font-style: normal; color: var(--bleu); }
+    .vedette p { margin: 0 0 30px; color: var(--doux); font-size: 1.2rem; max-width: 32rem; }
+
+    /* Aperçu : l'écran d'affichage de l'aréna */
+    .ecran {
+      border-radius: 18px; padding: 18px; background: #06101f; border: 1px solid var(--bord);
+      box-shadow: 0 30px 80px rgba(31, 111, 255, .3);
+      font-variant-numeric: tabular-nums;
+    }
+    .ecran .titre { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+    .ecran .titre strong { font-size: 1rem; }
+    .ecran .titre span { color: var(--doux); font-size: .9rem; }
+    .ecran .ligne {
+      display: grid; grid-template-columns: 52px 1fr auto; gap: 12px; align-items: center;
+      padding: 10px 12px; border-radius: 10px; background: var(--carte); margin-top: 6px; font-size: .92rem;
+    }
+    .ecran .heure { color: var(--doux); }
+    .ecran .vest { color: var(--doux); font-size: .82rem; }
+    .ecran .direct { color: var(--vert); font-weight: 700; font-size: .8rem; }
+    .ecran .direct::before {
+      content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+      background: var(--vert); margin-right: 6px; vertical-align: 1px;
+    }
+    .ecran .ligne.en-cours { border: 1px solid rgba(47, 210, 122, .35); }
+
+    /* Sections */
+    section.bloc { padding: 56px 0; border-top: 1px solid var(--bord); }
+    section.bloc > h2 { margin: 0 0 8px; font-size: 1.7rem; letter-spacing: -.01em; }
+    section.bloc > p.intro { margin: 0 0 28px; color: var(--doux); font-size: 1.1rem; max-width: 40rem; }
+    .grille { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
+    .carte { padding: 22px; border-radius: 16px; background: var(--carte); border: 1px solid var(--bord); }
+    .carte h3 { margin: 0 0 6px; font-size: 1.05rem; }
+    .carte p { margin: 0; color: var(--doux); }
+    .carte svg { width: 26px; height: 26px; color: var(--bleu); margin-bottom: 10px; display: block; }
+    .publics { display: flex; flex-wrap: wrap; gap: 10px; }
+    .publics span { padding: 9px 16px; border-radius: 999px; border: 1px solid var(--bord); background: var(--carte); font-weight: 600; }
+
+    .appel { text-align: center; }
+    .appel h2 { margin: 0 0 20px; font-size: 1.7rem; }
+
+    footer { padding: 32px 0 48px; border-top: 1px solid var(--bord); color: var(--doux); font-size: .9rem;
+      display: flex; flex-wrap: wrap; gap: 8px 24px; }
+    footer span { margin-right: auto; }
+    footer a { color: var(--doux); text-decoration: none; }
+    footer a:hover { color: var(--texte); }
+
+    @media (max-width: 760px) {
+      header .marque img { height: 20px; }
+      header .bouton { padding: 8px 14px; font-size: .85rem; }
+      .vedette { grid-template-columns: 1fr; gap: 32px; padding: 24px 0 48px; }
+      section.bloc { padding: 40px 0; }
+      footer span { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <a class="marque" href="./"><img src="../marque/mot-sombre.svg" alt="EspaceLigue"><span class="pro">Pro</span></a>
+      <a class="bouton" href="mailto:info@espaceligue.ca?subject=D%C3%A9mo%20EspaceLigue%20Pro">Demander une démo</a>
+    </header>
+
+    <main>
+      <div class="vedette">
+        <div>
+          <h1>Vos plateaux sportifs, <em>loués et remplis.</em></h1>
+          <p>Glaces, gymnases et terrains : réservations, saisons des ligues, affichage et équipement, au même endroit.</p>
+          <a class="bouton grand" href="mailto:info@espaceligue.ca?subject=D%C3%A9mo%20EspaceLigue%20Pro">Demander une démo</a>
+        </div>
+        <div class="ecran" aria-label="Exemple d'écran d'affichage dans l'aréna">
+          <div class="titre"><strong>Aréna municipal · Glace 1</strong><span>Mardi</span></div>
+          <div class="ligne"><span class="heure">18:00</span><span>Patinage libre</span><span class="vest">—</span></div>
+          <div class="ligne en-cours"><span class="heure">19:30</span><span>Requins 3 – 2 Castors</span><span class="direct">En direct</span></div>
+          <div class="ligne"><span class="heure">21:00</span><span>Ligue du mardi · Match 14</span><span class="vest">Vest. 2 · 5</span></div>
+          <div class="ligne"><span class="heure">22:30</span><span>Location privée</span><span class="vest">Vest. 1</span></div>
+        </div>
+      </div>
+
+      <section class="bloc">
+        <h2>Quatre modules, un seul outil</h2>
+        <p class="intro">Prenez ce dont vous avez besoin.</p>
+        <div class="grille">
+          <div class="carte">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+            <h3>Location de plateaux</h3><p>Calendrier des disponibilités, réservations ponctuelles ou récurrentes, paiement en ligne.</p>
+          </div>
+          <div class="carte">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+            <h3>Locations de ligue</h3><p>Blocs de saison attribués aux ligues ; l'horaire passe directement dans EspaceLigue.</p>
+          </div>
+          <div class="carte">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            <h3>Affichage en direct</h3><p>Horaire du jour, vestiaires et pointage des matchs sur les écrans de l'établissement.</p>
+          </div>
+          <div class="carte">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 7l9-4 9 4-9 4-9-4zM3 7v10l9 4 9-4V7M12 11v10"/></svg>
+            <h3>Location d'équipement</h3><p>Inventaire, prêts et retours, frais ajoutés à la réservation.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="bloc">
+        <h2>Pour qui</h2>
+        <p class="intro">Tout gestionnaire d'installations sportives.</p>
+        <div class="publics">
+          <span>Villes et municipalités</span>
+          <span>Écoles, cégeps et universités</span>
+          <span>Organismes publics et OBNL</span>
+          <span>Arénas et centres privés</span>
+          <span>Entreprises</span>
+        </div>
+      </section>
+
+      <section class="bloc appel">
+        <h2>Voyons ce que ça donne chez vous.</h2>
+        <a class="bouton grand" href="mailto:info@espaceligue.ca?subject=D%C3%A9mo%20EspaceLigue%20Pro">Demander une démo</a>
+      </section>
+    </main>
+
+    <footer>
+      <span>© 2026 EspaceLigue</span>
+      <a href="../confidentialite/">Confidentialité</a>
+      <a href="../conditions/">Conditions</a>
+      <a href="mailto:info@espaceligue.ca">info@espaceligue.ca</a>
+    </footer>
+  </div>
+</body>
+</html>
