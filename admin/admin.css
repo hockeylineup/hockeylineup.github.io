@@ -175,3 +175,4 @@ label.case input { width: 18px; height: 18px; margin: 0; accent-color: var(--ble
 .photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
 .photos .tuile { display: flex; flex-direction: column; gap: 6px; }
 .photos .photo { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; background: var(--fond); }
+a.bouton { display: inline-block; padding: 8px 14px; border-radius: 8px; background: var(--bleu); color: #fff; text-decoration: none; font-weight: 600; }
