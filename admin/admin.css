@@ -207,3 +207,18 @@ a.bouton { display: inline-flex; align-items: center; height: 40px; padding: 0 1
 .pastille.ambre-fond { background: color-mix(in srgb, #f5b642 22%, transparent); color: #c98a10; }
 .pastille.rouge-fond { background: color-mix(in srgb, var(--rouge) 18%, transparent); color: var(--rouge); }
 .vide { background: var(--carte); border-radius: 12px; padding: 20px; text-align: center; }
+
+/* EspaceLigue Pro */
+.sous-nav { display: flex; gap: 6px; margin-bottom: 12px; }
+.sous-nav button { background: var(--carte); color: var(--doux); border: 1px solid var(--ligne); border-radius: 999px; padding: 6px 14px; }
+.sous-nav button.actif { background: var(--bleu); color: #fff; border-color: var(--bleu); }
+.vue-pro { display: grid; gap: 16px; }
+.vue-pro > p, .vue-pro > h2 { margin: 0; }
+.vue-pro .fiche h3 { margin: 0; }
+.vue-pro .fiche p { margin: 0; }
+.vue-pro .outils { margin: 0; }
+.vue-pro td input:not([type=checkbox]), .vue-pro td select { width: 100%; min-width: 120px; }
+.vue-pro td.boutons { white-space: nowrap; width: 1%; }
+.vue-pro td.boutons > * + * { margin-left: 6px; }
+.sous-fiche { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--ligne); border-radius: 10px; }
+a.bouton.discret { background: transparent; color: var(--doux); border: 1px solid var(--ligne); height: auto; padding: 9px 14px; }

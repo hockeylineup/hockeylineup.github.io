@@ -319,7 +319,7 @@ const ONGLETS = [
   ['parametres', 'Paramètres', vueParametres],
   ['journal', 'Journal', vueJournal],
   ['photos', 'Photos', vuePhotos],
-  ['lecteurs', 'Lecteurs', vueLecteurs],
+  ['pro', 'Pro', vueOrganisationsPro],
 ];
 
 function ouvrir() {
@@ -335,13 +335,15 @@ function aller(onglet, ...args) {
   etat.onglet = onglet;
   etat.args = args;
   dire('');
+  // Les vues sans onglet à elles s'allument sous celui de leur parent.
+  const parent = { ligue: 'ligues', utilisateur: 'utilisateurs', pro_org: 'pro', lecteurs: 'pro' }[onglet] || onglet;
   $('onglets').replaceChildren(...ONGLETS.map(([cle, titre]) =>
-    el('button', { classe: cle === onglet ? 'actif' : '', onclick: () => aller(cle) }, titre)));
+    el('button', { classe: cle === parent ? 'actif' : '', onclick: () => aller(cle) }, titre)));
   return afficher();
 }
 
 async function afficher() {
-  const vue = { ligue: vueLigue, utilisateur: vueUtilisateur }[etat.onglet]
+  const vue = { ligue: vueLigue, utilisateur: vueUtilisateur, pro_org: vueOrganisationPro, lecteurs: vueLecteurs }[etat.onglet]
     || ONGLETS.find(([cle]) => cle === etat.onglet)[2];
   try {
     const contenu = await vue(...(etat.args || []));
@@ -672,6 +674,198 @@ async function vueJournal() {
       el('td', {}, el('pre', {}, JSON.stringify(j.detail)))))));
 }
 
+// --- EspaceLigue Pro : organisations (11 octobre 2026) -------------------------
+// Pro est un service vendu : l'équipe crée les organisations, y nomme les
+// membres (comptes EspaceLigue existants, par courriel), leurs établissements,
+// plateaux et affichages. Fonctions pro.admin_… (exiger_admin, journal).
+const TYPES_ORG = [['municipalite', 'Municipalité'], ['enseignement', 'Enseignement'], ['public', 'Organisme public'],
+  ['obnl', 'OBNL'], ['prive', 'Centre privé'], ['entreprise', 'Entreprise'], ['autre', 'Autre']];
+const TYPES_PLATEAU = [['glace', 'Glace'], ['gymnase', 'Gymnase'], ['terrain', 'Terrain'], ['piscine', 'Piscine'],
+  ['salle', 'Salle'], ['autre', 'Autre']];
+const ROLES_PRO = [['admin', 'Administrateur'], ['gestionnaire', 'Gestionnaire'], ['prepose', 'Préposé']];
+const LANGUES = [['fr', 'Français'], ['en', 'English']];
+
+function sousNavPro(actif) {
+  return el('nav', { classe: 'sous-nav' },
+    [['pro', 'Organisations'], ['lecteurs', 'Lecteurs']].map(([cle, titre]) =>
+      el('button', { type: 'button', classe: cle === actif ? 'actif' : '', onclick: () => aller(cle) }, titre)));
+}
+
+function liste(options, choisi) {
+  return options.map(([v, t]) => el('option', { value: v, selected: v === choisi }, t));
+}
+
+async function vueOrganisationsPro() {
+  const orgs = await rpc('pro.admin_organisations');
+  const nom = el('input', { placeholder: 'ex. Ville de Blainville', required: true });
+  const type = el('select', {}, liste(TYPES_ORG, 'municipalite'));
+  const langue = el('select', {}, liste(LANGUES, 'fr'));
+  return el('section', {}, sousNavPro('pro'),
+    el('div', { classe: 'entete-vue' }, el('h2', {}, 'Organisations Pro'),
+      el('span', { classe: 'doux' }, orgs.length ? orgs.length + ' organisation' + (orgs.length > 1 ? 's' : '') : '')),
+    orgs.length
+      ? tableau(['Organisation', 'Type', 'Membres', 'Établissements', 'Affichages', 'Lecteurs'], orgs.map((o) =>
+          el('tr', { classe: 'cliquable', onclick: () => aller('pro_org', o.id) },
+            el('td', {}, el('strong', {}, o.nom)), el('td', { classe: 'doux' }, (TYPES_ORG.find(([v]) => v === o.type) || [, o.type])[1]),
+            el('td', {}, o.membres), el('td', {}, o.etablissements), el('td', {}, o.affichages), el('td', {}, o.lecteurs))))
+      : el('p', { classe: 'doux vide' }, 'Aucune organisation pour l’instant.'),
+    el('form', { classe: 'carte-formulaire', onsubmit: async (ev) => {
+        ev.preventDefault();
+        try {
+          const id = await rpc('pro.admin_creer_organisation', { p_nom: nom.value, p_type: type.value, p_langue: langue.value });
+          dire('Organisation créée.');
+          await aller('pro_org', id);
+        } catch (e) { dire(e.message, true); }
+      } },
+      el('h3', {}, 'Nouvelle organisation'),
+      el('div', { classe: 'champs' }, el('label', { classe: 'large' }, 'Nom', nom),
+        el('label', {}, 'Type', type), el('label', {}, 'Langue', langue)),
+      el('div', { classe: 'pied-formulaire' }, el('span', { classe: 'doux' },
+        'Ajoutez ensuite ses membres, un établissement, ses plateaux et ses affichages.'),
+        el('button', { type: 'submit' }, 'Créer'))));
+}
+
+async function vueOrganisationPro(id) {
+  const o = await rpc('pro.admin_organisation', { p_id: id });
+  const recharger = () => aller('pro_org', id);
+  const nomEtab = (eid) => (o.etablissements.find((e) => e.id === eid) || {}).nom || '';
+  const tousPlateaux = o.etablissements.flatMap((e) => e.plateaux.map((p) => ({ ...p, etablissement_id: e.id })));
+
+  // Fiche
+  const nom = el('input', { value: o.nom, required: true });
+  const type = el('select', {}, liste(TYPES_ORG, o.type));
+  const langue = el('select', {}, liste(LANGUES, o.langue));
+  const fiche = el('form', { classe: 'carte-formulaire', onsubmit: (ev) => { ev.preventDefault();
+      agir('pro.admin_modifier_organisation', { p_id: id, p_nom: nom.value, p_type: type.value, p_langue: langue.value },
+        'Organisation enregistrée.'); } },
+    el('div', { classe: 'champs' }, el('label', { classe: 'large' }, 'Nom', nom),
+      el('label', {}, 'Type', type), el('label', {}, 'Langue', langue)),
+    el('div', { classe: 'actions' }, el('button', { type: 'submit' }, 'Enregistrer'),
+      el('button', { type: 'button', classe: 'discret', onclick: async () => {
+        if (!confirmer('Supprimer « ' + o.nom + ' » et tout ce qu’elle contient (membres, établissements, '
+                       + 'réservations, affichages, lecteurs) ?', 'SUPPRIMER')) return;
+        try { await rpc('pro.admin_supprimer_organisation', { p_id: id }); dire('Organisation supprimée.'); await aller('pro'); }
+        catch (e) { dire(e.message, true); }
+      } }, 'Supprimer l’organisation')));
+
+  // Membres
+  const courriel = el('input', { type: 'email', placeholder: 'Courriel du compte EspaceLigue', required: true });
+  const role = el('select', {}, liste(ROLES_PRO, 'gestionnaire'));
+  const membres = el('div', { classe: 'fiche' }, el('h3', {}, 'Membres'),
+    o.membres.length ? tableau(['Personne', 'Rôle', ''], o.membres.map((m) => {
+      const r = el('select', { onchange: () => agir('pro.admin_changer_role', { p_membre: m.id, p_role: r.value },
+        'Rôle changé.', recharger) }, liste(ROLES_PRO, m.role));
+      return el('tr', {}, el('td', {}, nomDe(m), el('br'), el('span', { classe: 'doux' }, m.courriel)), el('td', {}, r),
+        el('td', {}, el('button', { classe: 'discret', onclick: () => {
+          if (confirmer('Retirer ' + m.courriel + ' de l’organisation ?', 'RETIRER')) {
+            agir('pro.admin_retirer_membre', { p_membre: m.id }, 'Membre retiré.', recharger);
+          }
+        } }, 'Retirer')));
+    })) : el('p', { classe: 'doux' }, 'Aucun membre. Sans administrateur ni gestionnaire, personne ne peut gérer cette organisation.'),
+    el('form', { classe: 'outils', onsubmit: (ev) => { ev.preventDefault();
+        agir('pro.admin_ajouter_membre', { p_organisation: id, p_courriel: courriel.value, p_role: role.value },
+          'Membre ajouté.', recharger); } },
+      courriel, role, el('button', { type: 'submit' }, 'Ajouter')),
+    el('p', { classe: 'doux' }, 'Le compte doit déjà exister dans EspaceLigue (app ou site). L’administrateur gère tout ; '
+      + 'le gestionnaire, l’horaire et les lecteurs ; le préposé ne fait que consulter.'));
+
+  // Établissements et plateaux
+  const etablissements = el('div', { classe: 'fiche' }, el('h3', {}, 'Établissements et plateaux'),
+    o.etablissements.map((e) => {
+      const en = el('input', { value: e.nom, required: true });
+      const ea = el('input', { value: e.adresse || '', placeholder: 'Adresse' });
+      const pn = el('input', { placeholder: 'ex. Glace 2', required: true });
+      const pt = el('select', {}, liste(TYPES_PLATEAU, 'glace'));
+      return el('div', { classe: 'sous-fiche' },
+        el('form', { classe: 'outils', onsubmit: (ev) => { ev.preventDefault();
+            agir('pro.admin_enregistrer_etablissement', { p_organisation: id, p_id: e.id, p_nom: en.value, p_adresse: ea.value,
+              p_fuseau: e.fuseau }, 'Établissement enregistré.', recharger); } },
+          en, ea, el('button', { type: 'submit' }, 'Enregistrer'),
+          el('button', { type: 'button', classe: 'discret', onclick: () => {
+            if (confirmer('Supprimer « ' + e.nom + ' », ses plateaux et leurs réservations ?', 'SUPPRIMER')) {
+              agir('pro.admin_supprimer_element', { p_genre: 'etablissement', p_id: e.id }, 'Établissement supprimé.', recharger);
+            }
+          } }, 'Supprimer')),
+        e.plateaux.length ? tableau(['Plateau', 'Type', 'Actif', ''], e.plateaux.map((p) => {
+          const n = el('input', { value: p.nom });
+          const t = el('select', {}, liste(TYPES_PLATEAU, p.type));
+          const a = el('input', { type: 'checkbox', checked: p.actif });
+          return el('tr', {}, el('td', {}, n), el('td', {}, t), el('td', {}, a),
+            el('td', { classe: 'boutons' },
+              el('button', { onclick: () => agir('pro.admin_enregistrer_plateau', { p_organisation: id, p_etablissement: e.id,
+                p_id: p.id, p_nom: n.value, p_type: t.value, p_actif: a.checked }, 'Plateau enregistré.', recharger) }, 'Enregistrer'),
+              el('button', { classe: 'discret', onclick: () => {
+                if (confirmer('Supprimer le plateau « ' + p.nom + ' » et ses réservations ?', 'SUPPRIMER')) {
+                  agir('pro.admin_supprimer_element', { p_genre: 'plateau', p_id: p.id }, 'Plateau supprimé.', recharger);
+                }
+              } }, 'Supprimer')));
+        })) : el('p', { classe: 'doux' }, 'Aucun plateau.'),
+        el('form', { classe: 'outils', onsubmit: (ev) => { ev.preventDefault();
+            agir('pro.admin_enregistrer_plateau', { p_organisation: id, p_etablissement: e.id, p_id: null, p_nom: pn.value,
+              p_type: pt.value, p_actif: true }, 'Plateau ajouté.', recharger); } },
+          pn, pt, el('button', { type: 'submit' }, 'Ajouter un plateau')));
+    }),
+    (() => {
+      const n = el('input', { placeholder: 'ex. Aréna Blainville', required: true });
+      const a = el('input', { placeholder: 'Adresse (facultatif)' });
+      return el('form', { classe: 'outils', onsubmit: (ev) => { ev.preventDefault();
+          agir('pro.admin_enregistrer_etablissement', { p_organisation: id, p_id: null, p_nom: n.value, p_adresse: a.value,
+            p_fuseau: 'America/Toronto' }, 'Établissement ajouté.', recharger); } },
+        n, a, el('button', { type: 'submit' }, 'Ajouter un établissement'));
+    })());
+
+  // Affichages
+  const portee = (etab, plateau) => {
+    const s = el('select', {}, o.etablissements.flatMap((e) => [
+      el('option', { value: e.id + '|', selected: e.id === etab && !plateau }, e.nom + ' — tout le bâtiment'),
+      ...e.plateaux.map((p) => el('option', { value: e.id + '|' + p.id, selected: p.id === plateau }, e.nom + ' — ' + p.nom))]));
+    return s;
+  };
+  const decoupe = (v) => { const [e, p] = v.split('|'); return { p_etablissement: e, p_plateau: p || null }; };
+  const affichages = el('div', { classe: 'fiche' }, el('h3', {}, 'Affichages'),
+    !o.etablissements.length ? el('p', { classe: 'doux' }, 'Ajoutez d’abord un établissement.') : [
+      o.affichages.length ? tableau(['Nom', 'Montre', 'Langue', ''], o.affichages.map((a) => {
+        const n = el('input', { value: a.nom });
+        const po = portee(a.etablissement_id, a.plateau_id);
+        const la = el('select', {}, liste(LANGUES, a.langue));
+        return el('tr', {}, el('td', {}, n), el('td', {}, po), el('td', {}, la),
+          el('td', { classe: 'boutons' },
+            el('button', { onclick: () => agir('pro.admin_enregistrer_affichage', Object.assign({ p_organisation: id, p_id: a.id,
+              p_nom: n.value, p_langue: la.value }, decoupe(po.value)), 'Affichage enregistré.', recharger) }, 'Enregistrer'),
+            el('a', { href: a.url, target: '_blank', rel: 'noopener', classe: 'bouton discret' }, 'Ouvrir ↗'),
+            el('button', { classe: 'discret', onclick: () => {
+              if (confirmer('Supprimer l’affichage « ' + a.nom + ' » ? Ses lecteurs passeront « sans affichage ».', 'SUPPRIMER')) {
+                agir('pro.admin_supprimer_element', { p_genre: 'affichage', p_id: a.id }, 'Affichage supprimé.', recharger);
+              }
+            } }, 'Supprimer')));
+      })) : el('p', { classe: 'doux' }, 'Aucun affichage.'),
+      (() => {
+        const n = el('input', { placeholder: 'ex. Hall d’entrée', required: true });
+        const po = portee(o.etablissements[0].id, null);
+        const la = el('select', {}, liste(LANGUES, o.langue));
+        return el('form', { classe: 'outils', onsubmit: (ev) => { ev.preventDefault();
+            agir('pro.admin_enregistrer_affichage', Object.assign({ p_organisation: id, p_id: null, p_nom: n.value,
+              p_langue: la.value }, decoupe(po.value)), 'Affichage ajouté.', recharger); } },
+          n, po, la, el('button', { type: 'submit' }, 'Ajouter un affichage'));
+      })(),
+      el('p', { classe: 'doux' }, 'Tout le bâtiment : une colonne par plateau (hall). Un plateau : la vedette et la suite (près de la glace).')]);
+
+  // Lecteurs
+  const nomAff = (aid) => (o.affichages.find((a) => a.id === aid) || {}).nom;
+  const lecteurs = el('div', { classe: 'fiche' }, el('h3', {}, 'Lecteurs'),
+    o.lecteurs.length ? tableau(['Lecteur', 'Affichage', 'État'], o.lecteurs.map((l) => el('tr', {},
+      el('td', {}, l.nom || 'Sans nom', el('br'), el('code', { classe: 'doux' }, l.serie)),
+      el('td', {}, nomAff(l.affichage_id) || el('span', { classe: 'doux' }, '—')),
+      el('td', {}, l.statut === 'revoque' ? 'Révoqué' : enLigne(l) ? el('span', { classe: 'vert' }, '● En ligne')
+        : el('span', { classe: 'doux' }, l.dernier_contact ? 'vu le ' + date(l.dernier_contact, true) : 'jamais branché')))))
+      : el('p', { classe: 'doux' }, 'Aucun lecteur.'),
+    el('div', { classe: 'actions' }, el('button', { classe: 'discret', onclick: () => aller('lecteurs') }, 'Gérer les lecteurs')));
+
+  return el('section', { classe: 'vue-pro' }, sousNavPro('pro'),
+    el('p', {}, el('button', { classe: 'discret', onclick: () => aller('pro') }, '← Organisations')),
+    el('h2', {}, o.nom), fiche, membres, etablissements, affichages, lecteurs);
+}
+
 // --- Lecteurs EspacePlayer (11 octobre 2026) ---------------------------------
 // Les boîtiers Raspberry Pi du forfait Affichage d'EspaceLigue Pro. On inscrit
 // le numéro de série que le Pi montre au premier démarrage ; la base tire une
@@ -784,6 +978,7 @@ async function vueLecteurs(cleRendue) {
       el('li', {}, 'L’affichage de l’aréna apparaît. Changer d’affichage plus tard se fait ici, sans toucher au Pi.')));
 
   return el('section', { classe: 'vue-lecteurs' },
+    sousNavPro('lecteurs'),
     el('div', { classe: 'entete-vue' }, el('h2', {}, 'Lecteurs EspacePlayer'),
       el('span', { classe: 'doux' }, lecteurs.length ? lecteurs.length + ' inscrit' + (lecteurs.length > 1 ? 's' : '') : '')),
     cleRendue ? fichierCle(cleRendue) : null,
@@ -1036,7 +1231,7 @@ function vueCategories(categories) {
       el('td', {}, c.sens === 'revenu' ? 'Revenu' : 'Dépense'),
       el('td', {}, nom), el('td', {}, pastille(c.couleur), ' ', couleur),
       el('td', {}, el('label', { classe: 'case' }, visible, 'Graphiques')),
-      el('td', { classe: 'actions' },
+      el('td', { classe: 'boutons' },
         el('button', { onclick: () => agir('admin_enregistrer_categorie', { p_id: c.id, p_nom: nom.value, p_sens: c.sens,
           p_couleur: couleur.value, p_ordre: c.ordre, p_masquee: !visible.checked }, 'Catégorie enregistrée.') }, 'Enregistrer'),
         el('button', { classe: 'discret', onclick: () => {
