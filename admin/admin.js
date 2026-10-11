@@ -681,72 +681,81 @@ async function vueJournal() {
 function fichierCle(r) {
   const contenu = JSON.stringify({ cle: r.cle }, null, 2) + '\n';
   const url = URL.createObjectURL(new Blob([contenu], { type: 'application/json' }));
-  return el('section', { classe: 'fiche' },
-    el('h3', {}, 'Clé du lecteur ' + r.serie),
-    el('p', {}, 'Elle ne sera plus jamais affichée. Copiez ce fichier à la racine de la partition ',
-      el('code', {}, 'bootfs'), ' de la carte SD, puis redémarrez le Pi.'),
-    el('p', {}, el('code', {}, r.cle)),
-    el('a', { href: url, download: 'espaceplayer.json', classe: 'bouton' }, 'Télécharger espaceplayer.json'));
+  return el('div', { classe: 'fiche cle-rendue' },
+    el('h3', {}, 'Lecteur ', el('code', {}, r.serie), ' inscrit'),
+    el('p', { classe: 'doux' }, 'Cette clé ne sera plus jamais affichée. Copiez le fichier à la racine de la '
+      + 'partition « bootfs » de la carte SD, puis redémarrez le Pi.'),
+    el('div', { classe: 'actions' },
+      el('a', { href: url, download: 'espaceplayer.json', classe: 'bouton' }, 'Télécharger espaceplayer.json')),
+    el('details', {}, el('summary', { classe: 'doux' }, 'Voir la clé'), el('code', {}, r.cle)));
 }
 
 function choixAffichage(orgs, organisation, choisi) {
   const o = orgs.find((x) => x.id === organisation);
-  return [el('option', { value: '' }, '— aucun —'),
+  return [el('option', { value: '' }, o && o.affichages.length ? '— aucun pour l’instant —' : '— aucun affichage —'),
     ...(o ? o.affichages : []).map((a) => el('option', { value: a.id, selected: a.id === choisi },
       a.etablissement + ' · ' + a.nom))];
+}
+
+function champ(titre, controle) {
+  return el('label', {}, titre, controle);
+}
+
+function carteLecteur(l, orgs) {
+  const affichage = el('select', {}, choixAffichage(orgs, l.organisation_id, l.affichage_id));
+  const nom = el('input', { value: l.nom || '', placeholder: 'ex. Hall d’entrée' });
+  const statut = el('select', {}, el('option', { value: 'actif', selected: l.statut === 'actif' }, 'Actif'),
+                                  el('option', { value: 'revoque', selected: l.statut === 'revoque' }, 'Révoqué'));
+  const pastille = l.statut === 'revoque' ? el('span', { classe: 'pastille rouge-fond' }, 'Révoqué')
+    : !l.affichage_id ? el('span', { classe: 'pastille ambre-fond' }, 'Sans affichage')
+    : el('span', { classe: 'pastille vert-fond' }, 'Actif');
+  return el('form', { classe: 'carte-formulaire lecteur', onsubmit: (ev) => {
+      ev.preventDefault();
+      agir('pro.admin_modifier_lecteur', { p_id: l.id, p_affichage: affichage.value || null,
+        p_nom: nom.value, p_statut: statut.value }, 'Lecteur enregistré.');
+    } },
+    el('div', { classe: 'tete-lecteur' },
+      el('div', {}, el('strong', {}, l.nom || 'Lecteur sans nom'), ' ', pastille,
+        el('div', { classe: 'doux' }, l.organisation, ' · ', el('code', {}, l.serie))),
+      el('div', { classe: 'doux droite' }, 'Dernier démarrage', el('br'),
+        l.dernier_contact ? date(l.dernier_contact, true) : 'jamais')),
+    el('div', { classe: 'champs' }, champ('Nom', nom), champ('Affichage', affichage), champ('Statut', statut)),
+    el('div', { classe: 'actions' },
+      el('button', { type: 'submit' }, 'Enregistrer'),
+      el('button', { type: 'button', classe: 'discret', onclick: async () => {
+        if (!confirmer('Nouvelle clé pour ' + l.serie + ' ? L’ancienne cesse aussitôt de fonctionner : '
+                       + 'il faudra refaire la carte SD.', 'CLÉ')) return;
+        try {
+          const r = await rpc('pro.admin_inscrire_lecteur', { p_serie: l.serie, p_organisation: l.organisation_id,
+            p_affichage: l.affichage_id, p_nom: l.nom });
+          dire('Nouvelle clé tirée.');
+          await aller('lecteurs', r);
+        } catch (e) { dire(e.message, true); }
+      } }, 'Nouvelle clé'),
+      el('button', { type: 'button', classe: 'discret', onclick: () => {
+        if (confirmer('Retirer le lecteur ' + l.serie + ' pour de bon ?', 'RETIRER')) {
+          agir('pro.admin_supprimer_lecteur', { p_id: l.id }, 'Lecteur retiré.');
+        }
+      } }, 'Retirer')));
 }
 
 async function vueLecteurs(cleRendue) {
   const [lecteurs, orgs] = await Promise.all([rpc('pro.admin_lecteurs'), rpc('pro.admin_affichages')]);
   etat.args = [];  // la clé ne se montre qu'une fois, pas au prochain rechargement de la vue
 
-  const lignes = lecteurs.map((l) => {
-    const affichage = el('select', {}, choixAffichage(orgs, l.organisation_id, l.affichage_id));
-    const nom = el('input', { value: l.nom || '', placeholder: 'Nom (ex. Hall)' });
-    const statut = el('select', {}, el('option', { value: 'actif', selected: l.statut === 'actif' }, 'Actif'),
-                                    el('option', { value: 'revoque', selected: l.statut === 'revoque' }, 'Révoqué'));
-    return el('tr', {},
-      el('td', {}, el('code', {}, l.serie)), el('td', {}, l.organisation),
-      el('td', {}, nom), el('td', {}, affichage), el('td', {}, statut),
-      el('td', {}, l.dernier_contact ? date(l.dernier_contact, true) : el('span', { classe: 'doux' }, 'jamais')),
-      el('td', {},
-        el('button', { onclick: () => agir('pro.admin_modifier_lecteur', { p_id: l.id,
-          p_affichage: affichage.value || null, p_nom: nom.value, p_statut: statut.value }, 'Lecteur enregistré.') },
-          'Enregistrer'), ' ',
-        el('button', { classe: 'discret', onclick: async () => {
-          if (!confirmer('Nouvelle clé pour ' + l.serie + ' ? L’ancienne cesse aussitôt de fonctionner : '
-                         + 'il faudra refaire la carte SD.', 'CLÉ')) return;
-          try {
-            const r = await rpc('pro.admin_inscrire_lecteur', { p_serie: l.serie, p_organisation: l.organisation_id,
-              p_affichage: l.affichage_id, p_nom: l.nom });
-            dire('Nouvelle clé tirée.');
-            await aller('lecteurs', r);
-          } catch (e) { dire(e.message, true); }
-        } }, 'Nouvelle clé'), ' ',
-        el('button', { classe: 'discret', onclick: () => {
-          if (confirmer('Retirer le lecteur ' + l.serie + ' pour de bon ?', 'RETIRER')) {
-            agir('pro.admin_supprimer_lecteur', { p_id: l.id }, 'Lecteur retiré.');
-          }
-        } }, 'Retirer')));
-  });
-
-  const serie = el('input', { placeholder: 'Numéro de série (ex. 10000000abcdef01)', required: true,
-                              pattern: '[0-9a-fA-F]{8,16}' });
+  const serie = el('input', { placeholder: 'ex. 10000000abcdef01', required: true,
+                              pattern: '[0-9a-fA-F]{8,16}', autocomplete: 'off', spellcheck: 'false' });
   const organisation = el('select', { required: true },
-    el('option', { value: '' }, '— organisation —'), orgs.map((o) => el('option', { value: o.id }, o.nom)));
-  const affichage = el('select', {}, choixAffichage(orgs, ''));
-  organisation.addEventListener('change', () => affichage.replaceChildren(...choixAffichage(orgs, organisation.value)));
-  const nom = el('input', { placeholder: 'Nom (facultatif)' });
+    el('option', { value: '' }, orgs.length ? '— choisir —' : '— aucune organisation —'),
+    orgs.map((o) => el('option', { value: o.id }, o.nom)));
+  const affichage = el('select', { disabled: true }, choixAffichage(orgs, ''));
+  organisation.addEventListener('change', () => {
+    affichage.replaceChildren(...choixAffichage(orgs, organisation.value));
+    affichage.disabled = !organisation.value;
+  });
+  const nom = el('input', { placeholder: 'ex. Hall d’entrée' });
 
-  return el('section', {}, el('h2', {}, 'Lecteurs EspacePlayer'),
-    cleRendue ? fichierCle(cleRendue) : null,
-    lecteurs.length
-      ? tableau(['Série', 'Organisation', 'Nom', 'Affichage', 'Statut', 'Dernier démarrage', ''], lignes)
-      : el('p', { classe: 'doux' }, 'Aucun lecteur inscrit.'),
-    el('h3', {}, 'Inscrire un lecteur'),
-    el('p', { classe: 'doux' }, 'Le numéro de série s’affiche en bas à droite de l’écran du Pi tant qu’il '
-      + 'n’est pas associé. Réinscrire un numéro existant tire une nouvelle clé.'),
-    el('form', { classe: 'outils', onsubmit: async (ev) => {
+  const formulaire = el('form', { classe: 'carte-formulaire', onsubmit: async (ev) => {
       ev.preventDefault();
       try {
         const r = await rpc('pro.admin_inscrire_lecteur', { p_serie: serie.value, p_organisation: organisation.value,
@@ -754,7 +763,32 @@ async function vueLecteurs(cleRendue) {
         dire('Lecteur inscrit.');
         await aller('lecteurs', r);
       } catch (e) { dire(e.message, true); }
-    } }, serie, organisation, affichage, nom, el('button', { type: 'submit' }, 'Inscrire')));
+    } },
+    el('h3', {}, 'Inscrire un lecteur'),
+    el('div', { classe: 'champs' },
+      el('label', { classe: 'large' }, 'Numéro de série', serie),
+      champ('Organisation', organisation), champ('Affichage', affichage),
+      el('label', { classe: 'large' }, 'Nom (facultatif)', nom)),
+    el('div', { classe: 'pied-formulaire' },
+      el('span', { classe: 'doux' }, 'Réinscrire un numéro existant tire une nouvelle clé.'),
+      el('button', { type: 'submit' }, 'Inscrire et tirer la clé')));
+
+  const etapes = el('div', { classe: 'fiche etapes' },
+    el('h3', {}, 'Préparer un lecteur'),
+    el('ol', {},
+      el('li', {}, 'Démarrez le Pi sur une télé : son numéro de série s’affiche en bas à droite.'),
+      el('li', {}, 'Inscrivez-le ici ; la page fait télécharger ', el('code', {}, 'espaceplayer.json'), '.'),
+      el('li', {}, 'Copiez ce fichier sur la carte SD (partition « bootfs ») et redémarrez.'),
+      el('li', {}, 'L’affichage de l’aréna apparaît. Changer d’affichage plus tard se fait ici, sans toucher au Pi.')));
+
+  return el('section', { classe: 'vue-lecteurs' },
+    el('div', { classe: 'entete-vue' }, el('h2', {}, 'Lecteurs EspacePlayer'),
+      el('span', { classe: 'doux' }, lecteurs.length ? lecteurs.length + ' inscrit' + (lecteurs.length > 1 ? 's' : '') : '')),
+    cleRendue ? fichierCle(cleRendue) : null,
+    el('div', { classe: 'deux-colonnes' }, formulaire, etapes),
+    el('h3', {}, 'Lecteurs inscrits'),
+    lecteurs.length ? el('div', { classe: 'liste-lecteurs' }, lecteurs.map((l) => carteLecteur(l, orgs)))
+      : el('p', { classe: 'doux vide' }, 'Aucun lecteur pour l’instant. Le premier inscrit apparaîtra ici.'));
 }
 
 // --- Photos à approuver (4 octobre 2026) ----------------------------------

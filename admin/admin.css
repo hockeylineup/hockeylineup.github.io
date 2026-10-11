@@ -175,4 +175,25 @@ label.case input { width: 18px; height: 18px; margin: 0; accent-color: var(--ble
 .photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
 .photos .tuile { display: flex; flex-direction: column; gap: 6px; }
 .photos .photo { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; background: var(--fond); }
-a.bouton { display: inline-block; padding: 8px 14px; border-radius: 8px; background: var(--bleu); color: #fff; text-decoration: none; font-weight: 600; }
+
+/* Lecteurs EspacePlayer */
+a.bouton { display: inline-flex; align-items: center; height: 40px; padding: 0 14px; border-radius: 8px;
+  background: var(--bleu); color: #fff; text-decoration: none; font-weight: 600; }
+:root[data-theme="light"] .lecteur { border: 1px solid var(--ligne); }
+.entete-vue { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.vue-lecteurs .deux-colonnes { align-items: start; margin-bottom: 8px; }
+.vue-lecteurs .carte-formulaire h3, .vue-lecteurs .fiche h3 { margin: 0; }
+.vue-lecteurs select:disabled { opacity: .55; }
+.etapes ol { margin: 0; padding-left: 20px; display: grid; gap: 8px; color: var(--doux); line-height: 1.45; }
+.etapes li::marker { color: var(--bleu); font-weight: 700; }
+.cle-rendue { border: 1px solid var(--vert); margin-bottom: 16px; }
+.cle-rendue h3, .cle-rendue p { margin: 0; }
+.cle-rendue details code { display: block; margin-top: 6px; font-size: .85rem; }
+.liste-lecteurs { display: grid; gap: 12px; }
+.tete-lecteur { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.tete-lecteur .doux { font-size: .88rem; margin-top: 4px; }
+.tete-lecteur .droite { text-align: right; white-space: nowrap; }
+.pastille.vert-fond { background: color-mix(in srgb, var(--vert) 20%, transparent); color: var(--vert); }
+.pastille.ambre-fond { background: color-mix(in srgb, #f5b642 22%, transparent); color: #c98a10; }
+.pastille.rouge-fond { background: color-mix(in srgb, var(--rouge) 18%, transparent); color: var(--rouge); }
+.vide { background: var(--carte); border-radius: 12px; padding: 20px; text-align: center; }
