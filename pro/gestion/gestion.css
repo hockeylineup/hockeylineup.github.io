@@ -1,0 +1,25 @@
+/* EspaceLigue Pro · Gestion reprend admin.css ; ici, ce qui lui est propre. */
+.centre { text-align: center; margin: 0; }
+.connexion a, .fiche a { color: var(--bleu); }
+#choix-organisation { padding: 0 8px; }
+#choix-organisation select { width: 100%; }
+main#contenu { display: grid; gap: 16px; max-width: 860px; margin: 0; }
+main#contenu h2 { margin-bottom: 0; }
+.carte-formulaire h3, .fiche h3 { margin: 0; }
+.fiche p { margin: 0; }
+.entete-vue { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+:root[data-theme="light"] .lecteur { border: 1px solid var(--ligne); }
+.lecteur .champs { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); }
+.tete-lecteur { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.tete-lecteur .doux { font-size: .88rem; margin-top: 4px; }
+.tete-lecteur .droite { text-align: right; white-space: nowrap; font-size: .88rem; }
+.pastille.vert-fond { background: color-mix(in srgb, var(--vert) 20%, transparent); color: var(--vert); }
+.pastille.ambre-fond { background: color-mix(in srgb, #f5b642 22%, transparent); color: #c98a10; }
+.pastille.rouge-fond { background: color-mix(in srgb, var(--rouge) 18%, transparent); color: var(--rouge); }
+.affichages { display: grid; gap: 8px; }
+.affichages a.ligne { display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: 8px; background: var(--fond); color: var(--texte); text-decoration: none; }
+.affichages a.ligne:hover { outline: 1px solid var(--bleu); }
+.affichages a.ligne span:last-child { color: var(--bleu); white-space: nowrap; }
+@media (max-width: 800px) { #choix-organisation { grid-column: 1 / -1; padding: 0; } }
+@media (max-width: 560px) { .lecteur .champs { grid-template-columns: 1fr; } }

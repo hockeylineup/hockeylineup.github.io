@@ -676,8 +676,8 @@ async function vueJournal() {
 // Les boîtiers Raspberry Pi du forfait Affichage d'EspaceLigue Pro. On inscrit
 // le numéro de série que le Pi montre au premier démarrage ; la base tire une
 // clé, rendue une seule fois, qu'on dépose sur la carte SD dans
-// espaceplayer.json. Le Pi ne rappelle le serveur qu'au démarrage (et tant
-// qu'il n'affiche rien) : « Dernier démarrage », pas « en ligne ».
+// espaceplayer.json. Le Pi rappelle le serveur chaque minute : un contact de
+// moins de 3 minutes veut dire qu'il est en ligne.
 function fichierCle(r) {
   const contenu = JSON.stringify({ cle: r.cle }, null, 2) + '\n';
   const url = URL.createObjectURL(new Blob([contenu], { type: 'application/json' }));
@@ -701,6 +701,8 @@ function champ(titre, controle) {
   return el('label', {}, titre, controle);
 }
 
+const enLigne = (l) => l.dernier_contact && Date.now() - new Date(l.dernier_contact) < 3 * 60 * 1000;
+
 function carteLecteur(l, orgs) {
   const affichage = el('select', {}, choixAffichage(orgs, l.organisation_id, l.affichage_id));
   const nom = el('input', { value: l.nom || '', placeholder: 'ex. Hall d’entrée' });
@@ -717,8 +719,8 @@ function carteLecteur(l, orgs) {
     el('div', { classe: 'tete-lecteur' },
       el('div', {}, el('strong', {}, l.nom || 'Lecteur sans nom'), ' ', pastille,
         el('div', { classe: 'doux' }, l.organisation, ' · ', el('code', {}, l.serie))),
-      el('div', { classe: 'doux droite' }, 'Dernier démarrage', el('br'),
-        l.dernier_contact ? date(l.dernier_contact, true) : 'jamais')),
+      el('div', { classe: 'doux droite' }, enLigne(l) ? el('span', { classe: 'vert' }, '● En ligne')
+        : ['Dernier contact', el('br'), l.dernier_contact ? date(l.dernier_contact, true) : 'jamais'])),
     el('div', { classe: 'champs' }, champ('Nom', nom), champ('Affichage', affichage), champ('Statut', statut)),
     el('div', { classe: 'actions' },
       el('button', { type: 'submit' }, 'Enregistrer'),

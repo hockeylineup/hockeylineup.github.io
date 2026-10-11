@@ -164,7 +164,8 @@ function themeChoisi() {
 function poserTheme(t) {
   document.documentElement.setAttribute('data-theme', t);
   for (const b of document.querySelectorAll('button.theme')) {
-    b.textContent = t === 'light' ? '☾ Foncé' : '☀︎ Clair';
+    // Le mot se cache sur téléphone (admin.css) ; l'icône et l'aria-label restent.
+    b.replaceChildren(t === 'light' ? '☾' : '☀︎', el('span', { classe: 'libelle' }, t === 'light' ? ' Foncé' : ' Clair'));
     b.setAttribute('aria-label', t === 'light' ? 'Passer au thème foncé' : 'Passer au thème clair');
   }
 }
