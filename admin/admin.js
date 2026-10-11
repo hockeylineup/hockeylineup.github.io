@@ -1066,7 +1066,8 @@ function poserTheme(t) {
   for (const id of ['theme', 'theme-connexion']) {
     const b = $(id);
     if (!b) continue;
-    b.textContent = t === 'light' ? '☾ Foncé' : '☀︎ Clair';
+    // Le mot se cache sur téléphone ; l'icône et l'aria-label restent.
+    b.replaceChildren(t === 'light' ? '☾' : '☀︎', el('span', { classe: 'libelle' }, t === 'light' ? ' Foncé' : ' Clair'));
     b.setAttribute('aria-label', t === 'light' ? 'Passer au thème foncé' : 'Passer au thème clair');
   }
 }

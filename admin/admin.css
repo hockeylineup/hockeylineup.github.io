@@ -112,6 +112,16 @@ img.mot.clair, :root[data-theme="light"] img.mot.sombre { display: none; }
   .cote nav::-webkit-scrollbar { display: none; }
   .cote nav button { white-space: nowrap; padding: 7px 14px; border-radius: 999px; background: var(--fond); }
 }
+/* Téléphone étroit : le logo rétrécit, le bouton de thème ne garde que son icône. */
+@media (max-width: 520px) {
+  .cote { grid-template-columns: minmax(0, 1fr) auto; }
+  .marque { min-width: 0; gap: 8px; }
+  .marque img { width: 28px; height: 28px; flex: none; }
+  .marque img.mot { height: 15px; max-width: 100%; }
+  .compte-actions { gap: 6px; }
+  .compte-actions button.theme .libelle { display: none; }
+  .compte-actions button.theme { padding: 6px 9px; }
+}
 
 .message { margin: 12px 16px 0; padding: 10px 12px; border-radius: 8px; background: var(--carte); }
 .message.erreur { color: #fff; background: var(--rouge); }
