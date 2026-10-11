@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>EspaceLigue Pro · Affichage</title>
+<!--
+  Affichage plein écran d'EspaceLigue Pro, ouvert par un lecteur EspacePlayer
+  ou n'importe quel écran : /pro/affichage/#<jeton>. Le jeton est le seul
+  droit (pro.lire_affichage) ; il reste dans le fragment, que le navigateur
+  n'envoie jamais au serveur.
+
+  Deux mises en page, d'après les maquettes (docs/maquettes/affichage.html
+  d'espaceligue-pro) :
+  - B « vedette et à suivre » : affichage d'un seul plateau, près de la glace ;
+  - E « hall d'entrée » : tous les plateaux de l'établissement.
+  `reglages.piste` ('B' ou 'E') force l'une ou l'autre.
+
+  Relu toutes les 30 s. Réseau perdu : les dernières données restent à
+  l'écran, l'horloge continue, un point ambre le signale. Rechargé toutes les
+  6 h pour prendre une nouvelle version de la page.
+-->
+<style>
+  :root { --bleu: #1f6fff; --vert: #2fd27a; --ambre: #ffb020; }
+  * { box-sizing: border-box; cursor: none; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #05080f; color: #e9eef7;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  /* L'écran garde le 16:9 et se règle sur sa propre largeur (cqw), quelle que soit la télé. */
+  #ecran { position: absolute; inset: 0; margin: auto; width: min(100vw, 177.78vh); aspect-ratio: 16 / 9;
+    container-type: inline-size; font-variant-numeric: tabular-nums; overflow: hidden; }
+  #ecran * { line-height: 1.2; }
+  [hidden] { display: none !important; }
+  .pastille { display: inline-flex; align-items: center; gap: .5em; font-weight: 700; }
+  .pastille::before { content: ""; width: .6em; height: .6em; border-radius: 50%; background: currentColor;
+    animation: pouls 1.6s ease-in-out infinite; }
+  @keyframes pouls { 50% { opacity: .35; } }
+  .vide { color: #66738a; }
+
+  /* B — Vedette et à suivre */
+  .b { position: absolute; inset: 0; background: radial-gradient(ellipse at 20% 0%, #163a8a, #070d1c 60%);
+    display: grid; grid-template-columns: 1.35fr 1fr; }
+  .b .vedette { padding: 3.6cqw; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
+  .b .etiquette { font-size: 1.3cqw; letter-spacing: .18em; text-transform: uppercase; color: #9fb0cc; }
+  .b .heure { font-size: 4cqw; font-weight: 300; }
+  .b .tete { display: flex; justify-content: space-between; align-items: flex-start; }
+  .b .score { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 2cqw; }
+  .b .equipe { text-align: center; min-width: 0; }
+  .b .logo { width: 7cqw; height: 7cqw; border-radius: 50%; margin: 0 auto 1cqw; display: grid; place-items: center;
+    font-weight: 900; font-size: 2.4cqw; background: #334155; }
+  .b .nom { font-size: 1.8cqw; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .b .chiffres { font-size: 9cqw; font-weight: 800; letter-spacing: -.03em; }
+  .b .chiffres span { color: #4a5a78; margin: 0 .15em; }
+  .b .grand { font-size: 5.4cqw; font-weight: 800; letter-spacing: -.02em; }
+  .b .grand small { display: block; font-size: 2cqw; font-weight: 500; color: #9fb0cc; letter-spacing: 0; margin-top: 1cqw; }
+  .b .pied { display: flex; justify-content: space-between; align-items: center; font-size: 1.5cqw; color: #9fb0cc; }
+  .b .pied .pastille { color: var(--vert); }
+  .b .barre { height: .4cqw; background: rgba(255,255,255,.1); border-radius: 1cqw; margin-top: 1.6cqw; }
+  .b .barre i { display: block; height: 100%; background: var(--vert); border-radius: 1cqw; }
+  .b .suite { background: rgba(255,255,255,.04); border-left: 1px solid rgba(255,255,255,.08); padding: 3.6cqw 3cqw;
+    display: flex; flex-direction: column; gap: 1.4cqw; overflow: hidden; }
+  .b .suite h3 { margin: 0 0 .6cqw; font-size: 1.3cqw; letter-spacing: .18em; text-transform: uppercase; color: #9fb0cc; font-weight: 600; }
+  .b .item { display: grid; grid-template-columns: 7cqw 1fr; gap: 1.4cqw; padding: 1.4cqw 0; border-top: 1px solid rgba(255,255,255,.08); }
+  .b .item .h { font-size: 2.2cqw; font-weight: 700; }
+  .b .item .t { font-size: 1.7cqw; font-weight: 600; }
+  .b .item .d { font-size: 1.25cqw; color: #9fb0cc; margin-top: .4cqw; }
+
+  /* E — Hall d'entrée, plusieurs plateaux */
+  .e { position: absolute; inset: 0; background: #0a0f1a; display: grid; grid-template-rows: auto 1fr; }
+  .e .tete { display: flex; justify-content: space-between; align-items: center; padding: 2cqw 3cqw;
+    background: linear-gradient(90deg, #0f2a66, #0a0f1a); }
+  .e .tete .lieu { font-size: 2.4cqw; font-weight: 800; }
+  .e .tete .heure { font-size: 2.6cqw; font-weight: 300; }
+  .e .cols { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 1.4cqw; padding: 2cqw 3cqw 3.6cqw; min-height: 0; }
+  .e .col { background: #111827; border-radius: 1.2cqw; overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+  .e .col h3 { margin: 0; padding: 1.4cqw 1.6cqw; font-size: 1.7cqw; border-bottom: 1px solid #1f2937; }
+  .e .ev { padding: 1.3cqw 1.6cqw; border-bottom: 1px solid #1a2230; }
+  .e .ev .h { font-size: 1.15cqw; color: #8a97ad; }
+  .e .ev .t { font-size: 1.6cqw; font-weight: 600; margin-top: .3cqw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .e .ev .v { font-size: 1.1cqw; color: #8a97ad; margin-top: .3cqw; }
+  .e .ev.actif { background: linear-gradient(90deg, rgba(47,210,122,.14), transparent); border-left: .4cqw solid var(--vert); }
+  .e .ev.actif .h { color: var(--vert); font-weight: 700; }
+  .e .ev .barre { height: .35cqw; background: #1f2937; border-radius: 1cqw; margin-top: .9cqw; }
+  .e .ev .barre i { display: block; height: 100%; background: var(--vert); border-radius: 1cqw; }
+  .e .col .vide { padding: 1.6cqw; font-size: 1.3cqw; }
+
+  /* Messages plein écran (jeton absent ou refusé, premier chargement) */
+  .message { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; background: #05080f; }
+  .message h1 { font-size: 3.4cqw; font-weight: 600; margin: 0 0 1.4cqw; }
+  .message p { font-size: 1.6cqw; color: #8a97ad; margin: 0; }
+
+  .marque { position: absolute; right: 2cqw; bottom: 1.4cqw; font-size: 1cqw; letter-spacing: .14em; font-weight: 800; opacity: .45; }
+  .marque i { font-style: normal; color: var(--bleu); }
+  #horsligne { position: absolute; left: 2cqw; bottom: 1.4cqw; width: .8cqw; height: .8cqw; border-radius: 50%; background: var(--ambre); }
+</style>
+</head>
+<body>
+<div id="ecran">
+  <div class="message" id="message"><div><h1 id="msg-titre"></h1><p id="msg-texte"></p></div></div>
+  <div id="vue"></div>
+  <div class="marque">ESPACE<i>LIGUE</i></div>
+  <div id="horsligne" hidden></div>
+</div>
+<script>
+'use strict';
+
+const LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
+const SUPABASE = LOCAL ? 'https://supabase.lautmandam.mywire.org' : 'https://wkjyeyswlvdkaalhslvw.supabase.co';
+const CLE = LOCAL ? 'sb_publishable_sHSVbbwMhsDTqjYb93S1md_P0EIsxy4' : 'sb_publishable_aDtOKUHIXbnSLWX6qPBpuQ_bixLx_ft';
+const RELIRE_MS = 30000;
+const RECHARGER_MS = 6 * 3600 * 1000;
+
+const TEXTES = {
+  fr: { chargement: 'Chargement de l’affichage…', sansJeton: 'Affichage non configuré',
+        sansJetonTexte: 'L’adresse de cet écran est incomplète.', refuse: 'Affichage introuvable',
+        refuseTexte: 'Cet affichage a été retiré ou son adresse a changé.', enCours: 'En cours',
+        enDirect: 'En direct', aSuivre: 'À suivre', demain: 'Demain', rien: 'Aucune autre activité aujourd’hui',
+        libre: 'Plateau libre', prochaine: 'Prochaine activité', periode: n => n === 1 ? '1re période' : n + 'e période',
+        final: 'Final' },
+  en: { chargement: 'Loading display…', sansJeton: 'Display not configured',
+        sansJetonTexte: 'This screen’s address is incomplete.', refuse: 'Display not found',
+        refuseTexte: 'This display was removed or its address changed.', enCours: 'Now',
+        enDirect: 'Live', aSuivre: 'Up next', demain: 'Tomorrow', rien: 'Nothing else scheduled today',
+        libre: 'Available', prochaine: 'Next activity', periode: n => ['1st', '2nd', '3rd'][n - 1] ? ['1st', '2nd', '3rd'][n - 1] + ' period' : n + 'th period',
+        final: 'Final' },
+};
+
+let T = TEXTES.fr;
+let donnees = null;
+let ecartHorloge = 0;  // heure du serveur moins heure locale : un Pi sans horloge juste reste à l'heure
+
+const $ = id => document.getElementById(id);
+function el(balise, classe, ...enfants) {
+  const n = document.createElement(balise);
+  if (classe) n.className = classe;
+  for (const e of enfants.flat()) if (e !== null && e !== undefined && e !== false)
+    n.append(e instanceof Node ? e : document.createTextNode(String(e)));
+  return n;
+}
+
+const maintenant = () => new Date(Date.now() + ecartHorloge);
+const fuseau = () => (donnees && donnees.fuseau) || 'America/Toronto';
+// « 19:52 » comme sur les maquettes ; fr-CA écrirait « 19 h 52 ».
+const heure = d => {
+  const p = new Intl.DateTimeFormat('en-CA', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: fuseau() }).formatToParts(d);
+  return `${p.find(x => x.type === 'hour').value}:${p.find(x => x.type === 'minute').value}`;
+};
+const jour = d => new Intl.DateTimeFormat('fr-CA', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: fuseau() }).format(d);
+const estDemain = d => jour(d) !== jour(maintenant());
+const enCours = o => new Date(o.debut) <= maintenant() && maintenant() < new Date(o.fin);
+const avancement = o => Math.min(100, Math.max(0, 100 * (maintenant() - new Date(o.debut)) / (new Date(o.fin) - new Date(o.debut))));
+const initiale = nom => (nom || '?').trim().charAt(0).toUpperCase();
+
+function message(titre, texte) {
+  $('msg-titre').textContent = titre;
+  $('msg-texte').textContent = texte || '';
+  $('message').hidden = false;
+  $('vue').replaceChildren();
+}
+
+function titreMatch(m) {
+  return `${m.domicile.nom} ${m.domicile.buts ?? 0} – ${m.visiteur.buts ?? 0} ${m.visiteur.nom}`;
+}
+function quand(o) {
+  const d = new Date(o.debut);
+  return estDemain(d) ? `${T.demain} · ${heure(d)}` : heure(d);
+}
+
+// B : un plateau, l'occupation en cours en grand, la suite à droite.
+function vueB(plateau) {
+  const occ = plateau.occupations.filter(o => new Date(o.fin) > maintenant());
+  const courante = occ.find(enCours);
+  const suite = occ.filter(o => o !== courante).slice(0, 4);
+
+  const vedette = el('div', 'vedette');
+  vedette.append(el('div', 'tete',
+    el('div', 'etiquette', [plateau.nom, donnees.etablissement].join(' · ')),
+    el('div', 'heure', heure(maintenant()))));
+
+  if (courante && courante.match) {
+    const m = courante.match;
+    const equipe = e => {
+      const logo = el('div', 'logo', initiale(e.nom));
+      if (e.couleur) logo.style.background = e.couleur;
+      return el('div', 'equipe', logo, el('div', 'nom', e.nom));
+    };
+    vedette.append(el('div', 'score', equipe(m.domicile),
+      el('div', 'chiffres', String(m.domicile.buts ?? 0), el('span', null, ':'), String(m.visiteur.buts ?? 0)),
+      equipe(m.visiteur)));
+    const etat = m.statut === 'joue' ? el('span', null, T.final)
+      : el('span', 'pastille', el('span', null, `${T.enDirect} · ${T.periode(m.periode || 1)}`));
+    vedette.append(el('div', 'pied', etat, el('span', null, courante.locataire || '')));
+  } else if (courante) {
+    vedette.append(el('div', null,
+      el('div', 'grand', courante.titre || T.enCours, el('small', null, `${heure(new Date(courante.debut))} – ${heure(new Date(courante.fin))}`)),
+      el('div', 'barre', Object.assign(el('i'), { style: `width:${avancement(courante)}%` }))));
+    vedette.append(el('div', 'pied', el('span', 'pastille', el('span', null, T.enCours)), el('span')));
+  } else {
+    const proch = suite[0];
+    vedette.append(el('div', 'grand', T.libre,
+      proch ? el('small', null, `${T.prochaine} : ${quand(proch)} · ${proch.titre || ''}`) : null));
+    vedette.append(el('div', 'pied'));
+  }
+
+  const colonne = el('div', 'suite', el('h3', null, T.aSuivre));
+  if (!suite.length) colonne.append(el('div', 'item vide', el('div'), el('div', 't', T.rien)));
+  for (const o of suite) {
+    const d = new Date(o.debut);
+    colonne.append(el('div', 'item',
+      el('div', 'h', heure(d)),
+      el('div', null, el('div', 't', o.match ? `${o.match.domicile.nom} – ${o.match.visiteur.nom}` : (o.titre || '')),
+        el('div', 'd', [estDemain(d) ? T.demain : null, o.match ? o.locataire : null].filter(Boolean).join(' · ')))));
+  }
+  return el('div', 'b', vedette, colonne);
+}
+
+// E : une colonne par plateau.
+function vueE() {
+  const cols = el('div', 'cols');
+  for (const p of donnees.plateaux.slice(0, 4)) {
+    const col = el('div', 'col', el('h3', null, p.nom));
+    const occ = p.occupations.filter(o => new Date(o.fin) > maintenant()).slice(0, 5);
+    if (!occ.length) col.append(el('div', 'vide', T.rien));
+    for (const o of occ) {
+      const actif = enCours(o);
+      const ev = el('div', actif ? 'ev actif' : 'ev',
+        el('div', 'h', actif ? `${o.match ? T.enDirect : T.enCours} · ${heure(new Date(o.debut))}`.toUpperCase() : quand(o)),
+        el('div', 't', o.match ? titreMatch(o.match) : (o.titre || '')),
+        o.match && o.locataire ? el('div', 'v', o.locataire) : null);
+      if (actif) ev.append(el('div', 'barre', Object.assign(el('i'), { style: `width:${avancement(o)}%` })));
+      col.append(ev);
+    }
+    cols.append(col);
+  }
+  return el('div', 'e',
+    el('div', 'tete', el('div', 'lieu', donnees.etablissement), el('div', 'heure', heure(maintenant()))),
+    cols);
+}
+
+function dessiner() {
+  if (!donnees) return;
+  const piste = (donnees.reglages && donnees.reglages.piste)
+    || (donnees.plateau_id || donnees.plateaux.length === 1 ? 'B' : 'E');
+  $('message').hidden = true;
+  $('vue').replaceChildren(piste === 'B' && donnees.plateaux.length ? vueB(donnees.plateaux[0]) : vueE());
+}
+
+async function lire(jeton) {
+  try {
+    const r = await fetch(`${SUPABASE}/rest/v1/rpc/lire_affichage`, {
+      method: 'POST', cache: 'no-store',
+      headers: { apikey: CLE, 'Content-Type': 'application/json', 'Content-Profile': 'pro' },
+      body: JSON.stringify({ jeton }),
+    });
+    if (!r.ok) throw new Error(r.status);
+    const d = await r.json();
+    $('horsligne').hidden = true;
+    if (!d) { donnees = null; return message(T.refuse, T.refuseTexte); }
+    donnees = d;
+    ecartHorloge = new Date(d.maintenant) - Date.now();
+    T = TEXTES[d.langue] || TEXTES.fr;
+    document.documentElement.lang = d.langue === 'en' ? 'en-CA' : 'fr-CA';
+    dessiner();
+  } catch {
+    // Réseau perdu : on garde l'écran tel quel.
+    $('horsligne').hidden = false;
+  }
+}
+
+function demarrer() {
+  const jeton = decodeURIComponent(location.hash.slice(1)).trim();
+  if (!jeton) return message(T.sansJeton, T.sansJetonTexte);
+  message(T.chargement);
+  lire(jeton);
+  setInterval(() => lire(jeton), RELIRE_MS);
+  setInterval(dessiner, 15000);  // horloge et barres d'avancement entre deux lectures
+  setTimeout(() => location.reload(), RECHARGER_MS);
+}
+
+addEventListener('hashchange', () => location.reload());
+demarrer();
+</script>
+</body>
+</html>
