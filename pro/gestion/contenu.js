@@ -135,10 +135,10 @@ async function vueContenu() {
   const modifiable = peutModifier();
 
   const choix = el('select', { onchange: () => { contenu.affichage = choix.value; afficher(); } },
-    affichages.map((a) => el('option', { value: a.id, selected: a.id === af.id }, nomEtab(a.etablissement_id) + ' · ' + a.nom)));
+    affichages.map((a) => el('option', { value: a.id, selected: a.id === af.id }, a.nom + (nomEtab(a.etablissement_id) ? ' (' + nomEtab(a.etablissement_id) + ')' : ''))));
 
   const vue = el('section', { classe: 'vue-contenu' },
-    el('div', { classe: 'entete-vue' }, el('h2', null, 'Contenu des affichages'), el('label', { classe: 'choix-affichage' }, choix)),
+    el('div', { classe: 'entete-vue' }, el('h2', null, 'Contenu des affichages'), el('label', { classe: 'choix-affichage' }, el('span', null, 'Écran à modifier'), choix)),
     el('p', { classe: 'doux' }, 'Les panneaux défilent l’un après l’autre dans la zone principale. Un panneau sans contenu '
       + 'du moment (pointage sans match, plage horaire passée) est sauté. Sans aucun panneau, l’écran montre l’horaire.'),
     cadreApercu(),
@@ -357,7 +357,7 @@ async function vueApparence() {
   const choixAff = el('select', { onchange: () => { contenu.affichage = choixAff.value; charger().catch((e) => dire(e.message, true)); } },
     affichages.map((x) => el('option', { value: x.id, selected: x.id === contenu.affichage }, x.nom)));
   const apercu = affichages.length ? el('div', { classe: 'apercu' },
-    el('div', { classe: 'entete-vue' }, el('h3', null, 'Aperçu'), affichages.length > 1 ? el('label', { classe: 'choix-affichage' }, choixAff) : null),
+    el('div', { classe: 'entete-vue' }, el('h3', null, 'Aperçu'), affichages.length > 1 ? el('label', { classe: 'choix-affichage' }, el('span', null, 'Écran'), choixAff) : null),
     cadre, remarque) : null;
   if (apercu) charger().catch((e) => dire(e.message, true));
 
