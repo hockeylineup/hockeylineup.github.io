@@ -183,8 +183,9 @@ function formulaireAffichage(etablissements, plateaux) {
   const plateau = el('select');
   const langue = el('select', null, el('option', { value: 'fr' }, 'Français'), el('option', { value: 'en' }, 'Anglais'));
   const remplir = () => plateau.replaceChildren(
-    el('option', { value: '' }, 'Tout l’établissement (hall)'),
-    plateaux.filter((p) => p.etablissement_id === etab.value).map((p) => el('option', { value: p.id }, p.nom)));
+    el('option', { value: '' }, 'Hall d’entrée : l’horaire de tous les plateaux'),
+    plateaux.filter((p) => p.etablissement_id === etab.value)
+      .map((p) => el('option', { value: p.id }, 'Près de « ' + p.nom + ' » : ce plateau seulement')));
   etab.addEventListener('change', remplir);
   remplir();
   return el('form', { classe: 'carte-formulaire', onsubmit: async (ev) => {
@@ -197,9 +198,11 @@ function formulaireAffichage(etablissements, plateaux) {
       } catch (e) { dire(e.message, true); }
     } },
     el('h3', null, 'Ajouter un affichage'),
+    el('p', { classe: 'doux' }, 'Un écran au hall montre l’horaire de tous les plateaux de l’établissement. '
+      + 'Un écran près d’un plateau (une glace, un gymnase) montre ce qui s’y passe et ce qui suit.'),
     el('div', { classe: 'champs' }, el('label', null, 'Nom', nom),
       etablissements.length > 1 ? el('label', null, 'Établissement', etab) : null,
-      el('label', null, 'Montre', plateau), el('label', null, 'Langue', langue)),
+      el('label', null, 'Emplacement de l’écran', plateau), el('label', null, 'Langue', langue)),
     el('div', { classe: 'actions' }, el('button', { type: 'submit' }, 'Ajouter')));
 }
 
