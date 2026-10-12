@@ -157,11 +157,22 @@ async function vueLecteurs() {
         ? el('div', { classe: 'affichages' }, affichages.map((a) => el('div', { classe: 'rangee-affichage' },
             el('a', { classe: 'ligne', href: '../affichage/#' + a.jeton, target: '_blank', rel: 'noopener' },
               el('span', null, libelle(a)), el('span', null, 'Ouvrir ↗')),
+            modifiable ? el('button', { type: 'button', classe: 'discret', onclick: () => renommerAffichage(a) }, 'Renommer') : null,
             modifiable ? el('button', { type: 'button', classe: 'discret', onclick: () => retirerAffichage(a, lecteurs) }, 'Retirer') : null)))
         : el('p', { classe: 'doux' }, 'Aucun affichage pour l’instant.'),
       modifiable && etablissements.length ? formulaireAffichage(etablissements) : null,
       el('p', { classe: 'doux' }, 'Chaque adresse fonctionne aussi sur n’importe quel écran avec un navigateur. '
         + 'Gardez-la pour vous : elle suffit à voir l’affichage.')));
+}
+
+async function renommerAffichage(a) {
+  const nom = (prompt('Nouveau nom de l’affichage :', a.nom) || '').trim();
+  if (!nom || nom === a.nom) return;
+  try {
+    await majPro('affichages', { id: 'eq.' + a.id }, { nom: nom.slice(0, 80) });
+    await afficher();
+    dire('Affichage renommé.');
+  } catch (e) { dire(e.message, true); }
 }
 
 async function retirerAffichage(a, lecteurs) {
