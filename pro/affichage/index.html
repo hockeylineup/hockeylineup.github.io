@@ -149,7 +149,11 @@
   #urgence h1 { font-size: 7cqw; font-weight: 900; margin: 0 0 2.4cqw; text-transform: uppercase; letter-spacing: -.01em; }
   #urgence p { font-size: 3cqw; margin: 0; white-space: pre-line; }
   #urgence .pastille { font-size: 1.6cqw; letter-spacing: .2em; margin-bottom: 3cqw; }
-  #urgence.u-meteo_avertissement, #urgence.u-meteo_veille, #urgence.u-meteo_avis { background: #a16207; }
+  /* Alertes météo : les couleurs d'Environnement Canada (jaune, orange, rouge) ;
+     sans couleur connue, le jaune, le niveau le plus courant. */
+  #urgence.u-meteo_avertissement, #urgence.u-meteo_veille, #urgence.u-meteo_avis, #urgence.n-jaune { background: #f2c200; color: #111; }
+  #urgence.n-orange { background: #e8590c; color: #fff; }
+  #urgence.n-rouge { background: #b3121f; color: #fff; }
   #urgence h1 { font-size: clamp(3cqw, 6cqw, 7cqw); }
   #urgence p { font-size: 2.4cqw; max-width: 80cqw; margin: 0 auto; }
   #urgence .source { margin-top: 3cqw; font-size: 1.3cqw; opacity: .8; letter-spacing: .1em; }
@@ -588,7 +592,7 @@ function dessinerUrgence() {
   const etiquette = u.type === 'amber' ? (en ? 'AMBER ALERT' : 'ALERTE AMBER')
     : u.type && u.type.startsWith('meteo') ? (en ? 'WEATHER ALERT' : 'ALERTE MÉTÉO')
     : (en ? 'ALERT' : 'ALERTE');
-  z.className = 'u-' + (u.type || 'manuel');
+  z.className = 'u-' + (u.type || 'manuel') + (u.niveau ? ' n-' + u.niveau : '');
   z.replaceChildren(el('div', null, el('div', 'pastille', etiquette),
     el('h1', null, u.titre), u.texte ? el('p', null, u.texte) : null,
     u.source === 'naad' ? el('div', 'source', en ? 'Source: Alert Ready' : 'Source : En Alerte') : null));
