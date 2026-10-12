@@ -151,3 +151,11 @@ button.danger { background: var(--rouge); }
   .resa { grid-template-columns: 1fr; gap: 2px; }
   .ligne-source { grid-template-columns: 1fr; }
 }
+
+/* Ligues et vestiaires */
+.puce { display: inline-flex; align-items: center; gap: 6px; padding: 4px 4px 4px 12px; border: 1px solid var(--ligne);
+  border-radius: 999px; background: var(--carte); font-weight: 600; }
+.puces .puce button { padding: 2px 8px; border: 0; background: transparent; color: var(--doux); }
+.vue-ligues .carte-formulaire { margin-bottom: 12px; }
+#onglets .compte { display: inline-block; min-width: 18px; margin-left: 6px; padding: 0 6px; border-radius: 999px;
+  background: var(--rouge); color: #fff; font-size: .75rem; line-height: 18px; text-align: center; }

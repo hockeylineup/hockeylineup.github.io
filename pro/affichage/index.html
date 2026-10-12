@@ -67,6 +67,7 @@
   .b .item .h { font-size: 2.2cqw; font-weight: 700; }
   .b .item .t { font-size: 1.7cqw; font-weight: 600; }
   .b .item .d { font-size: 1.25cqw; color: #9fb0cc; margin-top: .4cqw; }
+  .b .equipe .vest { font-size: 1.3cqw; color: #9fb0cc; margin-top: .3cqw; letter-spacing: .05em; }
 
   /* E — Hall d'entrée, plusieurs plateaux */
   .e { position: absolute; inset: 0; background: #0a0f1a; display: grid; grid-template-rows: auto 1fr; }
@@ -248,6 +249,10 @@ function message(titre, texte) {
   courant = null;
 }
 
+// Les vestiaires attribués par l'aréna (onglet Ligues de la gestion).
+function vestiaires(m) {
+  return [m.domicile, m.visiteur].filter((e) => e.vestiaire).map((e) => `${e.nom} : ${e.vestiaire}`).join(' · ') || null;
+}
 function titreMatch(m) {
   return `${m.domicile.nom} ${m.domicile.buts ?? 0} – ${m.visiteur.buts ?? 0} ${m.visiteur.nom}`;
 }
@@ -272,7 +277,7 @@ function vueB(plateau) {
     const equipe = e => {
       const logo = el('div', 'logo', initiale(e.nom));
       if (e.couleur) logo.style.background = e.couleur;
-      return el('div', 'equipe', logo, el('div', 'nom', e.nom));
+      return el('div', 'equipe', logo, el('div', 'nom', e.nom), e.vestiaire ? el('div', 'vest', e.vestiaire) : null);
     };
     vedette.append(el('div', 'score', equipe(m.domicile),
       el('div', 'chiffres', String(m.domicile.buts ?? 0), el('span', null, ':'), String(m.visiteur.buts ?? 0)),
@@ -299,7 +304,7 @@ function vueB(plateau) {
     colonne.append(el('div', 'item',
       el('div', 'h', heure(d)),
       el('div', null, el('div', 't', o.match ? `${o.match.domicile.nom} – ${o.match.visiteur.nom}` : (o.titre || '')),
-        el('div', 'd', [estDemain(d) ? T.demain : null, o.match ? o.locataire : null].filter(Boolean).join(' · ')))));
+        el('div', 'd', [estDemain(d) ? T.demain : null, o.match ? o.locataire : null, o.match ? vestiaires(o.match) : null].filter(Boolean).join(' · ')))));
   }
   return el('div', 'b', vedette, colonne);
 }
@@ -316,7 +321,8 @@ function vueE() {
       const ev = el('div', actif ? 'ev actif' : 'ev',
         el('div', 'h', actif ? `${o.match ? T.enDirect : T.enCours} · ${heure(new Date(o.debut))}`.toUpperCase() : quand(o)),
         el('div', 't', o.match ? titreMatch(o.match) : (o.titre || '')),
-        o.match && o.locataire ? el('div', 'v', o.locataire) : null);
+        o.match && (o.locataire || vestiaires(o.match))
+          ? el('div', 'v', [o.locataire, vestiaires(o.match)].filter(Boolean).join(' · ')) : null);
       if (actif) ev.append(el('div', 'barre', Object.assign(el('i'), { style: `width:${avancement(o)}%` })));
       col.append(ev);
     }

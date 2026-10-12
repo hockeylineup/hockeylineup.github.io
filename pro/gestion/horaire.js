@@ -3,8 +3,9 @@
 //
 // Trois sources de réservations, que l'écran montre pareil :
 // - saisies ici, à la main (source `manuel`), une à une ou chaque semaine ;
-// - les matchs des ligues EspaceLigue jouées sur un lieu associé à un plateau
-//   (pro.associer_lieu ; la base les tient à jour toutes les 5 minutes) ;
+// - les matchs des ligues EspaceLigue acceptées dans l'onglet Ligues (ligues.js ;
+//   la base les tient à jour toutes les 5 minutes) ; la glace d'un match se
+//   change ici ;
 // - un calendrier iCal par plateau (Outlook, Google, iCloud), relu toutes les
 //   15 minutes par l'Edge Function pro-calendriers.
 // Les deux dernières ne se modifient pas ici : elles reviendraient de la source.
@@ -47,7 +48,7 @@ async function vueHoraire() {
   const nomEtab = (id) => (etablissements.find((e) => e.id === id) || {}).nom || '';
   const fin = new Date(horaire.lundi.getTime() + 7 * JOUR_MS);
   const reservations = await lirePro('reservations', {
-    select: 'id,periode,titre,statut,source,serie_id,locataire_id,locataires(nom),calendriers(nom)',
+    select: 'id,periode,titre,statut,source,serie_id,locataire_id,plateau_id,match_id,locataires(nom),calendriers(nom)',
     plateau_id: 'eq.' + pl.id, periode: 'ov.' + plage(horaire.lundi, fin), statut: 'neq.annulee', order: 'periode' });
   const modifiable = peutModifier();
 
@@ -68,23 +69,22 @@ async function vueHoraire() {
     const duJour = reservations.filter((r) => aaaammjj(bornes(r.periode)[0]) === aaaammjj(jour));
     jours.push(el('div', { classe: 'jour-horaire' + (aaaammjj(jour) === aaaammjj(new Date()) ? ' aujourdhui' : '') },
       el('h4', null, jour.toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'short' })),
-      duJour.length ? duJour.map((r) => ligneReservation(r, modifiable)) : el('p', { classe: 'doux' }, 'Libre')));
+      duJour.length ? duJour.map((r) => ligneReservation(r, modifiable, plateaux)) : el('p', { classe: 'doux' }, 'Libre')));
   }
 
   return el('section', { classe: 'vue-horaire' },
     el('div', { classe: 'entete-vue' }, el('h2', null, 'Horaire des plateaux')),
     el('p', { classe: 'doux' }, 'Ce que vos affichages montrent. Ajoutez des réservations à la main, ou branchez '
-      + 'un calendrier et vos ligues EspaceLigue plus bas : elles s’ajoutent toutes seules.'),
+      + 'un calendrier plus bas, ou acceptez vos ligues EspaceLigue dans l’onglet Ligues : elles s’ajoutent toutes seules.'),
     choixPlateau,
     modifiable ? formulaireReservation(pl, locataires) : null,
     navigation,
     el('div', { classe: 'grille-semaine' }, jours),
     el('h3', null, 'Sources automatiques'),
-    await blocLigues(plateaux, nomEtab, modifiable),
     await blocCalendriers(plateaux, nomEtab, modifiable));
 }
 
-function ligneReservation(r, modifiable) {
+function ligneReservation(r, modifiable, plateaux) {
   const [a, b] = bornes(r.periode);
   const origine = r.source === 'espaceligue' ? 'EspaceLigue · ' + ((r.locataires || {}).nom || '')
     : r.source === 'calendrier' ? 'Calendrier · ' + ((r.calendriers || {}).nom || '')
@@ -94,6 +94,7 @@ function ligneReservation(r, modifiable) {
     try { await majPro('reservations', { id: 'eq.' + r.id }, { statut: 'confirmee' }); await afficher(); dire('Réservation confirmée.'); }
     catch (e) { dire(messageConflit(e), true); }
   } }, 'Confirmer'));
+  if (modifiable && r.source === 'espaceligue') actions.push(choixGlaceMatch(r, plateaux));
   if (modifiable && r.source === 'manuel') {
     actions.push(el('button', { type: 'button', classe: 'discret', onclick: () => {
       horaire.edition = r; afficher().then(() => $('contenu').querySelector('.form-reservation').scrollIntoView({ behavior: 'smooth' }));
@@ -171,33 +172,6 @@ function formulaireReservation(pl, locataires) {
       el('label', { classe: 'large' }, 'Locataire', locataire, liste)),
     el('div', { classe: 'actions' }, el('button', { type: 'submit' }, ed ? 'Enregistrer' : 'Ajouter'),
       ed ? el('button', { type: 'button', classe: 'discret', onclick: () => { horaire.edition = null; afficher(); } }, 'Annuler') : null));
-}
-
-// --- Ligues EspaceLigue ----------------------------------------------------------
-async function blocLigues(plateaux, nomEtab, modifiable) {
-  const lieux = await rest('POST', 'rpc/lieux_a_associer', { p_organisation: etat.organisation }, PRO);
-  const lignes = lieux.map((l) => {
-    const choix = el('select', { disabled: !modifiable }, el('option', { value: '' }, '— pas sur nos plateaux —'),
-      plateaux.map((p) => el('option', { value: p.id, selected: p.id === l.plateau_id }, nomEtab(p.etablissement_id) + ' · ' + p.nom)));
-    const duree = el('input', { type: 'number', min: 15, max: 360, step: 5, valeur: l.duree_minutes || 90, disabled: !modifiable });
-    return el('div', { classe: 'ligne-source' },
-      el('div', null, el('strong', null, l.ligue), el('div', { classe: 'doux' },
-        `${l.lieu} · saison ${l.saison} · à ${l.distance_m} m · ${l.prochains} match${l.prochains > 1 ? 's' : ''} à venir`)),
-      el('label', null, 'Plateau', choix), el('label', null, 'Durée d’un match (min)', duree),
-      modifiable ? el('button', { type: 'button', onclick: async () => {
-        try {
-          const n = await rest('POST', 'rpc/associer_lieu', { p_organisation: etat.organisation, p_lieu: l.lieu_id,
-            p_plateau: choix.value || null, p_duree: Number(duree.value) || 90 }, PRO);
-          await afficher();
-          dire(choix.value ? `${n} match${n > 1 ? 's' : ''} ajouté${n > 1 ? 's' : ''} à l’horaire. Les prochains suivront d’eux-mêmes.` : 'Ligue retirée de vos plateaux.');
-        } catch (e) { dire(e.message, true); }
-      } }, 'Enregistrer') : null);
-  });
-  return el('div', { classe: 'carte-formulaire' },
-    el('h3', null, 'Ligues EspaceLigue'),
-    el('p', { classe: 'doux' }, 'Les ligues qui jouent à moins d’un kilomètre de vos établissements. Choisissez le plateau : '
-      + 'leurs matchs s’ajoutent à l’horaire, avec le pointage en direct, et suivent les changements de la ligue.'),
-    lignes.length ? lignes : el('p', { classe: 'doux' }, 'Aucune ligue EspaceLigue ne joue près de vos établissements pour l’instant.'));
 }
 
 // --- Calendriers iCal --------------------------------------------------------------
