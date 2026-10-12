@@ -295,12 +295,47 @@ function cartePanneau(p, i, af, modifiable) {
 
 // --- Vue Apparence ---------------------------------------------------------------
 async function vueApparence() {
-  const [o] = await lirePro('organisations', { select: 'id,nom,apparence', id: 'eq.' + etat.organisation });
+  const [[o], affichages] = await Promise.all([
+    lirePro('organisations', { select: 'id,nom,apparence', id: 'eq.' + etat.organisation }),
+    lirePro('affichages', { select: 'id,nom,jeton,reglages', organisation_id: 'eq.' + etat.organisation, order: 'nom' }),
+  ]);
   const a = Object.assign({}, o.apparence || {});
   const admin = roleIci() === 'admin';
+
+  // Aperçu : un affichage réel de l'organisation, avec son gabarit et ses
+  // panneaux, où l'on substitue l'apparence en cours d'édition.
+  let reel = null, minuterie = null;
+  if (!affichages.some((x) => x.id === contenu.affichage) && affichages.length) contenu.affichage = affichages[0].id;
+  const cadre = el('iframe', { src: '../affichage/?apercu', title: 'Aperçu de l’apparence', tabindex: '-1' });
+  const envoyer = () => {
+    if (!reel || !cadre.contentWindow) return;
+    const d = Object.assign({}, reel, {
+      apparence: Object.assign({}, reel.apparence, a, (reel.reglages || {}).apparence || {}),
+      panneaux: (reel.panneaux || []).map((p) => Object.assign({}, p, { duree: Math.min(p.duree, 8) })) });
+    cadre.contentWindow.postMessage({ type: 'apercu', donnees: d }, location.origin);
+  };
+  const rafraichir = () => { clearTimeout(minuterie); minuterie = setTimeout(envoyer, 200); };
+  cadre.addEventListener('load', envoyer);
+  const charger = async () => {
+    const af = affichages.find((x) => x.id === contenu.affichage);
+    reel = af ? await rest('POST', 'rpc/lire_affichage', { jeton: af.jeton }, PRO) : null;
+    const g = af && (af.reglages || {}).gabarit;
+    remarque.textContent = !g || g === 'plein'
+      ? 'Cet affichage est en plein écran : le logo n’y paraît pas. Choisissez un gabarit avec bandeau ou colonne (onglet Contenu) pour le montrer.'
+      : 'Gabarit de cet affichage : ' + GABARITS[g].nom + '.';
+    envoyer();
+  };
+  const remarque = el('p', { classe: 'doux' });
+  const choixAff = el('select', { onchange: () => { contenu.affichage = choixAff.value; charger().catch((e) => dire(e.message, true)); } },
+    affichages.map((x) => el('option', { value: x.id, selected: x.id === contenu.affichage }, x.nom)));
+  const apercu = affichages.length ? el('div', { classe: 'apercu' },
+    el('div', { classe: 'entete-vue' }, el('h3', null, 'Aperçu'), affichages.length > 1 ? el('label', { classe: 'choix-affichage' }, choixAff) : null),
+    cadre, remarque) : null;
+  if (apercu) charger().catch((e) => dire(e.message, true));
+
   const apercuLogo = el('img', { classe: 'logo-apercu', src: a.logo || '', alt: '', hidden: !a.logo });
-  const accent = el('input', { type: 'color', valeur: a.accent || '#1f6fff', disabled: !admin, oninput: () => { a.accent = accent.value; } });
-  const theme = el('select', { disabled: !admin, onchange: () => { a.theme = theme.value; } },
+  const accent = el('input', { type: 'color', valeur: a.accent || '#1f6fff', disabled: !admin, oninput: () => { a.accent = accent.value; rafraichir(); } });
+  const theme = el('select', { disabled: !admin, onchange: () => { a.theme = theme.value; rafraichir(); } },
     el('option', { value: 'sombre', selected: a.theme !== 'clair' }, 'Sombre (recommandé, lisible de loin)'),
     el('option', { value: 'clair', selected: a.theme === 'clair' }, 'Clair'));
   return el('section', null,
@@ -316,12 +351,13 @@ async function vueApparence() {
       } },
       el('div', { classe: 'champs' },
         admin ? champMedia('Logo (PNG transparent ou SVG)', a.logo, 'image/png,image/svg+xml,image/webp', (u) => {
-          a.logo = u || undefined; apercuLogo.src = u || ''; apercuLogo.hidden = !u;
+          a.logo = u || undefined; apercuLogo.src = u || ''; apercuLogo.hidden = !u; rafraichir();
         }) : null,
         el('label', null, 'Couleur d’accent', accent),
         el('label', null, 'Thème', theme)),
       apercuLogo,
-      admin ? el('div', { classe: 'actions' }, el('button', { type: 'submit' }, 'Enregistrer')) : null));
+      admin ? el('div', { classe: 'actions' }, el('button', { type: 'submit' }, 'Enregistrer')) : null),
+    apercu);
 }
 
 // --- Vue Urgence -------------------------------------------------------------------
