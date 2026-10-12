@@ -363,9 +363,11 @@ async function vueApparence() {
 // --- Vue Urgence -------------------------------------------------------------------
 async function vueUrgence() {
   const org = etat.organisation;
-  const [urgences, affichages] = await Promise.all([
+  const [urgences, affichages, [o], etablissements] = await Promise.all([
     lirePro('urgences', { select: '*', organisation_id: 'eq.' + org, order: 'debut.desc', limit: 20 }),
     lirePro('affichages', { select: 'id,nom', organisation_id: 'eq.' + org, order: 'nom' }),
+    lirePro('organisations', { select: 'id,alertes', id: 'eq.' + org }),
+    lirePro('etablissements', { select: 'nom,latitude,longitude', organisation_id: 'eq.' + org }),
   ]);
   const maintenant = Date.now();
   const enCours = urgences.filter((u) => new Date(u.debut) <= maintenant && (!u.fin || new Date(u.fin) > maintenant));
@@ -383,7 +385,8 @@ async function vueUrgence() {
     el('h2', null, 'Message d’urgence'),
     el('p', { classe: 'doux' }, 'Prend l’écran entier, par-dessus tout le reste, en 30 secondes au plus.'),
     enCours.length ? enCours.map((u) => el('div', { classe: 'fiche urgence-active' },
-      el('strong', null, '● En cours : ' + u.titre), el('p', null, u.texte || ''),
+      el('strong', null, '● En cours : ' + u.titre),
+      u.source === 'naad' ? el('span', { classe: 'pastille' }, 'En Alerte · ' + ((TYPES_ALERTES[u.type] || {}).nom || u.type)) : null, el('p', null, u.texte || ''),
       el('p', { classe: 'doux' }, nomAff(u.affichage_id) + (u.fin ? ' · jusqu’à ' + quand(u.fin) : ' · sans fin')),
       modifiable ? el('div', { classe: 'actions' }, el('button', { type: 'button', onclick: async () => {
         try { await majPro('urgences', { id: 'eq.' + u.id }, { fin: new Date().toISOString() }); await afficher(); dire('Message retiré.'); }
@@ -402,5 +405,42 @@ async function vueUrgence() {
       el('h3', null, 'Diffuser un message'),
       el('div', { classe: 'champs' }, el('label', { classe: 'large' }, 'Titre', titre), el('label', { classe: 'large' }, 'Texte', texte),
         el('label', null, 'Où', cible), el('label', null, 'Durée', duree)),
-      el('div', { classe: 'actions' }, el('button', { type: 'submit', classe: 'danger' }, 'Diffuser'))) : null);
+      el('div', { classe: 'actions' }, el('button', { type: 'submit', classe: 'danger' }, 'Diffuser'))) : null,
+    alertesPubliques(o, etablissements));
+}
+
+// --- Alertes publiques (En Alerte, flux NAAD) ---------------------------------------
+const TYPES_ALERTES = {
+  amber: { nom: 'Alerte AMBER', aide: 'Enlèvement d’enfant (Sûreté du Québec, SPVM). Fortement recommandé.' },
+  immediat: { nom: 'Danger immédiat', aide: 'Alertes à diffuser immédiatement : tornade, évacuation, matières dangereuses…' },
+  meteo_avertissement: { nom: 'Avertissements météo', aide: 'Phénomène dangereux en cours ou imminent (neige, pluie verglaçante, orage…).' },
+  meteo_veille: { nom: 'Veilles météo', aide: 'Conditions favorables à un phénomène dangereux.' },
+  meteo_avis: { nom: 'Avis météo', aide: 'Phénomène moins grave (brouillard, chaleur…). Fréquents.' },
+  securite: { nom: 'Autres alertes civiles', aide: 'Qualité de l’air, avis d’eau, personne disparue, etc.' },
+};
+
+function alertesPubliques(o, etablissements) {
+  const admin = roleIci() === 'admin';
+  const choisis = new Set(((o && o.alertes) || {}).types || []);
+  const sansPosition = etablissements.filter((e) => e.latitude == null || e.longitude == null);
+  const cases = Object.entries(TYPES_ALERTES).map(([k, t]) => {
+    const c = el('input', { type: 'checkbox', checked: choisis.has(k), disabled: !admin,
+      onchange: () => { c.checked ? choisis.add(k) : choisis.delete(k); } });
+    return el('label', { classe: 'case alerte-type' }, c, el('span', null, el('strong', null, t.nom), el('br'), el('span', { classe: 'doux' }, t.aide)));
+  });
+  return el('form', { classe: 'carte-formulaire', onsubmit: async (ev) => {
+      ev.preventDefault();
+      try {
+        await majPro('organisations', { id: 'eq.' + o.id }, { alertes: { types: [...choisis] } });
+        dire('Alertes publiques enregistrées.');
+      } catch (e) { dire(e.message, true); }
+    } },
+    el('h3', null, 'Alertes publiques (En Alerte)'),
+    el('p', { classe: 'doux' }, 'Les alertes officielles du système canadien En Alerte prennent l’écran entier, d’elles-mêmes, '
+      + 'quand l’un de vos établissements est dans la zone visée, et s’effacent quand elles prennent fin. Délai : une à deux minutes. '
+      + (admin ? '' : 'Seul l’administrateur de l’organisation peut les choisir.')),
+    sansPosition.length ? el('p', { classe: 'erreur' }, 'Sans position, ces établissements ne recevront aucune alerte : '
+      + sansPosition.map((e) => e.nom).join(', ') + '. Communiquez avec EspaceLigue pour la faire ajouter.') : null,
+    el('div', { classe: 'alerte-types' }, cases),
+    admin ? el('div', { classe: 'actions' }, el('button', { type: 'submit' }, 'Enregistrer')) : null);
 }

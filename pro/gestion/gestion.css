@@ -84,3 +84,9 @@ button.danger { background: var(--rouge); }
   .choix-gabarit summary .schema { width: 100%; }
   .choix-affichage, .choix-affichage select { width: 100%; min-width: 0; }
 }
+/* Alertes publiques */
+.alerte-types { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 10px; }
+.carte-formulaire label.alerte-type { align-items: flex-start; padding: 10px; border-radius: 8px; background: var(--fond); }
+.alerte-type input { margin-top: 3px; }
+.alerte-type .doux { font-size: .85rem; }
+.urgence-active .pastille { margin-left: 8px; }
