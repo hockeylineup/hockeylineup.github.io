@@ -19,6 +19,8 @@ main#contenu h2 { margin-bottom: 0; }
 .affichages { display: grid; gap: 8px; }
 .affichages a.ligne { display: flex; justify-content: space-between; align-items: center; gap: 12px;
   padding: 10px 12px; border-radius: 8px; background: var(--fond); color: var(--texte); text-decoration: none; }
+.rangee-affichage { display: flex; gap: 8px; align-items: stretch; }
+.rangee-affichage a.ligne { flex: 1; min-width: 0; }
 .affichages a.ligne:hover { outline: 1px solid var(--bleu); }
 .affichages a.ligne span:last-child { color: var(--bleu); white-space: nowrap; }
 @media (max-width: 800px) { #choix-organisation { grid-column: 1 / -1; padding: 0; } }

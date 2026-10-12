@@ -126,7 +126,7 @@ async function vueContenu() {
   contenu.affichages = affichages;
   contenu.apparence = (orgs[0] && orgs[0].apparence) || {};
   if (!affichages.length) return el('section', { classe: 'fiche' }, el('h2', null, 'Contenu des affichages'),
-    el('p', { classe: 'doux' }, 'Aucun affichage pour l’instant. EspaceLigue les crée avec vous.'));
+    el('p', { classe: 'doux' }, 'Aucun affichage pour l’instant. Ajoutez-en un dans l’onglet Lecteurs.'));
   if (!affichages.some((a) => a.id === contenu.affichage)) contenu.affichage = affichages[0].id;
   const af = affichages.find((a) => a.id === contenu.affichage);
   contenu.reglages = JSON.parse(JSON.stringify(af.reglages || {}));
@@ -138,7 +138,7 @@ async function vueContenu() {
     affichages.map((a) => el('option', { value: a.id, selected: a.id === af.id }, a.nom + (nomEtab(a.etablissement_id) ? ' (' + nomEtab(a.etablissement_id) + ')' : ''))));
 
   const vue = el('section', { classe: 'vue-contenu' },
-    el('div', { classe: 'entete-vue' }, el('h2', null, 'Contenu des affichages'), el('label', { classe: 'choix-affichage' }, el('span', null, 'Écran à modifier'), choix)),
+    el('div', { classe: 'entete-vue' }, el('h2', null, 'Contenu des affichages'), el('label', { classe: 'choix-affichage' }, el('span', null, 'Affichage à modifier'), choix)),
     el('p', { classe: 'doux' }, 'Les panneaux défilent l’un après l’autre dans la zone principale. Un panneau sans contenu '
       + 'du moment (pointage sans match, plage horaire passée) est sauté. Sans aucun panneau, l’écran montre l’horaire.'),
     cadreApercu(),
@@ -357,7 +357,7 @@ async function vueApparence() {
   const choixAff = el('select', { onchange: () => { contenu.affichage = choixAff.value; charger().catch((e) => dire(e.message, true)); } },
     affichages.map((x) => el('option', { value: x.id, selected: x.id === contenu.affichage }, x.nom)));
   const apercu = affichages.length ? el('div', { classe: 'apercu' },
-    el('div', { classe: 'entete-vue' }, el('h3', null, 'Aperçu'), affichages.length > 1 ? el('label', { classe: 'choix-affichage' }, el('span', null, 'Écran'), choixAff) : null),
+    el('div', { classe: 'entete-vue' }, el('h3', null, 'Aperçu'), affichages.length > 1 ? el('label', { classe: 'choix-affichage' }, el('span', null, 'Affichage'), choixAff) : null),
     cadre, remarque) : null;
   if (apercu) charger().catch((e) => dire(e.message, true));
 

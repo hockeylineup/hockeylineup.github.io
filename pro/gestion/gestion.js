@@ -7,6 +7,8 @@
 // - tout membre voit les lecteurs et les affichages de son organisation ;
 // - l'administrateur et le gestionnaire changent le nom et l'affichage d'un
 //   lecteur, rien d'autre (le statut reste à l'équipe EspaceLigue) ;
+// - ils ajoutent et retirent les affichages de l'organisation (un lecteur
+//   dont l'affichage est retiré passe en attente : on delete set null) ;
 // - un affichage d'une autre organisation est refusé par la clé étrangère.
 // En français, le vouvoiement (marché institutionnel).
 'use strict';
@@ -103,11 +105,12 @@ async function afficher() {
 
 async function vueLecteurs() {
   const org = etat.organisation;
-  const [lecteurs, affichages, etablissements] = await Promise.all([
+  const [lecteurs, affichages, etablissements, plateaux] = await Promise.all([
     lirePro('lecteurs', { select: 'id,serie,nom,statut,affichage_id,dernier_contact',
                           organisation_id: 'eq.' + org, order: 'nom.nullslast,serie' }),
     lirePro('affichages', { select: 'id,nom,jeton,etablissement_id', organisation_id: 'eq.' + org, order: 'nom' }),
-    lirePro('etablissements', { select: 'id,nom', organisation_id: 'eq.' + org }),
+    lirePro('etablissements', { select: 'id,nom', organisation_id: 'eq.' + org, order: 'nom' }),
+    lirePro('plateaux', { select: 'id,nom,etablissement_id', organisation_id: 'eq.' + org, order: 'nom' }),
   ]);
   const nomEtab = (id) => (etablissements.find((e) => e.id === id) || {}).nom || '';
   const libelle = (a) => nomEtab(a.etablissement_id) + ' · ' + a.nom;
@@ -152,12 +155,52 @@ async function vueLecteurs() {
             + 'à votre organisation.')),
     el('div', { classe: 'fiche' }, el('h3', null, 'Vos affichages'),
       affichages.length
-        ? el('div', { classe: 'affichages' }, affichages.map((a) =>
+        ? el('div', { classe: 'affichages' }, affichages.map((a) => el('div', { classe: 'rangee-affichage' },
             el('a', { classe: 'ligne', href: '../affichage/#' + a.jeton, target: '_blank', rel: 'noopener' },
-              el('span', null, libelle(a)), el('span', null, 'Ouvrir ↗'))))
+              el('span', null, libelle(a)), el('span', null, 'Ouvrir ↗')),
+            modifiable ? el('button', { type: 'button', classe: 'discret', onclick: () => retirerAffichage(a, lecteurs) }, 'Retirer') : null)))
         : el('p', { classe: 'doux' }, 'Aucun affichage pour l’instant.'),
+      modifiable && etablissements.length ? formulaireAffichage(etablissements, plateaux) : null,
       el('p', { classe: 'doux' }, 'Chaque adresse fonctionne aussi sur n’importe quel écran avec un navigateur. '
         + 'Gardez-la pour vous : elle suffit à voir l’affichage.')));
+}
+
+async function retirerAffichage(a, lecteurs) {
+  const n = lecteurs.filter((l) => l.affichage_id === a.id).length;
+  if (!confirm('Retirer l’affichage « ' + a.nom + ' » ? Son contenu (panneaux, mise en page) sera perdu.'
+    + (n ? '\n' + n + (n > 1 ? ' lecteurs le montrent : ils passeront' : ' lecteur le montre : il passera') + ' en attente.' : ''))) return;
+  try {
+    await retraitPro('affichages', { id: 'eq.' + a.id });
+    await afficher();
+    dire('Affichage retiré.');
+  } catch (e) { dire(e.message, true); }
+}
+
+// Un affichage montre un plateau (près de la glace) ou tout l'établissement (hall).
+function formulaireAffichage(etablissements, plateaux) {
+  const nom = el('input', { required: true, maxlength: 80, placeholder: 'ex. Glace 2, Hall d’entrée' });
+  const etab = el('select', null, etablissements.map((e) => el('option', { value: e.id }, e.nom)));
+  const plateau = el('select');
+  const langue = el('select', null, el('option', { value: 'fr' }, 'Français'), el('option', { value: 'en' }, 'Anglais'));
+  const remplir = () => plateau.replaceChildren(
+    el('option', { value: '' }, 'Tout l’établissement (hall)'),
+    plateaux.filter((p) => p.etablissement_id === etab.value).map((p) => el('option', { value: p.id }, p.nom)));
+  etab.addEventListener('change', remplir);
+  remplir();
+  return el('form', { classe: 'carte-formulaire', onsubmit: async (ev) => {
+      ev.preventDefault();
+      try {
+        await ajoutPro('affichages', { organisation_id: etat.organisation, etablissement_id: etab.value,
+                                       plateau_id: plateau.value || null, nom: nom.value.trim(), langue: langue.value });
+        await afficher();
+        dire('Affichage ajouté. Choisissez-le pour un lecteur, puis réglez son contenu dans l’onglet Contenu.');
+      } catch (e) { dire(e.message, true); }
+    } },
+    el('h3', null, 'Ajouter un affichage'),
+    el('div', { classe: 'champs' }, el('label', null, 'Nom', nom),
+      etablissements.length > 1 ? el('label', null, 'Établissement', etab) : null,
+      el('label', null, 'Montre', plateau), el('label', null, 'Langue', langue)),
+    el('div', { classe: 'actions' }, el('button', { type: 'submit' }, 'Ajouter')));
 }
 
 sessionPerdue = () => deconnecter('Session expirée.');
