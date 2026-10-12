@@ -18,8 +18,8 @@ const majPro = (table, filtre, corps) => rest('PATCH', table + '?' + new URLSear
 
 const ROLES = { admin: 'Administrateur', gestionnaire: 'Gestionnaire', prepose: 'Préposé' };
 const EN_LIGNE_MS = 3 * 60 * 1000;
-const etat = { membres: [], organisations: [], organisation: null, onglet: 'lecteurs' };
-const ONGLETS = { lecteurs: 'Lecteurs', contenu: 'Contenu', apparence: 'Apparence', urgence: 'Urgence' };
+const etat = { membres: [], organisations: [], organisation: null, onglet: 'horaire' };
+const ONGLETS = { horaire: 'Horaire', contenu: 'Contenu', apparence: 'Apparence', urgence: 'Urgence', lecteurs: 'Lecteurs' };
 
 function dire(texte, erreur) {
   const m = $('message');
@@ -94,7 +94,7 @@ async function afficher() {
   $('onglets').replaceChildren(...Object.entries(ONGLETS).map(([k, v]) => el('button', {
     classe: k === etat.onglet ? 'actif' : null, onclick: () => { etat.onglet = k; afficher(); } }, v)));
   try {
-    const vue = { lecteurs: vueLecteurs, contenu: vueContenu, apparence: vueApparence, urgence: vueUrgence }[etat.onglet];
+    const vue = { horaire: vueHoraire, lecteurs: vueLecteurs, contenu: vueContenu, apparence: vueApparence, urgence: vueUrgence }[etat.onglet];
     $('contenu').replaceChildren(await vue());
   } catch (e) {
     dire(e.message, true);

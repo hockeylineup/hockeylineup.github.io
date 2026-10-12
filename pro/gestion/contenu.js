@@ -143,10 +143,20 @@ async function vueContenu() {
       + 'du moment (pointage sans match, plage horaire passée) est sauté. Sans aucun panneau, l’écran montre l’horaire.'),
     cadreApercu(),
     formulaireGabarit(af, modifiable),
-    el('div', { classe: 'entete-vue' }, el('h3', null, 'Panneaux'),
-      modifiable ? ajoutPanneau(af) : null),
+    el('section', { classe: 'carte-formulaire' },
+      el('div', { classe: 'entete-zone' }, schemaGabarit(contenu.reglages.gabarit || 'plein'),
+        el('div', null, el('h3', null, 'Contenu de la zone Panneaux'),
+          el('p', { classe: 'doux' }, 'Ce qui défile dans la grande zone bleue, un panneau après l’autre. '
+            + 'Ajoutez ce que vous voulez montrer ; l’ordre et la durée se règlent sur chaque panneau.'))),
+      modifiable ? choixPanneaux(af) : null),
+    el('h3', null, 'Vos panneaux, dans l’ordre'),
     contenu.panneaux.length ? contenu.panneaux.map((p, i) => cartePanneau(p, i, af, modifiable))
       : el('p', { classe: 'doux fiche' }, 'Aucun panneau : l’écran montre l’horaire seul.'));
+  if (contenu.nouveau) {
+    const id = contenu.nouveau;
+    contenu.nouveau = null;
+    setTimeout(() => { const n = vue.querySelector('[data-panneau="' + id + '"]'); if (n) { n.scrollIntoView({ behavior: 'smooth', block: 'center' }); n.classList.add('vient'); } }, 50);
+  }
   chargerApercu().catch((e) => dire(e.message, true));
   return vue;
 }
@@ -194,17 +204,35 @@ function formulaireGabarit(af, modifiable) {
     modifiable ? el('div', { classe: 'actions' }, el('button', { type: 'submit' }, 'Enregistrer la mise en page')) : null);
 }
 
-function ajoutPanneau(af) {
-  const type = el('select', null, Object.entries(TYPES).map(([k, t]) => el('option', { value: k }, t.nom)));
-  return el('div', { classe: 'actions' }, type, el('button', { type: 'button', onclick: async () => {
-    try {
-      const ordre = contenu.panneaux.reduce((m, p) => Math.max(m, p.ordre), 0) + 10;
-      await ajoutPro('panneaux', { organisation_id: etat.organisation, affichage_id: af.id, type: type.value,
-        duree: TYPES[type.value].duree, ordre, actif: false });
-      await afficher();
-      dire('Panneau ajouté, inactif : remplissez-le, cochez « Actif » et enregistrez.');
-    } catch (e) { dire(e.message, true); }
-  } }, 'Ajouter un panneau'));
+// Les types de panneaux en cartes illustrées : une miniature de ce que montre
+// l'écran, et « + Ajouter ». Le panneau ajouté est actif : vide, il est sauté
+// à l'écran jusqu'à ce qu'on le remplisse.
+const VIGNETTES = {
+  horaire: () => el('div', { classe: 'v-horaire' }, el('b', null, 'Glace 1'), el('i'), el('i'), el('i')),
+  pointage: () => el('div', { classe: 'v-pointage' }, el('span', null, '●'), el('b', null, '2 : 1'), el('span', null, '●')),
+  annonce: () => el('div', { classe: 'v-annonce' }, el('b', null, 'Patin libre annulé'), el('i')),
+  image: () => el('div', { classe: 'v-image' }, '🖼️'),
+  video: () => el('div', { classe: 'v-video' }, '▶'),
+  rss: () => el('div', { classe: 'v-rss' }, el('i'), el('i'), el('i')),
+  meteo: () => el('div', { classe: 'v-meteo' }, '⛅', el('b', null, '16°')),
+};
+
+function choixPanneaux(af) {
+  return el('div', { classe: 'galerie-panneaux' }, Object.entries(TYPES).map(([k, t]) =>
+    el('button', { type: 'button', classe: 'carte-type', onclick: async () => {
+      try {
+        const ordre = contenu.panneaux.reduce((m, p) => Math.max(m, p.ordre), 0) + 10;
+        const [p] = await ajoutPro('panneaux', { organisation_id: etat.organisation, affichage_id: af.id, type: k,
+          duree: t.duree, ordre, actif: true });
+        contenu.nouveau = p.id;
+        await afficher();
+        dire(['horaire', 'pointage', 'meteo'].includes(k)
+          ? t.nom + ' ajouté : il paraît déjà dans la rotation.'
+          : t.nom + ' ajouté : remplissez-le ci-dessous, puis enregistrez.');
+      } catch (e) { dire(e.message, true); }
+    } },
+    el('div', { classe: 'vignette-type' }, VIGNETTES[k]()),
+    el('strong', null, t.nom), el('span', { classe: 'doux' }, t.aide), el('span', { classe: 'ajouter' }, '+ Ajouter'))));
 }
 
 function cartePanneau(p, i, af, modifiable) {
@@ -257,7 +285,7 @@ function cartePanneau(p, i, af, modifiable) {
     } catch (e) { dire(e.message, true); }
   };
 
-  return el('form', { classe: 'carte-formulaire panneau' + (p.actif ? '' : ' inactif'), onsubmit: async (ev) => {
+  return el('form', { classe: 'carte-formulaire panneau' + (p.actif ? '' : ' inactif'), 'data-panneau': p.id, onsubmit: async (ev) => {
       ev.preventDefault();
       const coches = jours.map((j, n) => (j.firstChild.checked ? n : -1)).filter((n) => n >= 0);
       try {
