@@ -53,7 +53,8 @@ button.danger { background: var(--rouge); }
 .choix-gabarit summary::-webkit-details-marker { display: none; }
 .choix-gabarit summary::after { content: "▾"; position: absolute; right: 14px; color: var(--doux); }
 .choix-gabarit[open] summary::after { content: "▴"; }
-.choix-gabarit summary .schema { width: 160px; flex: none; }
+.choix-gabarit summary .schema { width: 200px; flex: none; font-size: .64rem; }
+.choix-gabarit summary .schema .zone { padding: 3px 4px; }
 .choix-gabarit summary p { margin: 2px 0 0; font-size: .88rem; }
 .choix-gabarit .options { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; padding: 10px; border-top: 1px solid var(--ligne); }
 .choix-gabarit .option { display: grid; gap: 6px; text-align: left; padding: 10px; border-radius: 10px; background: var(--carte);
@@ -72,3 +73,14 @@ button.danger { background: var(--rouge); }
 .schema .z-bandeau { background: #e4572e; grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 6px; }
 .choix-gabarit summary .schema small { display: none; }
 .carte-formulaire .champs > h4 { grid-column: 1 / -1; margin: 8px 0 -4px; }
+/* Petit écran : rien ne déborde */
+.vue-contenu .entete-vue { flex-wrap: wrap; }
+.choix-affichage { min-width: 0; max-width: 100%; }
+.choix-affichage select { max-width: 100%; }
+.choix-gabarit summary .schema { width: min(200px, 45%); }
+.choix-gabarit .options { grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); }
+@media (max-width: 560px) {
+  .choix-gabarit summary { flex-direction: column; align-items: stretch; }
+  .choix-gabarit summary .schema { width: 100%; }
+  .choix-affichage, .choix-affichage select { width: 100%; min-width: 0; }
+}
