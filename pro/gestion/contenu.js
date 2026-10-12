@@ -24,7 +24,36 @@ const TYPES = {
   meteo: { nom: 'Météo', aide: 'Conditions et prévisions à l’adresse de l’établissement.', duree: 12 },
 };
 const JOURS = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
-const GABARITS = { plein: 'Plein écran', bandeau: 'Avec bandeau en bas', colonne: 'Avec colonne et bandeau' };
+// Les trois dispositions, avec leurs zones (schéma du menu de choix).
+const GABARITS = {
+  plein: { nom: 'Plein écran', aide: 'Les panneaux occupent tout l’écran.' },
+  bandeau: { nom: 'Panneaux + bandeau', aide: 'Un bandeau en bas : heure, météo, texte ou fil RSS défilant.' },
+  colonne: { nom: 'Panneaux + colonne + bandeau', aide: 'Une colonne à droite (logo, météo, commanditaires) et le bandeau.' },
+};
+function schemaGabarit(g) {
+  const z = (classe, titre, detail) => el('div', { classe: 'zone ' + classe }, el('strong', null, titre), detail ? el('small', null, detail) : null);
+  return el('div', { classe: 'schema g-' + g, 'aria-hidden': 'true' },
+    z('z-principale', 'Panneaux', 'horaire, annonces, images, vidéo…'),
+    g === 'colonne' ? z('z-colonne', 'Colonne', 'logo · météo · commanditaires') : null,
+    g !== 'plein' ? z('z-bandeau', 'Bandeau', 'heure · météo · texte ou RSS défilant') : null);
+}
+
+// Menu déroulant illustré : le choix courant, et les trois schémas à l'ouverture.
+function choixGabarit(valeur, modifiable, change) {
+  const menu = el('details', { classe: 'choix-gabarit' });
+  const dessiner = () => {
+    const g = GABARITS[valeur] ? valeur : 'plein';
+    menu.replaceChildren(
+      el('summary', null, schemaGabarit(g), el('div', null, el('strong', null, GABARITS[g].nom), el('p', { classe: 'doux' }, GABARITS[g].aide))),
+      el('div', { classe: 'options' }, Object.entries(GABARITS).map(([k, v]) =>
+        el('button', { type: 'button', classe: 'option' + (k === g ? ' choisi' : ''), 'aria-pressed': k === g ? 'true' : 'false',
+          onclick: () => { valeur = k; menu.open = false; dessiner(); change(k); } },
+          schemaGabarit(k), el('strong', null, v.nom), el('span', { classe: 'doux' }, v.aide)))));
+  };
+  dessiner();
+  if (!modifiable) menu.addEventListener('toggle', () => { menu.open = false; });
+  return menu;
+}
 
 const contenu = { affichage: null, affichages: [], panneaux: [], reglages: {}, apparence: {}, minuterie: null };
 
@@ -127,8 +156,7 @@ function formulaireGabarit(af, modifiable) {
   r.bandeau = r.bandeau || {};
   r.colonne = r.colonne || {};
   const majR = () => { rafraichirApercu(); };
-  const gabarit = el('select', { disabled: !modifiable, onchange: () => { r.gabarit = gabarit.value; zones(); majR(); } },
-    Object.entries(GABARITS).map(([k, v]) => el('option', { value: k, selected: (r.gabarit || 'plein') === k }, v)));
+  const gabarit = choixGabarit(r.gabarit || 'plein', modifiable, (g) => { r.gabarit = g; zones(); majR(); });
   const texte = el('input', { valeur: r.bandeau.texte || '', placeholder: 'ex. Bienvenue à l’aréna !', disabled: !modifiable,
     oninput: () => { r.bandeau.texte = texte.value; majR(); } });
   const rss = el('input', { valeur: r.bandeau.rss || '', placeholder: 'https://… (facultatif)', disabled: !modifiable,
@@ -145,8 +173,9 @@ function formulaireGabarit(af, modifiable) {
       r.colonne.logos = (r.colonne.logos || []).concat(u); dessinerLogos(); majR();
     }) : null);
   dessinerLogos();
-  const blocBandeau = el('div', { classe: 'champs' }, el('label', null, 'Texte défilant', texte), el('label', null, 'Fil RSS défilant', rss));
-  const blocColonne = el('div', { classe: 'champs' }, el('label', { classe: 'case' }, meteo, ' Météo dans la colonne'),
+  const blocBandeau = el('div', { classe: 'champs' }, el('h4', null, 'Bandeau'),
+    el('label', null, 'Texte défilant', texte), el('label', null, 'Fil RSS défilant', rss));
+  const blocColonne = el('div', { classe: 'champs' }, el('h4', null, 'Colonne'), el('label', { classe: 'case' }, meteo, ' Météo dans la colonne'),
     el('div', { classe: 'large' }, el('span', { classe: 'doux' }, 'Commanditaires (un à la fois, 8 s chacun)'), logos));
   const zones = () => { blocBandeau.hidden = (r.gabarit || 'plein') === 'plein'; blocColonne.hidden = r.gabarit !== 'colonne'; };
   zones();
@@ -160,7 +189,7 @@ function formulaireGabarit(af, modifiable) {
       } catch (e) { dire(e.message, true); }
     } },
     el('h3', null, 'Mise en page'),
-    el('div', { classe: 'champs' }, el('label', null, 'Gabarit', gabarit)),
+    el('div', null, el('span', { classe: 'doux' }, 'Choix du gabarit'), gabarit),
     blocBandeau, blocColonne,
     modifiable ? el('div', { classe: 'actions' }, el('button', { type: 'submit' }, 'Enregistrer la mise en page')) : null);
 }

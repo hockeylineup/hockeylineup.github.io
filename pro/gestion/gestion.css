@@ -47,3 +47,28 @@ main#contenu { max-width: 980px; }
 .urgence-active { border-left: 4px solid var(--rouge); }
 .urgence-active strong { color: var(--rouge); }
 button.danger { background: var(--rouge); }
+/* Choix du gabarit : menu déroulant illustré */
+.choix-gabarit { margin-top: 6px; border: 1px solid var(--ligne); border-radius: 10px; background: var(--fond); }
+.choix-gabarit summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 16px; padding: 10px 40px 10px 10px; position: relative; }
+.choix-gabarit summary::-webkit-details-marker { display: none; }
+.choix-gabarit summary::after { content: "▾"; position: absolute; right: 14px; color: var(--doux); }
+.choix-gabarit[open] summary::after { content: "▴"; }
+.choix-gabarit summary .schema { width: 160px; flex: none; }
+.choix-gabarit summary p { margin: 2px 0 0; font-size: .88rem; }
+.choix-gabarit .options { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; padding: 10px; border-top: 1px solid var(--ligne); }
+.choix-gabarit .option { display: grid; gap: 6px; text-align: left; padding: 10px; border-radius: 10px; background: var(--carte);
+  color: var(--texte); border: 2px solid transparent; font-weight: 400; }
+.choix-gabarit .option:hover { border-color: var(--ligne); }
+.choix-gabarit .option.choisi { border-color: var(--bleu); }
+.choix-gabarit .option .doux { font-size: .82rem; }
+.schema { display: grid; aspect-ratio: 16 / 9; gap: 3px; padding: 3px; border-radius: 6px; background: #0b1220;
+  grid-template-columns: 1fr; grid-template-rows: 1fr; font-size: .7rem; line-height: 1.15; }
+.schema.g-bandeau { grid-template-rows: 1fr 22%; }
+.schema.g-colonne { grid-template-columns: 1fr 30%; grid-template-rows: 1fr 22%; }
+.schema .zone { border-radius: 4px; padding: 4px 6px; color: #fff; display: flex; flex-direction: column; justify-content: center; overflow: hidden; min-width: 0; }
+.schema .zone small { opacity: .8; font-size: .62rem; }
+.schema .z-principale { background: #1f6fff; }
+.schema .z-colonne { background: #7c3aed; }
+.schema .z-bandeau { background: #e4572e; grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 6px; }
+.choix-gabarit summary .schema small { display: none; }
+.carte-formulaire .champs > h4 { grid-column: 1 / -1; margin: 8px 0 -4px; }
