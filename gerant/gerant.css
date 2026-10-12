@@ -23,3 +23,9 @@ form.tarif button { height: 40px; }
 .connexion h2 { margin: 0 0 4px; }
 .pret { width: min(340px, 100%); display: grid; gap: 12px; }
 a.bouton { display: block; text-align: center; text-decoration: none; font-weight: 600; color: #fff; background: var(--bleu); border-radius: 8px; padding: 9px 14px; }
+
+/* Lieux et arénas */
+.lieu { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 10px 0; border-top: 1px solid var(--ligne); }
+.lieu:first-of-type { border-top: 0; }
+.lieu label { min-width: 220px; }

@@ -19,6 +19,7 @@ const JOURS_RAPPEL = [1, 2, 3, 5, 7];
 // Les sujets de Gestion (SujetReglages) ; les tarifs au gérant titulaire seulement.
 const SUJETS = [
   ['ligue', 'Nom de la ligue'],
+  ['lieux', 'Lieux et arénas'],
   ['matchs', 'Matchs'],
   ['remplacements', 'Remplacements'],
   ['statistiques', 'Statistiques et classement'],
@@ -27,7 +28,9 @@ const SUJETS = [
   ['tarifs', 'Tarifs de remplacement', true],
 ];
 
-const etat = { ligues: [], ligue: null, parametres: null, regions: [], positions: [], tarifs: [], sujet: 'ligue', occupe: false };
+const etat = { ligues: [], ligue: null, parametres: null, regions: [], positions: [], tarifs: [], sujet: 'ligue', occupe: false,
+                saisons: [], lieux: [], arenas: [], liens: {} };
+const STATUTS_ARENA = { demandee: 'En attente de l’aréna', acceptee: 'Acceptée par l’aréna', refusee: 'Refusée par l’aréna' };
 
 function dire(texte, erreur) {
   const m = $('message');
@@ -103,12 +106,35 @@ async function chargerLigue() {
     etat.tarifs = tarifs;
     etat.regions = regions;
     etat.positions = await lire('positions', { select: 'code,nom', sport: 'eq.' + etat.parametres.sport, order: 'ordre' });
+    await chargerLieux();
   } catch (e) {
     dire(e.message, true);
     return;
   }
   if (!SUJETS.some(([c, , t]) => c === etat.sujet && (!t || titulaire()))) etat.sujet = 'ligue';
   afficher();
+}
+
+// Les lieux de la ligue et les arénas d'EspaceLigue Pro. Sans réponse des
+// arénas (base pas à jour), les lieux restent à adresse seulement.
+async function chargerLieux() {
+  const id = 'eq.' + etat.ligue;
+  [etat.saisons, etat.lieux] = await Promise.all([
+    lire('saisons', { select: 'id,nom', ligue_id: id, order: 'debut.desc.nullslast,nom' }),
+    lire('lieux', { select: 'id,saison_id,nom,adresse,latitude,longitude', ligue_id: id, order: 'nom' }),
+  ]);
+  try {
+    const [arenas, liens] = await Promise.all([rest('POST', 'rpc/arenas_pro', {}),
+      rest('POST', 'rpc/arenas_des_lieux', { p_ligue: etat.ligue })]);
+    etat.arenas = arenas;
+    etat.liens = Object.fromEntries(liens.map((l) => [l.lieu_id, l]));
+  } catch (e) { etat.arenas = []; etat.liens = {}; }
+}
+
+async function relierArena(lieu, arena) {
+  const statut = await rest('POST', 'rpc/relier_arena', { p_lieu: lieu, p_etablissement: arena || null });
+  if (arena) etat.liens[lieu] = { lieu_id: lieu, etablissement_id: arena, statut: statut || 'demandee' };
+  else delete etat.liens[lieu];
 }
 
 // --- Écrire ------------------------------------------------------------------
@@ -183,6 +209,74 @@ const VUES = {
         if (n && n !== etat.parametres.nom) changer({ nom: n }).then(() => ouvrirLigues());
       } }, champ, el('button', { type: 'submit' }, 'Renommer')),
       el('p', { classe: 'doux' }, 'Le logo, les saisons et les membres se gèrent dans l\'app pour l\'instant.'))];
+  },
+
+  // Une aréna d'EspaceLigue Pro, ou un lieu avec son adresse seulement
+  // (comme dans l'app). Choisir une aréna lui envoie une demande : elle
+  // accepte d'afficher les matchs et choisit la glace.
+  lieux() {
+    const choixArena = (valeur) => el('select', null,
+      el('option', { value: '' }, 'Autre lieu (adresse seulement)'),
+      etat.arenas.map((a) => el('option', { value: a.id, selected: a.id === valeur }, a.nom)));
+    const parSaison = etat.saisons.map((s) => {
+      const lieux = etat.lieux.filter((l) => l.saison_id === s.id);
+      return carte('Saison ' + s.nom, lieux.length ? lieux.map((l) => {
+        const lien = etat.liens[l.id];
+        const choix = choixArena(lien && lien.etablissement_id);
+        choix.addEventListener('change', async () => {
+          const a = etat.arenas.find((x) => x.id === choix.value);
+          try {
+            await relierArena(l.id, choix.value);
+            if (a) {
+              const p = await rest('PATCH', 'lieux?' + new URLSearchParams({ id: 'eq.' + l.id, select: 'id,saison_id,nom,adresse,latitude,longitude' }),
+                { nom: a.nom, adresse: a.adresse, latitude: a.latitude, longitude: a.longitude }, { Prefer: 'return=representation' });
+              if (p && p[0]) Object.assign(l, p[0]);
+            }
+            dire(a ? 'Demande envoyée à ' + a.nom + '.' : 'Lieu délié de l’aréna.');
+          } catch (e) { dire(e.message, true); }
+          afficher();
+        });
+        return el('div', { classe: 'lieu' },
+          el('div', null, el('strong', null, l.nom), l.adresse ? el('div', { classe: 'doux' }, l.adresse) : null,
+            lien ? el('div', { classe: 'doux' }, STATUTS_ARENA[lien.statut] || '') : null),
+          etat.arenas.length ? el('label', null, 'Aréna', choix) : null);
+      }) : el('p', { classe: 'doux' }, 'Aucun lieu dans cette saison.'));
+    });
+
+    // Ajouter un lieu à une saison.
+    const saison = el('select', null, etat.saisons.map((s) => el('option', { value: s.id }, s.nom)));
+    const arena = choixArena(null);
+    const nom = el('input', { type: 'text', maxlength: 80, placeholder: 'ex. Aréna Rosemont' });
+    const adresse = el('input', { type: 'text', maxlength: 200, placeholder: 'Adresse' });
+    const manuel = el('div', { classe: 'champs' }, el('label', null, 'Nom', nom), el('label', null, 'Adresse', adresse));
+    arena.addEventListener('change', () => { manuel.hidden = !!arena.value; });
+    const ajout = etat.saisons.length ? carte('Ajouter un lieu', el('form', { onsubmit: async (e) => {
+        e.preventDefault();
+        const a = etat.arenas.find((x) => x.id === arena.value);
+        const ligne = a ? { nom: a.nom, adresse: a.adresse, latitude: a.latitude, longitude: a.longitude }
+                        : { nom: nom.value.trim(), adresse: adresse.value.trim() || null };
+        if (!ligne.nom) { dire('Entre le nom du lieu.', true); return; }
+        try {
+          const [l] = await rest('POST', 'lieux?select=id', Object.assign({ ligue_id: etat.ligue, saison_id: saison.value }, ligne),
+                                 { Prefer: 'return=representation' });
+          if (a) await relierArena(l.id, a.id);
+          await chargerLieux();
+          dire(a ? 'Lieu ajouté. Demande envoyée à ' + a.nom + '.' : 'Lieu ajouté.');
+        } catch (err) { dire(err.message, true); }
+        afficher();
+      } },
+      el('div', { classe: 'champs' }, el('label', null, 'Saison', saison),
+        etat.arenas.length ? el('label', null, 'Aréna', arena) : null),
+      manuel,
+      el('button', { type: 'submit' }, 'Ajouter'))) : null;
+
+    return [
+      el('p', { classe: 'doux' }, 'Choisis une aréna enregistrée dans EspaceLigue Pro : elle reçoit une demande et, '
+        + 'si elle accepte, tes matchs paraissent sur ses écrans avec le pointage et les vestiaires. '
+        + 'Sinon, entre le lieu avec son adresse seulement.'),
+      ...(parSaison.length ? parSaison : [el('p', { classe: 'doux' }, 'Aucune saison : crée-la dans l’app.')]),
+      ajout,
+    ];
   },
 
   matchs() {
