@@ -105,12 +105,11 @@ async function afficher() {
 
 async function vueLecteurs() {
   const org = etat.organisation;
-  const [lecteurs, affichages, etablissements, plateaux] = await Promise.all([
+  const [lecteurs, affichages, etablissements] = await Promise.all([
     lirePro('lecteurs', { select: 'id,serie,nom,statut,affichage_id,dernier_contact',
                           organisation_id: 'eq.' + org, order: 'nom.nullslast,serie' }),
     lirePro('affichages', { select: 'id,nom,jeton,etablissement_id', organisation_id: 'eq.' + org, order: 'nom' }),
     lirePro('etablissements', { select: 'id,nom', organisation_id: 'eq.' + org, order: 'nom' }),
-    lirePro('plateaux', { select: 'id,nom,etablissement_id', organisation_id: 'eq.' + org, order: 'nom' }),
   ]);
   const nomEtab = (id) => (etablissements.find((e) => e.id === id) || {}).nom || '';
   const libelle = (a) => nomEtab(a.etablissement_id) + ' · ' + a.nom;
@@ -160,7 +159,7 @@ async function vueLecteurs() {
               el('span', null, libelle(a)), el('span', null, 'Ouvrir ↗')),
             modifiable ? el('button', { type: 'button', classe: 'discret', onclick: () => retirerAffichage(a, lecteurs) }, 'Retirer') : null)))
         : el('p', { classe: 'doux' }, 'Aucun affichage pour l’instant.'),
-      modifiable && etablissements.length ? formulaireAffichage(etablissements, plateaux) : null,
+      modifiable && etablissements.length ? formulaireAffichage(etablissements) : null,
       el('p', { classe: 'doux' }, 'Chaque adresse fonctionne aussi sur n’importe quel écran avec un navigateur. '
         + 'Gardez-la pour vous : elle suffit à voir l’affichage.')));
 }
@@ -176,33 +175,28 @@ async function retirerAffichage(a, lecteurs) {
   } catch (e) { dire(e.message, true); }
 }
 
-// Un affichage montre un plateau (près de la glace) ou tout l'établissement (hall).
-function formulaireAffichage(etablissements, plateaux) {
-  const nom = el('input', { required: true, maxlength: 80, placeholder: 'ex. Glace 2, Hall d’entrée' });
+// Un affichage est une liste de panneaux (playlist) : on lui donne un nom, on
+// règle ses panneaux dans l'onglet Contenu, puis on le choisit pour un lecteur.
+// Le plateau d'un horaire se choisit dans le panneau, pas ici.
+function formulaireAffichage(etablissements) {
+  const nom = el('input', { required: true, maxlength: 80, placeholder: 'ex. Glace 2, Hall d’entrée, Promotions' });
   const etab = el('select', null, etablissements.map((e) => el('option', { value: e.id }, e.nom)));
-  const plateau = el('select');
   const langue = el('select', null, el('option', { value: 'fr' }, 'Français'), el('option', { value: 'en' }, 'Anglais'));
-  const remplir = () => plateau.replaceChildren(
-    el('option', { value: '' }, 'Hall d’entrée : l’horaire de tous les plateaux'),
-    plateaux.filter((p) => p.etablissement_id === etab.value)
-      .map((p) => el('option', { value: p.id }, 'Près de « ' + p.nom + ' » : ce plateau seulement')));
-  etab.addEventListener('change', remplir);
-  remplir();
   return el('form', { classe: 'carte-formulaire', onsubmit: async (ev) => {
       ev.preventDefault();
       try {
         await ajoutPro('affichages', { organisation_id: etat.organisation, etablissement_id: etab.value,
-                                       plateau_id: plateau.value || null, nom: nom.value.trim(), langue: langue.value });
+                                       nom: nom.value.trim(), langue: langue.value });
         await afficher();
-        dire('Affichage ajouté. Choisissez-le pour un lecteur, puis réglez son contenu dans l’onglet Contenu.');
+        dire('Affichage ajouté. Réglez ses panneaux dans l’onglet Contenu, puis choisissez-le pour un lecteur.');
       } catch (e) { dire(e.message, true); }
     } },
     el('h3', null, 'Ajouter un affichage'),
-    el('p', { classe: 'doux' }, 'Un écran au hall montre l’horaire de tous les plateaux de l’établissement. '
-      + 'Un écran près d’un plateau (une glace, un gymnase) montre ce qui s’y passe et ce qui suit.'),
+    el('p', { classe: 'doux' }, 'Un affichage est une suite de panneaux (horaire, annonces, images, vidéo…). '
+      + 'Créez-le ici, composez-le dans l’onglet Contenu, puis choisissez quel lecteur le montre.'),
     el('div', { classe: 'champs' }, el('label', null, 'Nom', nom),
       etablissements.length > 1 ? el('label', null, 'Établissement', etab) : null,
-      el('label', null, 'Emplacement de l’écran', plateau), el('label', null, 'Langue', langue)),
+      el('label', null, 'Langue', langue)),
     el('div', { classe: 'actions' }, el('button', { type: 'submit' }, 'Ajouter')));
 }
 

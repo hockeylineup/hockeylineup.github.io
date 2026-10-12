@@ -55,7 +55,7 @@ function choixGabarit(valeur, modifiable, change) {
   return menu;
 }
 
-const contenu = { affichage: null, affichages: [], panneaux: [], reglages: {}, apparence: {}, minuterie: null };
+const contenu = { affichage: null, affichages: [], panneaux: [], reglages: {}, apparence: {}, plateaux: [], minuterie: null };
 
 // --- Médias --------------------------------------------------------------------
 async function televerser(fichier) {
@@ -117,13 +117,15 @@ function cadreApercu() {
 // --- Vue Contenu -------------------------------------------------------------------
 async function vueContenu() {
   const org = etat.organisation;
-  const [affichages, etablissements, panneaux, orgs] = await Promise.all([
+  const [affichages, etablissements, panneaux, orgs, plateaux] = await Promise.all([
     lirePro('affichages', { select: 'id,nom,jeton,etablissement_id,reglages', organisation_id: 'eq.' + org, order: 'nom' }),
     lirePro('etablissements', { select: 'id,nom', organisation_id: 'eq.' + org }),
     lirePro('panneaux', { select: '*', organisation_id: 'eq.' + org, order: 'ordre,id' }),
     lirePro('organisations', { select: 'apparence', id: 'eq.' + org }),
+    lirePro('plateaux', { select: 'id,nom,etablissement_id', organisation_id: 'eq.' + org, order: 'nom' }),
   ]);
   contenu.affichages = affichages;
+  contenu.plateaux = plateaux;
   contenu.apparence = (orgs[0] && orgs[0].apparence) || {};
   if (!affichages.length) return el('section', { classe: 'fiche' }, el('h2', null, 'Contenu des affichages'),
     el('p', { classe: 'doux' }, 'Aucun affichage pour l’instant. Ajoutez-en un dans l’onglet Lecteurs.'));
@@ -250,7 +252,10 @@ function cartePanneau(p, i, af, modifiable) {
     return s;
   };
   const champs = {
-    horaire: () => [el('label', null, 'Présentation', choixDe('piste', { '': 'Automatique', B: 'Un plateau en vedette', E: 'Tous les plateaux' }))],
+    // Le plateau se choisit ici, panneau par panneau : l'affichage n'est qu'une liste de panneaux.
+    horaire: () => [el('label', null, 'Plateau', choixDe('plateau', Object.assign({ '': 'Tous les plateaux (une colonne chacun)' },
+      Object.fromEntries(contenu.plateaux.filter((pl) => pl.etablissement_id === af.etablissement_id)
+        .map((pl) => [pl.id, pl.nom + ' seulement (en cours et à suivre)'])))))],
     pointage: () => [],
     annonce: () => [el('label', { classe: 'large' }, 'Titre', entree('titre', { maxlength: 80 })),
       el('label', { classe: 'large' }, 'Texte', entree('texte', { zone: true, rows: 3, maxlength: 300 })),

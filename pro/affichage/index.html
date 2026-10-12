@@ -428,6 +428,8 @@ function rendre(p) {
     case 'rss': return rssPanneau(c);
     case 'meteo': return meteoPanneau();
     default: {
+      const choisi = c.plateau && donnees.plateaux.find((p) => p.id === c.plateau);
+      if (choisi) return vueB(choisi);
       const piste = c.piste || reglages().piste
         || (donnees.plateau_id || donnees.plateaux.length === 1 ? 'B' : 'E');
       return piste === 'B' && donnees.plateaux.length ? vueB(donnees.plateaux[0]) : vueE();
