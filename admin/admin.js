@@ -814,19 +814,16 @@ async function vueOrganisationPro(id) {
         n, a, el('button', { type: 'submit' }, 'Ajouter un établissement'));
     })());
 
-  // Affichages
-  const portee = (etab, plateau) => {
-    const s = el('select', {}, o.etablissements.flatMap((e) => [
-      el('option', { value: e.id + '|', selected: e.id === etab && !plateau }, e.nom + ' — tout le bâtiment'),
-      ...e.plateaux.map((p) => el('option', { value: e.id + '|' + p.id, selected: p.id === plateau }, e.nom + ' — ' + p.nom))]));
-    return s;
-  };
+  // Affichages : des playlists. Le plateau d'un horaire se choisit dans le
+  // panneau (page de gestion) ; l'affichage ne garde que son établissement.
+  const portee = (etab) => el('select', {}, o.etablissements.map((e) =>
+    el('option', { value: e.id + '|', selected: e.id === etab }, e.nom)));
   const decoupe = (v) => { const [e, p] = v.split('|'); return { p_etablissement: e, p_plateau: p || null }; };
   const affichages = el('div', { classe: 'fiche' }, el('h3', {}, 'Affichages'),
     !o.etablissements.length ? el('p', { classe: 'doux' }, 'Ajoutez d’abord un établissement.') : [
-      o.affichages.length ? tableau(['Nom', 'Montre', 'Langue', ''], o.affichages.map((a) => {
+      o.affichages.length ? tableau(['Nom', 'Établissement', 'Langue', ''], o.affichages.map((a) => {
         const n = el('input', { value: a.nom });
-        const po = portee(a.etablissement_id, a.plateau_id);
+        const po = portee(a.etablissement_id);
         const la = el('select', {}, liste(LANGUES, a.langue));
         return el('tr', {}, el('td', {}, n), el('td', {}, po), el('td', {}, la),
           el('td', { classe: 'boutons' },
@@ -841,14 +838,13 @@ async function vueOrganisationPro(id) {
       })) : el('p', { classe: 'doux' }, 'Aucun affichage.'),
       (() => {
         const n = el('input', { placeholder: 'ex. Hall d’entrée', required: true });
-        const po = portee(o.etablissements[0].id, null);
+        const po = portee(o.etablissements[0].id);
         const la = el('select', {}, liste(LANGUES, o.langue));
         return el('form', { classe: 'outils', onsubmit: (ev) => { ev.preventDefault();
             agir('pro.admin_enregistrer_affichage', Object.assign({ p_organisation: id, p_id: null, p_nom: n.value,
               p_langue: la.value }, decoupe(po.value)), 'Affichage ajouté.', recharger); } },
           n, po, la, el('button', { type: 'submit' }, 'Ajouter un affichage'));
-      })(),
-      el('p', { classe: 'doux' }, 'Tout le bâtiment : une colonne par plateau (hall). Un plateau : la vedette et la suite (près de la glace).')]);
+      })()]);
 
   // Lecteurs
   const nomAff = (aid) => (o.affichages.find((a) => a.id === aid) || {}).nom;
