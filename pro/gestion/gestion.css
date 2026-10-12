@@ -23,3 +23,27 @@ main#contenu h2 { margin-bottom: 0; }
 .affichages a.ligne span:last-child { color: var(--bleu); white-space: nowrap; }
 @media (max-width: 800px) { #choix-organisation { grid-column: 1 / -1; padding: 0; } }
 @media (max-width: 560px) { .lecteur .champs { grid-template-columns: 1fr; } }
+/* Contenu des affichages */
+main#contenu { max-width: 980px; }
+.apercu iframe { width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: 10px; background: #000; display: block; }
+.apercu p { margin: 6px 0 0; font-size: .85rem; }
+.choix-affichage select { min-width: 240px; }
+.panneau.inactif { opacity: .75; }
+.panneau details summary { cursor: pointer; color: var(--doux); }
+.panneau details .champs { margin-top: 12px; }
+.carte-formulaire textarea { width: 100%; font: inherit; }
+.carte-formulaire input[type="color"] { padding: 2px; }
+.carte-formulaire label.case { display: flex; align-items: center; gap: 6px; }
+.carte-formulaire label.case input, .jours input { width: auto; height: auto; }
+.jours { display: flex; flex-wrap: wrap; gap: 10px; }
+.jour { display: flex; align-items: center; gap: 4px; }
+.media { display: flex; gap: 8px; }
+.media input { flex: 1; min-width: 0; }
+.logos { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 6px; }
+.vignette { position: relative; background: var(--fond); border-radius: 8px; padding: 6px; }
+.vignette img { height: 48px; display: block; }
+.vignette button { position: absolute; top: -8px; right: -8px; padding: 0 6px; }
+.logo-apercu { max-height: 80px; max-width: 240px; background: repeating-conic-gradient(#8882 0 25%, transparent 0 50%) 0 0 / 16px 16px; padding: 8px; border-radius: 8px; }
+.urgence-active { border-left: 4px solid var(--rouge); }
+.urgence-active strong { color: var(--rouge); }
+button.danger { background: var(--rouge); }

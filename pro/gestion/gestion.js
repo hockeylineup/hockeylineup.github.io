@@ -1,5 +1,6 @@
 // EspaceLigue Pro · Gestion — la page de l'organisation (ville, école, aréna).
-// Pour l'instant : ses lecteurs EspacePlayer et l'affichage de chacun.
+// Ses lecteurs EspacePlayer et l'affichage de chacun ; le contenu des
+// affichages, l'apparence et les urgences sont dans contenu.js.
 //
 // Rien ne passe par une fonction : les tables du schéma `pro` se lisent et
 // s'écrivent directement, et la base décide (RLS de pro.sql) :
@@ -17,7 +18,8 @@ const majPro = (table, filtre, corps) => rest('PATCH', table + '?' + new URLSear
 
 const ROLES = { admin: 'Administrateur', gestionnaire: 'Gestionnaire', prepose: 'Préposé' };
 const EN_LIGNE_MS = 3 * 60 * 1000;
-const etat = { membres: [], organisations: [], organisation: null };
+const etat = { membres: [], organisations: [], organisation: null, onglet: 'lecteurs' };
+const ONGLETS = { lecteurs: 'Lecteurs', contenu: 'Contenu', apparence: 'Apparence', urgence: 'Urgence' };
 
 function dire(texte, erreur) {
   const m = $('message');
@@ -68,7 +70,6 @@ async function ouvrir() {
   $('connexion').hidden = true;
   $('app').hidden = false;
   $('qui').replaceChildren(el('span', { classe: 'courriel' }, u.email || ''));
-  $('onglets').replaceChildren(el('button', { classe: 'actif' }, 'Lecteurs'));
 
   if (!etat.organisations.length) {
     $('choix-organisation').hidden = true;
@@ -90,8 +91,11 @@ async function ouvrir() {
 // --- Lecteurs ----------------------------------------------------------------
 async function afficher() {
   dire('');
+  $('onglets').replaceChildren(...Object.entries(ONGLETS).map(([k, v]) => el('button', {
+    classe: k === etat.onglet ? 'actif' : null, onclick: () => { etat.onglet = k; afficher(); } }, v)));
   try {
-    $('contenu').replaceChildren(await vueLecteurs());
+    const vue = { lecteurs: vueLecteurs, contenu: vueContenu, apparence: vueApparence, urgence: vueUrgence }[etat.onglet];
+    $('contenu').replaceChildren(await vue());
   } catch (e) {
     dire(e.message, true);
   }
@@ -170,7 +174,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     afficher();
   });
   // Les lecteurs disent seuls s'ils sont en ligne : on relit chaque minute.
-  setInterval(() => { if (!$('app').hidden && !document.querySelector('#contenu :focus')) afficher(); }, 60000);
+  // (onglet Lecteurs seulement : ailleurs, on effacerait une édition en cours).
+  setInterval(() => {
+    if (!$('app').hidden && etat.onglet === 'lecteurs' && !document.querySelector('#contenu :focus')) afficher();
+  }, 60000);
   try {
     if (await retourApple() || await reprendreSession()) { await ouvrir(); return; }
   } catch (e) {

@@ -24,6 +24,8 @@
 -->
 <style>
   :root { --bleu: #1f6fff; --vert: #2fd27a; --ambre: #ffb020; }
+  #ecran { --accent: var(--bleu); --fond: #070d1c; --fond2: #0e1628; --ligne: rgba(255,255,255,.08); --doux: #9fb0cc; }
+  #ecran.clair { --fond: #f4f7fb; --fond2: #ffffff; --ligne: rgba(0,0,0,.08); --doux: #5b6b85; background: var(--fond); }
   * { box-sizing: border-box; cursor: none; }
   html, body { margin: 0; height: 100%; overflow: hidden; background: #05080f; color: #e9eef7;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -85,6 +87,81 @@
   .e .ev .barre i { display: block; height: 100%; background: var(--vert); border-radius: 1cqw; }
   .e .col .vide { padding: 1.6cqw; font-size: 1.3cqw; }
 
+  /* Gabarits : zone principale (rotation), colonne droite et bandeau bas facultatifs */
+  #vue { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr; }
+  #vue.g-bandeau { grid-template-rows: 1fr 6.2cqw; }
+  #vue.g-colonne { grid-template-columns: 1fr 24cqw; grid-template-rows: 1fr 6.2cqw; }
+  #principale { position: relative; overflow: hidden; min-width: 0; min-height: 0; }
+  #vue.g-colonne #principale { grid-column: 1; grid-row: 1; }
+  #colonne { grid-column: 2; grid-row: 1; background: var(--fond2); border-left: 1px solid var(--ligne);
+    display: flex; flex-direction: column; gap: 1.6cqw; padding: 2cqw; overflow: hidden; }
+  #bandeau { grid-column: 1 / -1; display: flex; align-items: center; gap: 2cqw; padding: 0 2cqw;
+    background: var(--fond2); border-top: .3cqw solid var(--accent); overflow: hidden; }
+  #bandeau .logo-org { height: 4cqw; }
+  #bandeau .h { font-size: 2.6cqw; font-weight: 300; }
+  #bandeau .fil { flex: 1; overflow: hidden; white-space: nowrap; font-size: 1.8cqw; min-width: 0;
+    mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); }
+  #bandeau .fil span { display: inline-block; padding-left: 100%; animation: defile var(--defile, 60s) linear infinite; }
+  #bandeau .fil b { color: var(--accent); margin: 0 1.4em; }
+  @keyframes defile { to { transform: translateX(-100%); } }
+  .tuile h4 { margin: 0 0 .8cqw; font-size: 1.1cqw; letter-spacing: .18em; text-transform: uppercase; color: var(--doux); }
+  .tuile .h { font-size: 4.4cqw; font-weight: 300; }
+  .tuile .logo-org { max-width: 100%; max-height: 8cqw; }
+  .tuile.logos { flex: 1; position: relative; min-height: 0; }
+  .tuile.logos img { position: absolute; inset: 2cqw 0 0; width: 100%; height: calc(100% - 2cqw); object-fit: contain;
+    opacity: 0; transition: opacity .8s; }
+  .tuile.logos img.vu { opacity: 1; }
+  .meteo-mini { display: flex; align-items: center; gap: .8cqw; font-size: 2.2cqw; }
+  .meteo-mini .ico { font-size: 3cqw; }
+
+  /* Panneaux */
+  .panneau { position: absolute; inset: 0; animation: entree .6s ease-out; }
+  @keyframes entree { from { opacity: 0; } }
+  .annonce { background: radial-gradient(ellipse at 15% 0%, color-mix(in srgb, var(--couleur, var(--accent)) 45%, var(--fond)), var(--fond) 70%);
+    display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4cqw; padding: 6cqw; }
+  .annonce h2 { font-size: 6cqw; font-weight: 800; letter-spacing: -.02em; margin: 0 0 2cqw; }
+  .annonce p { font-size: 2.6cqw; color: var(--doux); margin: 0; white-space: pre-line; }
+  .annonce img { max-width: 34cqw; max-height: 70%; border-radius: 1.2cqw; }
+  .image { background: #000; }
+  .image img, .video video { width: 100%; height: 100%; object-fit: var(--ajustement, contain); display: block; }
+  .video { background: #000; }
+  .rss { background: var(--fond); padding: 4cqw 5cqw; display: flex; flex-direction: column; overflow: hidden; }
+  .rss h2 { margin: 0 0 2cqw; font-size: 1.6cqw; letter-spacing: .18em; text-transform: uppercase; color: var(--accent); }
+  .rss .art { display: grid; grid-template-columns: 1fr auto; gap: 3cqw; padding: 1.8cqw 0; border-top: 1px solid var(--ligne); }
+  .rss .art .t { font-size: 2.7cqw; font-weight: 700; }
+  .rss .art .d { font-size: 1.6cqw; color: var(--doux); margin-top: .6cqw; overflow: hidden; display: -webkit-box;
+    -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .rss .art img { width: 16cqw; height: 9cqw; object-fit: cover; border-radius: .8cqw; }
+  .meteo { background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 35%, var(--fond)), var(--fond));
+    padding: 5cqw; display: grid; grid-template-rows: auto 1fr; gap: 3cqw; }
+  .meteo .actuel { display: flex; align-items: center; gap: 4cqw; }
+  .meteo .actuel .ico { font-size: 12cqw; }
+  .meteo .actuel .temp { font-size: 11cqw; font-weight: 200; }
+  .meteo .actuel .desc { font-size: 2.6cqw; color: var(--doux); }
+  .meteo .jours { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1.6cqw; align-self: end; }
+  .meteo .j { background: var(--fond2); border-radius: 1.2cqw; padding: 1.6cqw; text-align: center; font-size: 1.8cqw; }
+  .meteo .j .ico { font-size: 4cqw; margin: .6cqw 0; }
+  .meteo .j small { color: var(--doux); }
+
+  /* Urgence : par-dessus tout */
+  #urgence { position: absolute; inset: 0; z-index: 10; background: #b3121f; color: #fff; display: grid;
+    place-items: center; text-align: center; padding: 6cqw; }
+  #urgence h1 { font-size: 7cqw; font-weight: 900; margin: 0 0 2.4cqw; text-transform: uppercase; letter-spacing: -.01em; }
+  #urgence p { font-size: 3cqw; margin: 0; white-space: pre-line; }
+  #urgence .pastille { font-size: 1.6cqw; letter-spacing: .2em; margin-bottom: 3cqw; }
+
+  /* Thème clair : les pistes B et E s'éclaircissent aussi */
+  #ecran.clair { color: #0f172a; }
+  #ecran.clair .b { background: radial-gradient(ellipse at 20% 0%, #cfe0ff, #f4f7fb 60%); }
+  #ecran.clair .e { background: #eef2f7; }
+  #ecran.clair .e .tete { background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 25%, #fff), #eef2f7); }
+  #ecran.clair .e .col { background: #fff; }
+  #ecran.clair .e .col h3, #ecran.clair .e .ev { border-color: #e2e8f0; }
+  #ecran.clair .b .suite { background: rgba(0,0,0,.03); border-color: rgba(0,0,0,.08); }
+  #ecran.clair .b .item { border-color: rgba(0,0,0,.08); }
+  #ecran.clair .b .etiquette, #ecran.clair .b .pied, #ecran.clair .b .grand small, #ecran.clair .b .item .d,
+  #ecran.clair .b .suite h3, #ecran.clair .e .ev .h, #ecran.clair .e .ev .v { color: #5b6b85; }
+
   /* Messages plein écran (jeton absent ou refusé, premier chargement) */
   .message { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; background: #05080f; }
   .message h1 { font-size: 3.4cqw; font-weight: 600; margin: 0 0 1.4cqw; }
@@ -92,13 +169,16 @@
 
   .marque { position: absolute; right: 2cqw; bottom: 1.4cqw; font-size: 1cqw; letter-spacing: .14em; font-weight: 800; opacity: .45; }
   .marque i { font-style: normal; color: var(--bleu); }
+  #bandeau .marque { position: static; }
+  #ecran:has(#bandeau) > .marque { display: none; }
   #horsligne { position: absolute; left: 2cqw; bottom: 1.4cqw; width: .8cqw; height: .8cqw; border-radius: 50%; background: var(--ambre); }
 </style>
 </head>
 <body>
 <div id="ecran">
   <div class="message" id="message"><div><h1 id="msg-titre"></h1><p id="msg-texte"></p></div></div>
-  <div id="vue"></div>
+  <div id="vue"><div id="principale"></div></div>
+  <div id="urgence" hidden></div>
   <div class="marque">ESPACE<i>LIGUE</i></div>
   <div id="horsligne" hidden></div>
 </div>
@@ -156,7 +236,8 @@ function message(titre, texte) {
   $('msg-titre').textContent = titre;
   $('msg-texte').textContent = texte || '';
   $('message').hidden = false;
-  $('vue').replaceChildren();
+  $('principale').replaceChildren();
+  courant = null;
 }
 
 function titreMatch(m) {
@@ -238,13 +319,308 @@ function vueE() {
     cols);
 }
 
+// ---------------------------------------------------------------------------
+// Moteur : gabarit, apparence, rotation des panneaux, urgence
+// (docs/contenu-affichage.md d'espaceligue-pro). Sans panneau configuré,
+// l'écran montre l'horaire seul, comme avant.
+// ---------------------------------------------------------------------------
+const RSS = `${SUPABASE}/functions/v1/pro-rss`;
+const HLS_JS = 'https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js';
+const HORAIRE_SEUL = { id: 'horaire', type: 'horaire', duree: 3600, contenu: {} };
+const DYNAMIQUES = ['horaire', 'pointage'];  // redessinés à chaque lecture
+
+let courant = null;     // panneau à l'écran
+let minuterie = null;
+let signatureZones = '';
+const caches = {};      // clé → { quand, valeur } (météo, fils RSS)
+
+const reglages = () => (donnees && donnees.reglages) || {};
+const apparence = () => (donnees && donnees.apparence) || {};
+
+function maintenantLocal() {
+  const p = new Intl.DateTimeFormat('en-CA', { weekday: 'short', hour: '2-digit', minute: '2-digit',
+    hourCycle: 'h23', timeZone: fuseau() }).formatToParts(maintenant());
+  const v = t => p.find(x => x.type === t).value;
+  return { jour: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(v('weekday')), hm: `${v('hour')}:${v('minute')}` };
+}
+
+function dansPlage(p) {
+  const { jour, hm } = maintenantLocal();
+  if (p.jours && p.jours.length && !p.jours.includes(jour)) return false;
+  const a = p.heure_debut && p.heure_debut.slice(0, 5), b = p.heure_fin && p.heure_fin.slice(0, 5);
+  if (a && b) return a <= b ? hm >= a && hm < b : hm >= a || hm < b;  // b < a : plage qui passe minuit
+  if (a) return hm >= a;
+  if (b) return hm < b;
+  return true;
+}
+
+function matchEnCours() {
+  for (const pl of donnees.plateaux)
+    for (const o of pl.occupations)
+      if (o.match && enCours(o) && o.match.statut !== 'joue') return pl;
+  return null;
+}
+
+function disponible(p) {
+  if (!dansPlage(p)) return false;
+  const c = p.contenu || {};
+  switch (p.type) {
+    case 'horaire': return donnees.plateaux.length > 0;
+    case 'pointage': return !!matchEnCours();
+    case 'annonce': return !!(c.titre || c.texte);
+    case 'image': case 'video': return !!c.url;
+    case 'rss': { const f = caches['rss:' + c.url]; return !!(f && f.valeur && f.valeur.articles.length); }
+    case 'meteo': { const m = caches.meteo; return !!(m && m.valeur); }
+    default: return false;
+  }
+}
+
+function liste() {
+  const configures = donnees.panneaux || [];
+  if (!configures.length) return [HORAIRE_SEUL];
+  return configures.filter(disponible);
+}
+
+// Passe au panneau suivant de la rotation, à la fin de sa durée.
+function suivant() {
+  clearTimeout(minuterie);
+  if (!donnees) return;
+  const dispo = liste();
+  if (!dispo.length) dispo.push(HORAIRE_SEUL);
+  const pos = courant ? dispo.findIndex(p => p.id === courant.id) : -1;
+  const prochain = dispo[(pos + 1) % dispo.length];
+  // Un panneau seul ne se recrée pas (une vidéo repartirait du début).
+  if (!courant || prochain.id !== courant.id || DYNAMIQUES.includes(prochain.type)) montrer(prochain);
+  minuterie = setTimeout(suivant, (prochain.duree || 15) * 1000);
+}
+
+function montrer(p) {
+  courant = p;
+  const n = rendre(p);
+  n.classList.add('panneau');
+  $('principale').replaceChildren(n);
+}
+
+function rendre(p) {
+  const c = p.contenu || {};
+  switch (p.type) {
+    case 'pointage': return vueB(matchEnCours() || donnees.plateaux[0]);
+    case 'annonce': {
+      const n = el('div', 'annonce', el('div', null, c.titre ? el('h2', null, c.titre) : null, c.texte ? el('p', null, c.texte) : null),
+        c.image ? Object.assign(el('img'), { src: c.image, alt: '' }) : null);
+      if (c.couleur) n.style.setProperty('--couleur', c.couleur);
+      return n;
+    }
+    case 'image': {
+      const n = el('div', 'image', Object.assign(el('img'), { src: c.url, alt: '' }));
+      if (c.ajustement === 'cover') n.style.setProperty('--ajustement', 'cover');
+      return n;
+    }
+    case 'video': return videoPanneau(c);
+    case 'rss': return rssPanneau(c);
+    case 'meteo': return meteoPanneau();
+    default: {
+      const piste = c.piste || reglages().piste
+        || (donnees.plateau_id || donnees.plateaux.length === 1 ? 'B' : 'E');
+      return piste === 'B' && donnees.plateaux.length ? vueB(donnees.plateaux[0]) : vueE();
+    }
+  }
+}
+
+// Vidéo muette en boucle ; le HLS (.m3u8) passe par hls.js, que Chromium
+// ne lit pas seul.
+let hlsPromesse = null;
+function videoPanneau(c) {
+  const v = Object.assign(el('video'), { muted: true, autoplay: true, loop: true, playsInline: true });
+  if (c.ajustement === 'cover') v.style.objectFit = 'cover';
+  if (/\.m3u8(\?|$)/i.test(c.url) && !v.canPlayType('application/vnd.apple.mpegurl')) {
+    hlsPromesse = hlsPromesse || new Promise((ok, ko) => {
+      const s = Object.assign(document.createElement('script'), { src: HLS_JS, onload: ok, onerror: ko });
+      document.head.append(s);
+    });
+    hlsPromesse.then(() => { const h = new Hls(); h.loadSource(c.url); h.attachMedia(v); }).catch(() => {});
+  } else v.src = c.url;
+  return el('div', 'video', v);
+}
+
+function rssPanneau(c) {
+  const f = caches['rss:' + c.url].valeur;
+  const n = el('div', 'rss', el('h2', null, c.titre || f.titre || ''));
+  for (const a of f.articles.slice(0, c.nombre || 3))
+    n.append(el('div', 'art', el('div', null, el('div', 't', a.titre), a.description ? el('div', 'd', a.description) : null),
+      a.image ? Object.assign(el('img'), { src: a.image, alt: '' }) : el('span')));
+  return n;
+}
+
+// --- Météo (Open-Meteo, sans clé ; position de l'établissement) ---
+const METEO = [
+  [[0], '☀️', 'Dégagé', 'Clear'], [[1, 2], '🌤️', 'Partiellement nuageux', 'Partly cloudy'],
+  [[3], '☁️', 'Nuageux', 'Cloudy'], [[45, 48], '🌫️', 'Brouillard', 'Fog'],
+  [[51, 53, 55, 56, 57], '🌦️', 'Bruine', 'Drizzle'], [[61, 63, 65, 66, 67, 80, 81, 82], '🌧️', 'Pluie', 'Rain'],
+  [[71, 73, 75, 77, 85, 86], '🌨️', 'Neige', 'Snow'], [[95, 96, 99], '⛈️', 'Orage', 'Thunderstorm'],
+];
+const ciel = code => {
+  const m = METEO.find(x => x[0].includes(code)) || METEO[2];
+  return { ico: m[1], desc: T === TEXTES.en ? m[3] : m[2] };
+};
+
+async function chargerMeteo() {
+  if (donnees.latitude == null || donnees.longitude == null) return;
+  const c = caches.meteo;
+  if (c && Date.now() - c.quand < 15 * 60000) return;
+  try {
+    const r = await fetch('https://api.open-meteo.com/v1/forecast?' + new URLSearchParams({
+      latitude: donnees.latitude, longitude: donnees.longitude, timezone: fuseau(), forecast_days: 5,
+      current: 'temperature_2m,weather_code', daily: 'weather_code,temperature_2m_max,temperature_2m_min' }));
+    if (r.ok) caches.meteo = { quand: Date.now(), valeur: await r.json() };
+  } catch { /* on garde l'ancienne */ }
+}
+
+function meteoPanneau() {
+  const m = caches.meteo.valeur, a = ciel(m.current.weather_code);
+  const jours = el('div', 'jours');
+  m.daily.time.forEach((t, i) => {
+    const nom = new Intl.DateTimeFormat(T === TEXTES.en ? 'en-CA' : 'fr-CA', { weekday: 'short', timeZone: 'UTC' }).format(new Date(t));
+    jours.append(el('div', 'j', el('div', null, nom), el('div', 'ico', ciel(m.daily.weather_code[i]).ico),
+      el('div', null, `${Math.round(m.daily.temperature_2m_max[i])}°`, el('small', null, ` ${Math.round(m.daily.temperature_2m_min[i])}°`))));
+  });
+  return el('div', 'meteo',
+    el('div', 'actuel', el('div', 'ico', a.ico), el('div', null, el('div', 'temp', `${Math.round(m.current.temperature_2m)}°`),
+      el('div', 'desc', `${a.desc} · ${donnees.etablissement}`))),
+    jours);
+}
+function meteoMini() {
+  const m = caches.meteo && caches.meteo.valeur;
+  if (!m) return null;
+  const a = ciel(m.current.weather_code);
+  return el('div', 'meteo-mini', el('span', 'ico', a.ico), `${Math.round(m.current.temperature_2m)}°`);
+}
+
+// --- Fils RSS, par l'Edge Function pro-rss (CORS, cache, taille plafonnée) ---
+async function chargerRss(url) {
+  const c = caches['rss:' + url];
+  if (c && Date.now() - c.quand < 10 * 60000) return;
+  try {
+    const r = await fetch(`${RSS}?url=${encodeURIComponent(url)}`, { headers: { apikey: CLE } });
+    if (r.ok) caches['rss:' + url] = { quand: Date.now(), valeur: await r.json() };
+  } catch { /* on garde l'ancien */ }
+}
+
+// --- Zones : colonne et bandeau ---
+function logoOrg() {
+  const l = apparence().logo;
+  return l ? Object.assign(el('img', 'logo-org'), { src: l, alt: '' }) : null;
+}
+
+function dessinerZones() {
+  const r = reglages(), g = ['bandeau', 'colonne'].includes(r.gabarit) ? r.gabarit : 'plein';
+  const vue = $('vue');
+  vue.className = 'g-' + g;
+  for (const id of ['colonne', 'bandeau']) if (g === 'plein' || (id === 'colonne' && g !== 'colonne')) $(id) && $(id).remove();
+  if (g === 'plein') { signatureZones = ''; return; }
+
+  // Le bandeau défile : on ne le recrée que si son texte change.
+  const b = r.bandeau || {}, fil = [];
+  if (b.texte) fil.push(b.texte);
+  if (b.rss) { const f = caches['rss:' + b.rss]; if (f && f.valeur) fil.push(...f.valeur.articles.map(a => a.titre)); }
+  const signature = JSON.stringify([g, fil, apparence().logo, r.colonne, !!caches.meteo, T === TEXTES.en]);
+  const heureTexte = heure(maintenant());
+  if (signature === signatureZones && $('bandeau')) {
+    for (const h of document.querySelectorAll('#vue .h')) h.textContent = heureTexte;
+    const mm = document.querySelector('#bandeau .meteo-mini'), neuf = meteoMini();
+    if (mm && neuf) mm.replaceWith(neuf);
+    return;
+  }
+  signatureZones = signature;
+
+  const bandeau = el('div', null, g === 'bandeau' ? logoOrg() : null, el('div', 'h', heureTexte), meteoMini(),
+    el('div', 'fil', fil.length ? el('span', null, fil.flatMap((t, i) => i ? [el('b', null, '•'), t] : [t])) : null),
+    el('div', 'marque', 'ESPACE', el('i', null, 'LIGUE')));
+  bandeau.id = 'bandeau';
+  const ancien = $('bandeau'); ancien ? ancien.replaceWith(bandeau) : vue.append(bandeau);
+  const s = bandeau.querySelector('.fil span');
+  if (s) s.style.setProperty('--defile', `${Math.max(20, s.textContent.length / 6)}s`);
+
+  if (g === 'colonne') {
+    const c = r.colonne || {}, col = el('div');
+    col.id = 'colonne';
+    if (apparence().logo) col.append(el('div', 'tuile', logoOrg()));
+    if (c.meteo !== false && caches.meteo) {
+      const m = caches.meteo.valeur, a = ciel(m.current.weather_code);
+      col.append(el('div', 'tuile', el('h4', null, T === TEXTES.en ? 'Weather' : 'Météo'),
+        el('div', 'meteo-mini', el('span', 'ico', a.ico), `${Math.round(m.current.temperature_2m)}° · ${a.desc}`)));
+    }
+    if (c.logos && c.logos.length) {
+      const t = el('div', 'tuile logos', el('h4', null, c.titre_logos || (T === TEXTES.en ? 'Thanks to our partners' : 'Merci à nos partenaires')));
+      c.logos.forEach((u, i) => t.append(Object.assign(el('img', i ? null : 'vu'), { src: u, alt: '' })));
+      col.append(t);
+    }
+    const ancienne = $('colonne'); ancienne ? ancienne.replaceWith(col) : vue.insertBefore(col, $('bandeau'));
+  }
+}
+
+// Commanditaires de la colonne : un logo à la fois, 8 s chacun.
+setInterval(() => {
+  const imgs = [...document.querySelectorAll('.tuile.logos img')];
+  if (imgs.length < 2) return;
+  const i = imgs.findIndex(x => x.classList.contains('vu'));
+  imgs[i].classList.remove('vu');
+  imgs[(i + 1) % imgs.length].classList.add('vu');
+}, 8000);
+
+function appliquerApparence() {
+  const a = apparence();
+  $('ecran').classList.toggle('clair', a.theme === 'clair');
+  if (/^#[0-9a-f]{6}$/i.test(a.accent || '')) $('ecran').style.setProperty('--accent', a.accent);
+  else $('ecran').style.removeProperty('--accent');
+}
+
+function dessinerUrgence() {
+  const u = donnees && donnees.urgence, z = $('urgence');
+  if (!u) { z.hidden = true; return; }
+  z.replaceChildren(el('div', null, el('div', 'pastille', T === TEXTES.en ? 'ALERT' : 'ALERTE'),
+    el('h1', null, u.titre), u.texte ? el('p', null, u.texte) : null));
+  z.hidden = false;
+}
+
+// Toutes les 15 s : horloge, barres, zones ; le panneau courant n'est
+// redessiné que s'il suit l'horaire, ou s'il n'a plus lieu d'être.
 function dessiner() {
   if (!donnees) return;
-  const piste = (donnees.reglages && donnees.reglages.piste)
-    || (donnees.plateau_id || donnees.plateaux.length === 1 ? 'B' : 'E');
   $('message').hidden = true;
-  $('vue').replaceChildren(piste === 'B' && donnees.plateaux.length ? vueB(donnees.plateaux[0]) : vueE());
+  dessinerZones();
+  dessinerUrgence();
+  if (!courant) return suivant();
+  if (courant !== HORAIRE_SEUL && !liste().some(p => p.id === courant.id)) return suivant();
+  if (DYNAMIQUES.includes(courant.type)) montrer(courant);
 }
+
+// Données neuves (lecture, ou aperçu envoyé par la page de gestion).
+async function recevoir(d) {
+  const avant = courant && donnees && (donnees.panneaux || []).find(p => p.id === courant.id);
+  donnees = d;
+  T = TEXTES[d.langue] || TEXTES.fr;
+  document.documentElement.lang = d.langue === 'en' ? 'en-CA' : 'fr-CA';
+  appliquerApparence();
+  // Un panneau modifié se remontre avec son nouveau contenu.
+  const apres = courant && (d.panneaux || []).find(p => p.id === courant.id);
+  if (avant && apres && JSON.stringify(avant) !== JSON.stringify(apres)) courant = null;
+  const r = reglages(), attentes = [];
+  if ((d.panneaux || []).some(p => p.type === 'meteo') || ['bandeau', 'colonne'].includes(r.gabarit)) attentes.push(chargerMeteo());
+  const fils = new Set((d.panneaux || []).filter(p => p.type === 'rss' && p.contenu && p.contenu.url).map(p => p.contenu.url));
+  if (r.bandeau && r.bandeau.rss) fils.add(r.bandeau.rss);
+  for (const u of fils) attentes.push(chargerRss(u));
+  dessiner();
+  if (attentes.length) { await Promise.all(attentes); dessiner(); }
+}
+
+// Aperçu (page de gestion) : ?apercu, les données arrivent par postMessage
+// d'une page de la même origine ; rien n'est lu de la base.
+const APERCU = new URLSearchParams(location.search).has('apercu');
+if (APERCU) addEventListener('message', e => {
+  if (e.origin !== location.origin || !e.data || e.data.type !== 'apercu') return;
+  recevoir(e.data.donnees);
+});
 
 async function lire(jeton) {
   try {
@@ -257,11 +633,8 @@ async function lire(jeton) {
     const d = await r.json();
     $('horsligne').hidden = true;
     if (!d) { donnees = null; return message(T.refuse, T.refuseTexte); }
-    donnees = d;
     ecartHorloge = new Date(d.maintenant) - Date.now();
-    T = TEXTES[d.langue] || TEXTES.fr;
-    document.documentElement.lang = d.langue === 'en' ? 'en-CA' : 'fr-CA';
-    dessiner();
+    recevoir(d);
   } catch {
     // Réseau perdu : on garde l'écran tel quel.
     $('horsligne').hidden = false;
@@ -269,6 +642,7 @@ async function lire(jeton) {
 }
 
 function demarrer() {
+  if (APERCU) { setInterval(dessiner, 15000); return message(T.chargement); }
   const jeton = decodeURIComponent(location.hash.slice(1)).trim();
   if (!jeton) return message(T.sansJeton, T.sansJetonTexte);
   message(T.chargement);
