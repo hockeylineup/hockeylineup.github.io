@@ -1,4 +1,4 @@
-// EspaceLigue Pro · Gestion — contenu des affichages, apparence, urgences
+// EspaceLigue Pro · Gestion — contenu des affichages (avec l'apparence), urgences
 // (docs/contenu-affichage.md d'espaceligue-pro). Chargé après gestion.js,
 // dont il reprend lirePro, majPro, etat, dire et peutModifier.
 //
@@ -145,6 +145,7 @@ async function vueContenu() {
       + 'du moment (pointage sans match, plage horaire passée) est sauté. Sans aucun panneau, l’écran montre l’horaire.'),
     cadreApercu(),
     formulaireGabarit(af, modifiable),
+    formulaireApparence(),
     el('section', { classe: 'carte-formulaire' },
       el('div', { classe: 'entete-zone' }, schemaGabarit(contenu.reglages.gabarit || 'plein'),
         el('div', null, el('h3', null, 'Contenu de la zone Panneaux'),
@@ -326,71 +327,37 @@ function cartePanneau(p, i, af, modifiable) {
       } }, 'Supprimer')) : null);
 }
 
-// --- Vue Apparence ---------------------------------------------------------------
-async function vueApparence() {
-  const [[o], affichages] = await Promise.all([
-    lirePro('organisations', { select: 'id,nom,apparence', id: 'eq.' + etat.organisation }),
-    lirePro('affichages', { select: 'id,nom,jeton,reglages', organisation_id: 'eq.' + etat.organisation, order: 'nom' }),
-  ]);
-  const a = Object.assign({}, o.apparence || {});
+// --- Apparence (dans l'onglet Contenu) ---------------------------------------------
+// Logo, couleur et thème de l'organisation, communs à tous ses affichages
+// (admin seulement). L'aperçu de Contenu les montre en direct.
+function formulaireApparence() {
+  const a = contenu.apparence;
   const admin = roleIci() === 'admin';
-
-  // Aperçu : un affichage réel de l'organisation, avec son gabarit et ses
-  // panneaux, où l'on substitue l'apparence en cours d'édition.
-  let reel = null, minuterie = null;
-  if (!affichages.some((x) => x.id === contenu.affichage) && affichages.length) contenu.affichage = affichages[0].id;
-  const cadre = el('iframe', { src: '../affichage/?apercu', title: 'Aperçu de l’apparence', tabindex: '-1' });
-  const envoyer = () => {
-    if (!reel || !cadre.contentWindow) return;
-    const d = Object.assign({}, reel, {
-      apparence: Object.assign({}, reel.apparence, a, (reel.reglages || {}).apparence || {}),
-      panneaux: (reel.panneaux || []).map((p) => Object.assign({}, p, { duree: Math.min(p.duree, 8) })) });
-    cadre.contentWindow.postMessage({ type: 'apercu', donnees: d }, location.origin);
-  };
-  const rafraichir = () => { clearTimeout(minuterie); minuterie = setTimeout(envoyer, 200); };
-  cadre.addEventListener('load', envoyer);
-  const charger = async () => {
-    const af = affichages.find((x) => x.id === contenu.affichage);
-    reel = af ? await rest('POST', 'rpc/lire_affichage', { jeton: af.jeton }, PRO) : null;
-    const g = af && (af.reglages || {}).gabarit;
-    remarque.textContent = !g || g === 'plein'
-      ? 'Cet affichage est en plein écran : le logo n’y paraît pas. Choisissez un gabarit avec bandeau ou colonne (onglet Contenu) pour le montrer.'
-      : 'Gabarit de cet affichage : ' + GABARITS[g].nom + '.';
-    envoyer();
-  };
-  const remarque = el('p', { classe: 'doux' });
-  const choixAff = el('select', { onchange: () => { contenu.affichage = choixAff.value; charger().catch((e) => dire(e.message, true)); } },
-    affichages.map((x) => el('option', { value: x.id, selected: x.id === contenu.affichage }, x.nom)));
-  const apercu = affichages.length ? el('div', { classe: 'apercu' },
-    el('div', { classe: 'entete-vue' }, el('h3', null, 'Aperçu'), affichages.length > 1 ? el('label', { classe: 'choix-affichage' }, el('span', null, 'Affichage'), choixAff) : null),
-    cadre, remarque) : null;
-  if (apercu) charger().catch((e) => dire(e.message, true));
-
+  const g = contenu.reglages.gabarit || 'plein';
   const apercuLogo = el('img', { classe: 'logo-apercu', src: a.logo || '', alt: '', hidden: !a.logo });
-  const accent = el('input', { type: 'color', valeur: a.accent || '#1f6fff', disabled: !admin, oninput: () => { a.accent = accent.value; rafraichir(); } });
-  const theme = el('select', { disabled: !admin, onchange: () => { a.theme = theme.value; rafraichir(); } },
+  const accent = el('input', { type: 'color', valeur: a.accent || '#1f6fff', disabled: !admin, oninput: () => { a.accent = accent.value; rafraichirApercu(); } });
+  const theme = el('select', { disabled: !admin, onchange: () => { a.theme = theme.value; rafraichirApercu(); } },
     el('option', { value: 'sombre', selected: a.theme !== 'clair' }, 'Sombre (recommandé, lisible de loin)'),
     el('option', { value: 'clair', selected: a.theme === 'clair' }, 'Clair'));
-  return el('section', null,
-    el('h2', null, 'Apparence'),
-    el('p', { classe: 'doux' }, 'Votre logo et votre couleur, sur tous vos affichages. '
-      + (admin ? '' : 'Seul l’administrateur de l’organisation peut les changer.')),
-    el('form', { classe: 'carte-formulaire', onsubmit: async (ev) => {
-        ev.preventDefault();
-        try {
-          await majPro('organisations', { id: 'eq.' + o.id }, { apparence: a });
-          dire('Apparence enregistrée. Les écrans la prennent dans les 30 secondes.');
-        } catch (e) { dire(e.message, true); }
-      } },
-      el('div', { classe: 'champs' },
-        admin ? champMedia('Logo (PNG transparent ou SVG)', a.logo, 'image/png,image/svg+xml,image/webp', (u) => {
-          a.logo = u || undefined; apercuLogo.src = u || ''; apercuLogo.hidden = !u; rafraichir();
-        }) : null,
-        el('label', null, 'Couleur d’accent', accent),
-        el('label', null, 'Thème', theme)),
-      apercuLogo,
-      admin ? el('div', { classe: 'actions' }, el('button', { type: 'submit' }, 'Enregistrer')) : null),
-    apercu);
+  return el('form', { classe: 'carte-formulaire', onsubmit: async (ev) => {
+      ev.preventDefault();
+      try {
+        await majPro('organisations', { id: 'eq.' + etat.organisation }, { apparence: a });
+        dire('Apparence enregistrée. Les écrans la prennent dans les 30 secondes.');
+      } catch (e) { dire(e.message, true); }
+    } },
+    el('h3', null, 'Apparence'),
+    el('p', { classe: 'doux' }, 'Logo et couleurs, communs à tous vos affichages.'
+      + (admin ? '' : ' Seul l’administrateur peut les changer.')
+      + (g === 'plein' ? ' Le logo paraît avec un gabarit bandeau ou colonne.' : '')),
+    el('div', { classe: 'champs' },
+      admin ? champMedia('Logo (PNG transparent ou SVG)', a.logo, 'image/png,image/svg+xml,image/webp', (u) => {
+        a.logo = u || undefined; apercuLogo.src = u || ''; apercuLogo.hidden = !u; rafraichirApercu();
+      }) : null,
+      el('label', null, 'Couleur d’accent', accent),
+      el('label', null, 'Thème', theme)),
+    apercuLogo,
+    admin ? el('div', { classe: 'actions' }, el('button', { type: 'submit' }, 'Enregistrer l’apparence')) : null);
 }
 
 // --- Vue Urgence -------------------------------------------------------------------
