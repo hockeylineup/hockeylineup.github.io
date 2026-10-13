@@ -325,3 +325,15 @@ button.lien { justify-self: start; padding-left: 0; color: var(--bleu); }
   .panneau-planif { position: fixed; left: 0; right: 0; bottom: 0; top: auto; max-height: 75vh; border-radius: 14px 14px 0 0; z-index: 20; box-shadow: 0 -8px 30px #0006; }
   .clients { grid-template-columns: 1fr; }
 }
+/* Établissement : plateaux, sections, fermetures */
+.liste-plateaux { display: grid; gap: 10px; margin-bottom: 6px; }
+.plateau { display: grid; gap: 6px; }
+.rangee-plateau { display: grid; gap: 6px; }
+.rangee-plateau select { width: auto; }
+.options-plateau { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.options-plateau select { width: auto; }
+label.mini { display: flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--doux); }
+label.mini input { width: 70px; }
+.sections { display: grid; gap: 6px; padding-left: 14px; }
+.fiche-etablissement .outils { display: flex; flex-wrap: wrap; gap: 6px; }
+.fiche-etablissement .outils input { width: auto; }
