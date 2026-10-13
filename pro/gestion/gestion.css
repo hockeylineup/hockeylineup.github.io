@@ -616,3 +616,36 @@ button.fleche:hover { background: color-mix(in srgb, var(--texte) 8%, transparen
   padding: 6px 11px; font-size: .84rem; box-shadow: none !important; }
 :root:not([data-theme="light"]) .alerte-planif { color: #f5c36a; }
 .alerte-planif:hover { filter: brightness(1.05); }
+/* Taux d'occupation (en-têtes de colonnes) */
+.taux { display: inline-flex; align-items: center; gap: 5px; font-size: .7rem; font-weight: 600; color: var(--doux); margin-top: 3px; font-variant-numeric: tabular-nums; }
+.taux i { width: 34px; height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--bleu) var(--t), color-mix(in srgb, var(--ligne) 80%, transparent) var(--t)); }
+button.imprimer { font-size: 1.05rem; }
+.feuille-client { display: none; }
+
+/* Impression : l'horaire seul, sur toute la hauteur ; ou la liste d'un client. */
+@media print {
+  @page { size: landscape; margin: 10mm; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { background: #fff !important; color: #000; }
+  .barre-chargement, .message { display: none !important; }
+  body.imprime-horaire .cote, body.imprime-horaire .volet-planif, body.imprime-horaire .panneau-planif,
+  body.imprime-horaire .entete-planif .segment, body.imprime-horaire .zoom-planif, body.imprime-horaire .barre-planif button,
+  body.imprime-horaire .barre-planif .pop, body.imprime-horaire .barre-planif .segment, body.imprime-horaire .col .maintenant,
+  body.imprime-horaire .bloc .poignee { display: none !important; }
+  body.imprime-horaire .coquille { display: block; }
+  body.imprime-horaire main#contenu { max-width: none; padding: 0; }
+  body.imprime-horaire .planif-corps { display: block; }
+  body.imprime-horaire .carte-planif { box-shadow: none; border: 0; }
+  body.imprime-horaire .grille-planif { max-height: none !important; min-height: 0; overflow: visible; }
+  body.imprime-horaire .grille-planif .tetes { position: static; box-shadow: none; }
+  body.imprime-horaire .bloc { break-inside: avoid; box-shadow: none; }
+  body.imprime-client #app, body.imprime-client #connexion { display: none !important; }
+  body.imprime-client .feuille-client { display: block; font-size: 11pt; }
+}
+.feuille-client header { display: flex; justify-content: space-between; gap: 24px; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 12px; }
+.feuille-client h2 { margin: 0; }
+.feuille-client .droite { text-align: right; }
+.feuille-client p { margin: 2px 0; }
+.feuille-client table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+.feuille-client th, .feuille-client td { text-align: left; padding: 5px 6px; border-bottom: 1px solid #ccc; }
+.feuille-client tr { break-inside: avoid; }

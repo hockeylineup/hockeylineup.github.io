@@ -16,7 +16,7 @@
 // Le CSP du site refuse l'attribut style : on passe par l'objet style.
 const st = (n, css) => { n.style.cssText = css; return n; };
 
-const plan = { masques: new Set(), vue: 'jour', date: null, etab: null, plateau: null, client: '', sous: 'grille', panneau: null };
+const plan = { occupation: (() => { try { return !!localStorage.getItem('espaceligue-pro-occupation'); } catch (e) { return false; } })(), masques: new Set(), vue: 'jour', date: null, etab: null, plateau: null, client: '', sous: 'grille', panneau: null };
 const PAS = 15;          // minutes
 // Pixels par minute : le zoom de la grille (curseur sous le calendrier), gardé d'une visite à l'autre.
 let PX_MIN = 1.1;
@@ -83,6 +83,7 @@ async function vuePlanification() {
   // blocages de son gymnase (fantômes).
   const visibles = plEtab.filter((p) => !plan.masques.has(p.id));
   plan.plateau = visibles.length === 1 ? visibles[0].id : '';
+  plan.visibles = visibles;
   if (!plan.date) plan.date = debutJour(new Date());
 
   // Mois : six semaines à partir du lundi qui précède le 1er.
@@ -135,6 +136,8 @@ async function vuePlanification() {
   }
   deb = Math.floor(deb / 60) * 60; fin = Math.ceil(fin / 60) * 60;
   plan.derniers = reservations;
+  plan.requete = ids.length ? { plateau_id: 'in.(' + ids.concat(lies).join(',') + ')', periode: 'ov.' + plage(premier, dernier) } : null;
+  plan.signature = signature(reservations);
   const ctx = { deb, fin, colonnes, reservations, plateaux, locataires, etab, surf: surfEtab, defaut: visibles[0] || plEtab[0] };
 
   const nav = (n) => () => {
@@ -162,6 +165,7 @@ async function vuePlanification() {
     el('div', { classe: 'groupe' },
       blocAlertes(alertes, plateaux),
       champRecherche(locataires, plateaux),
+      boutonImprimer(),
       el('div', { classe: 'segment vues' }, [['jour', 'Jour'], ['semaine', 'Semaine'], ['mois', 'Mois']].map(([k, v]) =>
         el('button', { type: 'button', classe: plan.vue === k ? 'actif' : null, title: v + ' (' + v[0] + ')',
           onclick: () => { plan.vue = k; afficher(); } }, v)))));
@@ -182,7 +186,9 @@ async function vuePlanification() {
     const r = reservations[0];
     return r ? minutesDe(bornes(r.periode)[0], debutJour(bornes(r.periode)[0])) - 30 : deb;
   })();
-  if (plan.vue !== 'mois') requestAnimationFrame(() => { g.scrollTop = Math.max(0, (cible - deb) * PX_MIN); });
+  const garde = plan.garderScroll;
+  plan.garderScroll = null;
+  if (plan.vue !== 'mois') requestAnimationFrame(() => { g.scrollTop = garde != null ? garde : Math.max(0, (cible - deb) * PX_MIN); });
 
   return el('section', { classe: 'vue-planif' }, entete,
     el('div', { classe: 'planif-corps' + (plan.panneau ? ' avec-panneau' : '') },
@@ -216,6 +222,62 @@ function curseurZoom(g, ctx) {
     el('button', { type: 'button', classe: 'fleche', title: 'Voir moins d’heures', 'aria-label': 'Zoomer', onclick: pas(0.25) }, '+'),
     etiquette);
 }
+
+// --- Taux d'occupation : minutes réservées (confirmées et options) sur les minutes d'ouverture
+// du jour ; sans heures connues, de 6 h à 23 h. En Semaine « tous les plateaux », la moyenne.
+function occupation(ctx, c) {
+  const toutes = ctx.etab.heures || {};
+  const connues = Object.values(toutes).some(Boolean);
+  const h = toutes[CLES_JOURS[isoJour(c.jour)]];
+  if (connues && !h) return el('span', { classe: 'taux doux' }, 'fermé');
+  const ouvre = aHeure(c.jour, h ? minutesTexte(h.ouvre) : 6 * 60);
+  const ferme = aHeure(c.jour, h ? (minutesTexte(h.ferme) || 24 * 60) : 23 * 60);
+  const plats = c.plateau ? [c.plateau] : ctx.colonnes.length ? (plan.visibles || []) : [];
+  if (!plats.length || ferme <= ouvre) return null;
+  let pris = 0;
+  for (const r of ctx.reservations) {
+    // Une section est occupée aussi quand son gymnase entier l'est.
+    if (!['confirmee', 'option'].includes(r.statut) || !plats.some((p) => p.id === r.plateau_id || p.parent_id === r.plateau_id)) continue;
+    const [a, b] = bornes(r.periode);
+    pris += Math.max(0, Math.min(b, ferme) - Math.max(a, ouvre));
+  }
+  const taux = Math.round(100 * pris / ((ferme - ouvre) * plats.length));
+  return st(el('span', { classe: 'taux', title: 'Taux d’occupation pendant les heures d’ouverture' },
+    el('i'), taux + ' %'), '--t:' + Math.min(100, taux) + '%');
+}
+
+function boutonImprimer() {
+  const b = el('button', { type: 'button', classe: 'fleche imprimer', title: 'Imprimer ou enregistrer en PDF', 'aria-label': 'Imprimer',
+    onclick: () => imprimer('imprime-horaire') });
+  b.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
+    + '<path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg>';
+  return b;
+}
+
+// --- Impression : la page se met en forme pour le papier (ou le PDF du navigateur).
+function imprimer(classe) {
+  document.body.classList.add(classe);
+  const fin = () => { document.body.classList.remove(classe); window.removeEventListener('afterprint', fin); };
+  window.addEventListener('afterprint', fin);
+  setTimeout(() => window.print(), 50);
+}
+
+// --- Mise à jour en direct : toutes les 20 s, la grille relit ses réservations ; si quelqu'un
+// d'autre a changé l'horaire, elle se redessine sur place (pas pendant un geste ni un panneau ouvert).
+const signature = (rs) => rs.map((r) => r.id + r.statut + r.periode + r.plateau_id + (r.modifie_le || '')).sort().join('|');
+setInterval(async () => {
+  if (etat.onglet !== 'horaire' || plan.sous !== 'grille' || !plan.requete || document.hidden || $('app').hidden) return;
+  if (plan.panneau || document.querySelector('.en-mouvement, .col .selection') || document.querySelector('.pop-liste:not([hidden])')) return;
+  try {
+    const rs = await restBrut('GET', 'reservations?' + new URLSearchParams(Object.assign({ select: 'id,periode,statut,plateau_id,modifie_le',
+      statut: 'neq.annulee' }, plan.requete)), undefined, PRO);
+    if (signature(rs) === plan.signature) return;
+    const g = document.querySelector('.grille-planif');
+    plan.garderScroll = g ? g.scrollTop : null;
+    await afficher();
+    dire('Horaire mis à jour : quelqu’un d’autre l’a modifié.');
+  } catch (e) { /* réseau : on réessaiera */ }
+}, 20000);
 
 // Le volet de gauche, à la Outlook : nouvelle réservation, mini-calendrier, plateaux à
 // cocher (avec leur couleur), client, établissement, légende.
@@ -254,6 +316,11 @@ function voletPlanif({ etablissements, plEtab, plateaux, locataires, premier, nb
       el('select', { onchange: (ev) => { plan.client = ev.target.value; afficher(); } },
         el('option', { value: '' }, 'Tous les clients'),
         locataires.map((l) => el('option', { value: l.id, selected: l.id === plan.client }, l.nom)))),
+    el('div', { classe: 'volet-section' }, el('h4', null, 'Affichage'),
+      el('label', { classe: 'case-plateau' }, st(el('input', { type: 'checkbox', checked: !!plan.occupation, onchange: (ev) => {
+        plan.occupation = ev.target.checked;
+        try { localStorage.setItem('espaceligue-pro-occupation', plan.occupation ? '1' : ''); } catch (e) { /* bloqué */ }
+        afficher(); } }), '--c:var(--bleu)'), el('span', null, 'Taux d’occupation'))),
     el('div', { classe: 'volet-section legende' }, el('h4', null, 'Légende'),
       pastille('#8892a6', 'Option', 'leg-option'), pastille('#8892a6', 'En conflit', 'leg-conflit'),
       el('span', { classe: 'leg-txt' }, '● Match EspaceLigue'), el('span', { classe: 'leg-txt' }, '⇄ Calendrier importé'),
@@ -308,7 +375,8 @@ function grille(ctx) {
       c.num ? el('strong', { classe: 'num-jour' }, String(c.num)) : el('strong', null, c.titre),
       !c.num ? st(el('i', { classe: 'pastille-pl' }), '--c:' + couleurPlateau(c.plateau, ctx.plateaux)) : null,
       c.plateau && c.plateau.parent_id && plan.vue === 'jour' ? el('span', { classe: 'doux' }, ' section') : null,
-      n ? el('span', { classe: 'doux surf' }, ' ❄ ' + n) : null);
+      n ? el('span', { classe: 'doux surf' }, ' ❄ ' + n) : null,
+      plan.occupation ? occupation(ctx, c) : null);
   });
   const gabarit = `56px repeat(${ctx.colonnes.length}, minmax(120px, 1fr))`;
   const demi = `--demi:${30 * PX_MIN}px`;
@@ -850,6 +918,28 @@ async function vueClients(locataires) {
     choisi ? await ficheClient(choisi.id, modifiable) : el('p', { classe: 'doux' }, locataires.length ? 'Choisissez un client.' : 'Aucun client pour l’instant.'));
 }
 
+// La liste des réservations à venir d'un client (un an), mise en page pour l'impression ou le PDF.
+async function listeClient(l) {
+  const maintenant = new Date();
+  const rs = await lirePro('reservations', { select: 'id,periode,titre,statut,serie_id,plateaux(nom,etablissements(nom))', locataire_id: 'eq.' + l.id,
+    statut: 'in.(confirmee,option)', periode: 'ov.' + plage(maintenant, ajouterJours(maintenant, 400)), order: 'periode' });
+  const total = rs.reduce((n, r) => { const [a, b] = bornes(r.periode); return n + (b - a) / 3600000; }, 0);
+  const org = (etat.organisations.find((o) => o.id === etat.organisation) || {}).nom || '';
+  const feuille = el('section', { classe: 'feuille-client' },
+    el('header', null, el('div', null, el('h2', null, l.nom), el('p', { classe: 'doux' }, [l.contact, l.courriel, l.telephone].filter(Boolean).join(' · '))),
+      el('div', { classe: 'droite' }, el('strong', null, org), el('p', { classe: 'doux' }, 'Réservations au ' + maintenant.toLocaleDateString('fr-CA', { day: 'numeric', month: 'long', year: 'numeric' })))),
+    el('table', null, el('thead', null, el('tr', null, ['Date', 'Heure', 'Plateau', 'Activité', 'État'].map((x) => el('th', null, x)))),
+      el('tbody', null, rs.map((r) => { const [a, b] = bornes(r.periode);
+        return el('tr', null, el('td', null, a.toLocaleDateString('fr-CA', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })),
+          el('td', null, hhmm(a) + ' – ' + hhmm(b)), el('td', null, (r.plateaux || {}).nom || ''),
+          el('td', null, (r.serie_id ? '↻ ' : '') + (r.titre || '')), el('td', null, ETATS[r.statut])); }))),
+    el('p', null, el('strong', null, rs.length + ' réservation' + (rs.length > 1 ? 's' : '') + ' · ' + Math.round(total * 10) / 10 + ' h')));
+  document.body.append(feuille);
+  const fin = () => { feuille.remove(); window.removeEventListener('afterprint', fin); };
+  window.addEventListener('afterprint', fin);
+  imprimer('imprime-client');
+}
+
 async function ficheClient(id, modifiable) {
   const maintenant = new Date();
   const [[l], prochaines, saison] = await Promise.all([
@@ -885,7 +975,8 @@ async function ficheClient(id, modifiable) {
     el('label', { classe: 'case' }, actif, 'Client actif'),
     modifiable ? el('div', { classe: 'actions' }, el('button', { type: 'submit' }, 'Enregistrer'),
       el('button', { type: 'button', classe: 'discret', onclick: () => { plan.sous = 'grille'; afficher(); } }, 'Voir à l’horaire')) : null,
-    el('h4', null, 'Prochaines réservations'),
+    el('div', { classe: 'tete-panneau' }, el('h4', null, 'Prochaines réservations'),
+      el('button', { type: 'button', classe: 'discret', onclick: () => listeClient(l) }, 'Liste à imprimer')),
     prochaines.length ? el('div', { classe: 'table' }, el('table', null, el('tbody', null, prochaines.map((r) => {
       const [a, b] = bornes(r.periode);
       return el('tr', null, el('td', null, a.toLocaleDateString('fr-CA', { weekday: 'short', day: 'numeric', month: 'short' })),
