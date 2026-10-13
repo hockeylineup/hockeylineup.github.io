@@ -137,8 +137,12 @@ function tableMatchs(matchs, glaces, modifiable) {
         m.statut === 'demandee' ? el('span', { classe: 'pastille rouge-fond', title: 'La glace était déjà prise' }, 'Conflit') : null),
       el('td', null, glace), el('td', null, bouton));
   });
-  return el('div', { classe: 'table' }, el('table', null, el('thead', null, el('tr', null,
-    el('th', null, 'Heure'), el('th', null, 'Match'), el('th', null, 'Glace'), el('th', null, ''))), el('tbody', null, lignes)));
+  // Les quatre prochains ; « Voir tous » montre le reste.
+  lignes.slice(4).forEach((tr) => { tr.hidden = true; });
+  const tous = lignes.length > 4 ? el('button', { type: 'button', classe: 'discret', onclick: () => {
+    lignes.forEach((tr) => { tr.hidden = false; }); tous.remove(); } }, `Voir tous (${lignes.length})`) : null;
+  return el('div', null, el('div', { classe: 'table' }, el('table', null, el('thead', null, el('tr', null,
+    el('th', null, 'Heure'), el('th', null, 'Match'), el('th', null, 'Glace'), el('th', null, ''))), el('tbody', null, lignes))), tous);
 }
 
 // --- Vestiaires ----------------------------------------------------------------------
