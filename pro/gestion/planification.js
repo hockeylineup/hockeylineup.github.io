@@ -77,7 +77,8 @@ async function vuePlanification() {
   // Le gymnase entier, puis ses sections ; les autres par nom.
   const ordre = (p) => { const parent = p.parent_id ? plateaux.find((x) => x.id === p.parent_id) : p; return parent.nom + (p.parent_id ? ' ~' + p.nom : ''); };
   const plEtab = plateaux.filter((p) => p.etablissement_id === etab.id).sort((a, b) => ordre(a).localeCompare(ordre(b), 'fr', { numeric: true }));
-  if (!plEtab.some((p) => p.id === plan.plateau)) plan.plateau = plEtab[0] ? plEtab[0].id : null;
+  // plan.plateau vide : tous les plateaux (vue Semaine).
+  if (plan.plateau && !plEtab.some((p) => p.id === plan.plateau)) plan.plateau = '';
   if (!plan.date) plan.date = debutJour(new Date());
 
   // Mois : six semaines à partir du lundi qui précède le 1er.
@@ -86,10 +87,10 @@ async function vuePlanification() {
   const nbJours = plan.vue === 'jour' ? 1 : plan.vue === 'semaine' ? 7 : 42;
   const dernier = ajouterJours(premier, nbJours);
   if (plan.vue === 'mois' && plan.plateauMois && !plEtab.some((p) => p.id === plan.plateauMois)) plan.plateauMois = '';
-  const ids = plan.vue === 'semaine' ? [plan.plateau]
+  const ids = plan.vue === 'semaine' && plan.plateau ? [plan.plateau]
     : plan.vue === 'mois' && plan.plateauMois ? [plan.plateauMois] : plEtab.map((p) => p.id);
   // En vue Semaine, un gymnase entier ou une section montre aussi ce qui bloque l'autre.
-  const lies = plan.vue === 'semaine' ? plateaux.filter((p) => p.id === (plateaux.find((x) => x.id === plan.plateau) || {}).parent_id
+  const lies = plan.vue === 'semaine' && plan.plateau ? plateaux.filter((p) => p.id === (plateaux.find((x) => x.id === plan.plateau) || {}).parent_id
     || p.parent_id === plan.plateau).map((p) => p.id) : [];
   const [reservations, surf] = await Promise.all([
     ids.length ? lirePro('reservations', {
@@ -106,7 +107,7 @@ async function vuePlanification() {
     ? plEtab.map((p) => ({ cle: p.id, titre: p.nom, sous: p.parent_id ? 'section' : (p.surfacage ? '' : ''), jour: plan.date, plateau: p }))
     : Array.from({ length: 7 }, (_, i) => { const j = ajouterJours(premier, i);
       return { cle: aaaammjj(j), titre: j.toLocaleDateString('fr-CA', { weekday: 'short', day: 'numeric' }), jour: j,
-        plateau: plEtab.find((p) => p.id === plan.plateau) }; });
+        plateau: plEtab.find((p) => p.id === plan.plateau) || null }; });
 
   // Heures montrées : l'ouverture la plus tôt et la fermeture la plus tard des jours affichés,
   // élargies à ce qui est réservé ; 6 h à 23 h sans heures connues.
@@ -124,7 +125,7 @@ async function vuePlanification() {
     fin = Math.max(fin, Math.min(24 * 60, Math.ceil(minutesDe(b, j) / 60) * 60));
   }
   deb = Math.floor(deb / 60) * 60; fin = Math.ceil(fin / 60) * 60;
-  const ctx = { deb, fin, colonnes, reservations, plateaux, locataires, etab, surf: surfEtab };
+  const ctx = { deb, fin, colonnes, reservations, plateaux, locataires, etab, surf: surfEtab, defaut: plEtab[0] };
 
   const nav = (n) => () => {
     plan.date = plan.vue === 'mois' ? new Date(plan.date.getFullYear(), plan.date.getMonth() + n, 1) : ajouterJours(plan.date, n * nbJours);
@@ -151,7 +152,7 @@ async function vuePlanification() {
         '❄ ' + nbSurf + ' resurfaçage' + (nbSurf > 1 ? 's' : '')) : null),
     el('div', { classe: 'groupe' },
       etablissements.length > 1 ? choix(plan.etab, etablissements.map((e) => [e.id, e.nom]), (v) => { plan.etab = v; afficher(); }, 'Établissement') : null,
-      plan.vue === 'semaine' ? choix(plan.plateau, plEtab.map((p) => [p.id, p.nom]), (v) => { plan.plateau = v; afficher(); }, 'Plateau') : null,
+      plan.vue === 'semaine' ? choix(plan.plateau || '', [['', 'Tous les plateaux']].concat(plEtab.map((p) => [p.id, p.nom])), (v) => { plan.plateau = v; afficher(); }, 'Plateau') : null,
       plan.vue === 'mois' ? choix(plan.plateauMois || '', [['', 'Tous les plateaux']].concat(plEtab.map((p) => [p.id, p.nom])),
         (v) => { plan.plateauMois = v; afficher(); }, 'Plateau') : null,
       choix(plan.client, [['', 'Tous les clients']].concat(locataires.map((l) => [l.id, l.nom])), (v) => { plan.client = v; afficher(); }, 'Filtrer par client'),
@@ -159,7 +160,7 @@ async function vuePlanification() {
         el('button', { type: 'button', classe: plan.vue === k ? 'actif' : null, onclick: () => { plan.vue = k; afficher(); } }, v))),
       peutReserver() ? el('button', { type: 'button', onclick: () => {
         const j = plan.vue === 'jour' ? plan.date : debutJour(new Date());
-        ouvrirPanneau({ nouveau: true, plateau: plan.vue === 'jour' ? (plEtab[0] || {}).id : plan.plateau,
+        ouvrirPanneau({ nouveau: true, plateau: plan.vue === 'semaine' && plan.plateau ? plan.plateau : (plEtab[0] || {}).id,
           debut: aHeure(j, 18 * 60), fin: aHeure(j, 19 * 60 + 30) }); } }, '+ Réserver') : null));
 
   const g = plan.vue === 'mois' ? grilleMois(ctx, premier, debutMois) : grille(ctx);
@@ -234,9 +235,9 @@ function grille(ctx) {
   }
   const cols = ctx.colonnes.map((c) => colonne(ctx, c, haut));
   const tetes = ctx.colonnes.map((c) => {
-    const n = ctx.surf.filter((s) => s.plateau_id === c.plateau.id && s.jour === aaaammjj(c.jour)).reduce((x, s) => x + s.nombre, 0);
+    const n = ctx.surf.filter((s) => (!c.plateau || s.plateau_id === c.plateau.id) && s.jour === aaaammjj(c.jour)).reduce((x, s) => x + s.nombre, 0);
     return el('div', { classe: 'tete-col' + (aaaammjj(c.jour) === aaaammjj(new Date()) && plan.vue === 'semaine' ? ' aujourdhui' : '') },
-      el('strong', null, c.titre), c.plateau.parent_id && plan.vue === 'jour' ? el('span', { classe: 'doux' }, ' section') : null,
+      el('strong', null, c.titre), c.plateau && c.plateau.parent_id && plan.vue === 'jour' ? el('span', { classe: 'doux' }, ' section') : null,
       n ? el('span', { classe: 'doux surf' }, ' ❄ ' + n) : null);
   });
   const gabarit = `56px repeat(${ctx.colonnes.length}, minmax(120px, 1fr))`;
@@ -268,9 +269,10 @@ function colonne(ctx, c, haut) {
   // Les réservations de cette colonne, et celles d'un gymnase lié (en fantôme).
   const pl = c.plateau;
   const duJour = (r) => { const [a, b] = bornes(r.periode); return a < ajouterJours(c.jour, 1) && b > c.jour; };
-  const siennes = ctx.reservations.filter((r) => r.plateau_id === pl.id && duJour(r))
+  // Sans plateau (Semaine, tous les plateaux) : toutes les réservations du jour, côte à côte.
+  const siennes = ctx.reservations.filter((r) => (!pl || r.plateau_id === pl.id) && duJour(r))
     .sort((x, y) => bornes(x.periode)[0] - bornes(y.periode)[0]);
-  const fantomes = ctx.reservations.filter((r) => r.plateau_id !== pl.id && duJour(r) && (r.plateau_id === pl.parent_id
+  const fantomes = !pl ? [] : ctx.reservations.filter((r) => r.plateau_id !== pl.id && duJour(r) && (r.plateau_id === pl.parent_id
     || (ctx.plateaux.find((p) => p.id === r.plateau_id) || {}).parent_id === pl.id) && r.statut !== 'demandee');
   // Couloirs : des blocs qui se chevauchent (une demande en conflit) se partagent la
   // largeur, groupe par groupe ; les autres gardent toute la colonne.
@@ -303,7 +305,7 @@ function bloc(ctx, c, r, couloir, nbCouloirs, fantome) {
   if (fantome) classes.push('fantome');
   if (filtre) classes.push('estompe');
   if (plan.panneau && plan.panneau.id === r.id) classes.push('choisi');
-  const d = st(el('div', { classe: classes.join(' ') },
+  const d = st(el('div', { classe: classes.join(' '), title: pl.nom + ' · ' + (r.titre || client || 'Réservé') + ' · ' + hhmm(a) + '–' + hhmm(b) },
     el('div', { classe: 'b-titre' }, ICONES_SOURCE[r.source] ? el('span', { classe: 'icone-src', title: r.source === 'espaceligue' ? 'Match EspaceLigue' : 'Calendrier importé' }, ICONES_SOURCE[r.source] + ' ') : null,
       (r.serie_id ? '↻ ' : '') + (fantome ? pl.nom + ' · ' : '') + (r.titre || client || 'Réservé')),
     el('div', { classe: 'b-heure' }, hhmm(a) + '–' + hhmm(b) + (client && r.titre ? ' · ' + client : '')),
@@ -331,7 +333,7 @@ function selectionner(ev, ctx, col) {
     if (ev.pointerType === 'touch') {  // un toucher : 1 h 30 à partir de la case touchée
       const m = arrondir(ctx.deb + (ev.clientY - col.getBoundingClientRect().top) / PX_MIN);
       const c = col.colonne;
-      ouvrirPanneau({ nouveau: true, plateau: c.plateau.id, debut: aHeure(c.jour, m), fin: aHeure(c.jour, m + 90) });
+      ouvrirPanneau({ nouveau: true, plateau: (c.plateau || ctx.defaut).id, debut: aHeure(c.jour, m), fin: aHeure(c.jour, m + 90) });
     }
     return;
   }
@@ -355,7 +357,7 @@ function selectionner(ev, ctx, col) {
     const a = Math.min(m0, m1), b = Math.max(m0 + PAS, m1);
     const c = col.colonne;
     // Un simple clic : 1 h 30, la plage habituelle d'une glace.
-    ouvrirPanneau({ nouveau: true, plateau: c.plateau.id, debut: aHeure(c.jour, a),
+    ouvrirPanneau({ nouveau: true, plateau: (c.plateau || ctx.defaut).id, debut: aHeure(c.jour, a),
       fin: aHeure(c.jour, b - a <= PAS ? a + 90 : b) });
   };
   document.addEventListener('pointermove', bouger);
@@ -394,7 +396,7 @@ function saisirBloc(ev, ctx, d, c) {
     const na = etirer ? a : new Date(a.getTime() + decal);
     const nb = etirer ? new Date(Math.max(a.getTime() + PAS * 60000, b.getTime() + dm * 60000)) : new Date(b.getTime() + decal);
     const corps = { periode: plage(na, nb) };
-    if (!etirer && c2.plateau.id !== r.plateau_id) corps.plateau_id = c2.plateau.id;
+    if (!etirer && c2.plateau && c2.plateau.id !== r.plateau_id) corps.plateau_id = c2.plateau.id;
     try {
       await majPro('reservations', { id: 'eq.' + r.id }, corps);
       dire((etirer ? 'Durée changée : ' : 'Déplacée : ') + hhmm(na) + ' – ' + hhmm(nb) + (corps.plateau_id ? ' · ' + c2.plateau.nom : '') + '.');
