@@ -26,6 +26,22 @@ const ONGLETS = { horaire: 'Planification', ligues: 'Ligues', contenu: 'Contenu'
 
 // Les messages paraissent en toast ; un succès s'efface seul après quelques secondes.
 let minuterieMessage = null;
+// Icônes du menu (traits simples, couleur du texte).
+const ICONES = {
+  horaire: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M7 13h3M14 13h3M7 17h3"/>',
+  ligues: '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM17 6h3v2a3 3 0 0 1-3 3M7 6H4v2a3 3 0 0 0 3 3"/>',
+  contenu: '<rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>',
+  urgence: '<path d="M12 3 2 20h20L12 3zM12 10v4M12 17v.5"/>',
+  lecteurs: '<rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="9" cy="9" r="1.2"/><circle cx="15" cy="15" r="1.2"/><path d="M9 15h.01M15 9h.01"/>',
+  etablissement: '<path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/>',
+};
+function icone(k) {
+  const s = el('span', { classe: 'icone', 'aria-hidden': 'true' });
+  s.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
+    + (ICONES[k] || '') + '</svg>';
+  return s;
+}
+
 function dire(texte, erreur) {
   const m = $('message');
   clearTimeout(minuterieMessage);
@@ -119,8 +135,11 @@ async function ouvrir() {
 async function afficher() {
   dire('');
   etat.enAttente = await liguesEnAttente();
+  // Sur la Planification, le menu se réduit en barre d'icônes (déplié au survol).
+  $('app').classList.toggle('reduit', etat.onglet === 'horaire');
   $('onglets').replaceChildren(...Object.entries(ONGLETS).map(([k, v]) => el('button', {
-    classe: k === etat.onglet ? 'actif' : null, onclick: () => { if (etat.onglet === 'contenu' && k !== 'contenu' && !quitterContenu()) return; etat.onglet = k; afficher(); } }, v,
+    classe: k === etat.onglet ? 'actif' : null, title: v, onclick: () => { if (etat.onglet === 'contenu' && k !== 'contenu' && !quitterContenu()) return; etat.onglet = k; afficher(); } },
+    icone(k), el('span', { classe: 'libelle' }, v),
     k === 'ligues' && etat.enAttente ? el('span', { classe: 'compte', title: 'Ligues à approuver' }, String(etat.enAttente)) : null)));
   try {
     const vue = { horaire: vuePlanification, ligues: vueLigues, lecteurs: vueLecteurs, contenu: vueContenu, urgence: vueUrgence,

@@ -16,7 +16,7 @@
 // Le CSP du site refuse l'attribut style : on passe par l'objet style.
 const st = (n, css) => { n.style.cssText = css; return n; };
 
-const plan = { vue: 'jour', date: null, etab: null, plateau: null, client: '', sous: 'grille', panneau: null };
+const plan = { masques: new Set(), vue: 'jour', date: null, etab: null, plateau: null, client: '', sous: 'grille', panneau: null };
 const PAS = 15;          // minutes
 const PX_MIN = 1.1;      // pixels par minute
 const ETATS = { confirmee: 'Confirmée', option: 'Option', demandee: 'En conflit', annulee: 'Annulée' };
@@ -77,8 +77,10 @@ async function vuePlanification() {
   // Le gymnase entier, puis ses sections ; les autres par nom.
   const ordre = (p) => { const parent = p.parent_id ? plateaux.find((x) => x.id === p.parent_id) : p; return parent.nom + (p.parent_id ? ' ~' + p.nom : ''); };
   const plEtab = plateaux.filter((p) => p.etablissement_id === etab.id).sort((a, b) => ordre(a).localeCompare(ordre(b), 'fr', { numeric: true }));
-  // plan.plateau vide : tous les plateaux (vue Semaine).
-  if (plan.plateau && !plEtab.some((p) => p.id === plan.plateau)) plan.plateau = '';
+  // Les plateaux cochés dans le volet ; un seul coché en Semaine : ses sept jours avec les
+  // blocages de son gymnase (fantômes).
+  const visibles = plEtab.filter((p) => !plan.masques.has(p.id));
+  plan.plateau = visibles.length === 1 ? visibles[0].id : '';
   if (!plan.date) plan.date = debutJour(new Date());
 
   // Mois : six semaines à partir du lundi qui précède le 1er.
@@ -86,9 +88,7 @@ async function vuePlanification() {
   const premier = plan.vue === 'jour' ? plan.date : plan.vue === 'semaine' ? lundiDe(plan.date) : lundiDe(debutMois);
   const nbJours = plan.vue === 'jour' ? 1 : plan.vue === 'semaine' ? 7 : 42;
   const dernier = ajouterJours(premier, nbJours);
-  if (plan.vue === 'mois' && plan.plateauMois && !plEtab.some((p) => p.id === plan.plateauMois)) plan.plateauMois = '';
-  const ids = plan.vue === 'semaine' && plan.plateau ? [plan.plateau]
-    : plan.vue === 'mois' && plan.plateauMois ? [plan.plateauMois] : plEtab.map((p) => p.id);
+  const ids = visibles.map((p) => p.id);
   // En vue Semaine, un gymnase entier ou une section montre aussi ce qui bloque l'autre.
   const lies = plan.vue === 'semaine' && plan.plateau ? plateaux.filter((p) => p.id === (plateaux.find((x) => x.id === plan.plateau) || {}).parent_id
     || p.parent_id === plan.plateau).map((p) => p.id) : [];
@@ -104,9 +104,9 @@ async function vuePlanification() {
 
   // Colonnes : { cle, titre, jour, plateau }.
   const colonnes = plan.vue === 'mois' ? [] : plan.vue === 'jour'
-    ? plEtab.map((p) => ({ cle: p.id, titre: p.nom, sous: p.parent_id ? 'section' : (p.surfacage ? '' : ''), jour: plan.date, plateau: p }))
+    ? visibles.map((p) => ({ cle: p.id, titre: p.nom, sous: p.parent_id ? 'section' : (p.surfacage ? '' : ''), jour: plan.date, plateau: p }))
     : Array.from({ length: 7 }, (_, i) => { const j = ajouterJours(premier, i);
-      return { cle: aaaammjj(j), titre: j.toLocaleDateString('fr-CA', { weekday: 'short', day: 'numeric' }), jour: j,
+      return { cle: aaaammjj(j), titre: j.toLocaleDateString('fr-CA', { weekday: 'short' }), num: j.getDate(), jour: j,
         plateau: plEtab.find((p) => p.id === plan.plateau) || null }; });
 
   // Heures montrées : l'ouverture la plus tôt et la fermeture la plus tard des jours affichés,
@@ -125,43 +125,38 @@ async function vuePlanification() {
     fin = Math.max(fin, Math.min(24 * 60, Math.ceil(minutesDe(b, j) / 60) * 60));
   }
   deb = Math.floor(deb / 60) * 60; fin = Math.ceil(fin / 60) * 60;
-  const ctx = { deb, fin, colonnes, reservations, plateaux, locataires, etab, surf: surfEtab, defaut: plEtab[0] };
+  const ctx = { deb, fin, colonnes, reservations, plateaux, locataires, etab, surf: surfEtab, defaut: visibles[0] || plEtab[0] };
 
   const nav = (n) => () => {
     plan.date = plan.vue === 'mois' ? new Date(plan.date.getFullYear(), plan.date.getMonth() + n, 1) : ajouterJours(plan.date, n * nbJours);
     plan.panneau = null; afficher(); };
-  // La date se choisit en cliquant le titre (le champ date est caché derrière).
+  // La date se choisit en cliquant le titre (le champ date est caché derrière) ou dans le mini-calendrier.
   const dateChamp = el('input', { type: 'date', classe: 'date-cachee', valeur: aaaammjj(plan.date), 'aria-label': 'Choisir la date',
     onchange: (ev) => { if (!ev.target.value) return; const [y, m, d] = ev.target.value.split('-').map(Number);
       plan.date = new Date(y, m - 1, d); afficher(); } });
+  const finSem = ajouterJours(premier, 6);
   const titrePeriode = plan.vue === 'jour'
-    ? plan.date.toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'long' })
-    : plan.vue === 'semaine' ? 'Semaine du ' + premier.toLocaleDateString('fr-CA', { day: 'numeric', month: 'long' })
+    ? plan.date.toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    : plan.vue === 'semaine' ? premier.getDate() + (premier.getMonth() !== finSem.getMonth() ? ' ' + premier.toLocaleDateString('fr-CA', { month: 'long' }) : '')
+      + ' – ' + finSem.toLocaleDateString('fr-CA', { day: 'numeric', month: 'long', year: 'numeric' })
     : debutMois.toLocaleDateString('fr-CA', { month: 'long', year: 'numeric' });
   const nbSurf = surfEtab.reduce((n, s) => n + s.nombre, 0);
-  const choix = (valeur, options, auChoix, titre) => el('select', { title: titre, onchange: (ev) => auChoix(ev.target.value) },
-    options.map(([k, v]) => el('option', { value: k, selected: k === valeur }, v)));
   const barre = el('div', { classe: 'barre-planif' },
     el('div', { classe: 'groupe' },
-      el('div', { classe: 'segment' },
-        el('button', { type: 'button', onclick: nav(-1), title: 'Précédent' }, '‹'),
-        el('button', { type: 'button', onclick: () => { plan.date = debutJour(new Date()); afficher(); } }, 'Aujourd’hui'),
-        el('button', { type: 'button', onclick: nav(1), title: 'Suivant' }, '›')),
+      el('button', { type: 'button', classe: 'discret', onclick: () => { plan.date = debutJour(new Date()); afficher(); } }, 'Aujourd’hui'),
+      el('button', { type: 'button', classe: 'fleche', onclick: nav(-1), title: 'Précédent', 'aria-label': 'Précédent' }, '‹'),
+      el('button', { type: 'button', classe: 'fleche', onclick: nav(1), title: 'Suivant', 'aria-label': 'Suivant' }, '›'),
       el('label', { classe: 'periode', title: 'Choisir la date' }, el('span', null, titrePeriode), ' ▾', dateChamp),
       nbSurf ? el('span', { classe: 'pastille surf-fond', title: 'Resurfaçages compris dans les réservations' },
         '❄ ' + nbSurf + ' resurfaçage' + (nbSurf > 1 ? 's' : '')) : null),
-    el('div', { classe: 'groupe' },
-      etablissements.length > 1 ? choix(plan.etab, etablissements.map((e) => [e.id, e.nom]), (v) => { plan.etab = v; afficher(); }, 'Établissement') : null,
-      plan.vue === 'semaine' ? choix(plan.plateau || '', [['', 'Tous les plateaux']].concat(plEtab.map((p) => [p.id, p.nom])), (v) => { plan.plateau = v; afficher(); }, 'Plateau') : null,
-      plan.vue === 'mois' ? choix(plan.plateauMois || '', [['', 'Tous les plateaux']].concat(plEtab.map((p) => [p.id, p.nom])),
-        (v) => { plan.plateauMois = v; afficher(); }, 'Plateau') : null,
-      choix(plan.client, [['', 'Tous les clients']].concat(locataires.map((l) => [l.id, l.nom])), (v) => { plan.client = v; afficher(); }, 'Filtrer par client'),
-      el('div', { classe: 'segment' }, [['jour', 'Jour'], ['semaine', 'Semaine'], ['mois', 'Mois']].map(([k, v]) =>
-        el('button', { type: 'button', classe: plan.vue === k ? 'actif' : null, onclick: () => { plan.vue = k; afficher(); } }, v))),
-      peutReserver() ? el('button', { type: 'button', onclick: () => {
-        const j = plan.vue === 'jour' ? plan.date : debutJour(new Date());
-        ouvrirPanneau({ nouveau: true, plateau: plan.vue === 'semaine' && plan.plateau ? plan.plateau : (plEtab[0] || {}).id,
-          debut: aHeure(j, 18 * 60), fin: aHeure(j, 19 * 60 + 30) }); } }, '+ Réserver') : null));
+    el('div', { classe: 'segment vues' }, [['jour', 'Jour'], ['semaine', 'Semaine'], ['mois', 'Mois']].map(([k, v]) =>
+      el('button', { type: 'button', classe: plan.vue === k ? 'actif' : null, onclick: () => { plan.vue = k; afficher(); } }, v))));
+
+  const nouvelle = () => {
+    const j = plan.vue === 'jour' ? plan.date : debutJour(new Date());
+    ouvrirPanneau({ nouveau: true, plateau: (visibles[0] || plEtab[0] || {}).id, debut: aHeure(j, 18 * 60), fin: aHeure(j, 19 * 60 + 30) });
+  };
+  const volet = voletPlanif({ etablissements, plEtab, plateaux, locataires, premier, nbJours, nouvelle });
 
   const g = plan.vue === 'mois' ? grilleMois(ctx, premier, debutMois) : grille(ctx);
   // Ouvrir sur l'heure courante (aujourd'hui) ou sur la première réservation.
@@ -175,22 +170,53 @@ async function vuePlanification() {
 
   return el('section', { classe: 'vue-planif' }, entete,
     el('div', { classe: 'planif-corps' + (plan.panneau ? ' avec-panneau' : '') },
-      el('div', { classe: 'carte-planif' }, barre, legende(plEtab, plateaux), g),
+      volet,
+      el('div', { classe: 'carte-planif' }, barre, g),
       plan.panneau ? panneau(ctx) : null),
     plan.vue === 'semaine' && nbSurf ? tableauSurfacages(ctx, premier) : null);
 }
 
-// La légende : la couleur de chaque plateau, puis les états et les sources.
-function legende(plEtab, plateaux) {
+// Le volet de gauche, à la Outlook : nouvelle réservation, mini-calendrier, plateaux à
+// cocher (avec leur couleur), client, établissement, légende.
+function voletPlanif({ etablissements, plEtab, plateaux, locataires, premier, nbJours, nouvelle }) {
+  const mini = plan.mini || new Date(plan.date.getFullYear(), plan.date.getMonth(), 1);
+  const debut = lundiDe(mini);
+  const auj = aaaammjj(new Date());
+  const dans = (j) => j >= premier && j < ajouterJours(premier, nbJours);
+  const cases = Array.from({ length: 42 }, (_, i) => {
+    const j = ajouterJours(debut, i);
+    return el('button', { type: 'button', classe: 'mini-jour' + (j.getMonth() !== mini.getMonth() ? ' autre' : '')
+      + (aaaammjj(j) === auj ? ' auj' : '') + (plan.vue !== 'mois' && dans(j) ? ' choisi' : ''),
+    onclick: () => { plan.date = j; plan.mini = null; afficher(); } }, String(j.getDate()));
+  });
+  const bougerMini = (n) => () => { plan.mini = new Date(mini.getFullYear(), mini.getMonth() + n, 1); afficher(); };
   const pastille = (couleur, texte, classe) => st(el('span', { classe: 'leg ' + (classe || '') }, el('i'), texte), '--c:' + couleur);
-  return el('div', { classe: 'legende' },
-    plEtab.filter((p) => !p.parent_id).map((p) => pastille(couleurPlateau(p, plateaux), p.nom)),
-    el('span', { classe: 'sep' }),
-    pastille('#8892a6', 'Option', 'leg-option'), pastille('#8892a6', 'En conflit', 'leg-conflit'),
-    el('span', { classe: 'leg-txt' }, '● Match EspaceLigue'), el('span', { classe: 'leg-txt' }, '⇄ Calendrier'),
-    el('span', { classe: 'leg-txt' }, '↻ Série'), el('span', { classe: 'leg-txt' }, '❄ Resurfaçage'),
-    peutModifier() ? el('button', { type: 'button', classe: 'discret lien', title: 'Changer les couleurs des plateaux',
-      onclick: () => { etat.onglet = 'etablissement'; afficher(); } }, 'Couleurs…') : null);
+  return el('aside', { classe: 'volet-planif' },
+    peutReserver() ? el('button', { type: 'button', classe: 'nouvelle', onclick: nouvelle }, '＋ Nouvelle réservation') : null,
+    el('div', { classe: 'mini-cal' },
+      el('div', { classe: 'mini-tete' }, el('strong', null, mini.toLocaleDateString('fr-CA', { month: 'long', year: 'numeric' })),
+        el('span', null, el('button', { type: 'button', classe: 'fleche', onclick: bougerMini(-1), 'aria-label': 'Mois précédent' }, '‹'),
+          el('button', { type: 'button', classe: 'fleche', onclick: bougerMini(1), 'aria-label': 'Mois suivant' }, '›'))),
+      el('div', { classe: 'mini-grille' }, ['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((x) => el('span', { classe: 'mini-j' }, x)), cases)),
+    etablissements.length > 1 ? el('select', { onchange: (ev) => { plan.etab = ev.target.value; plan.masques.clear(); afficher(); } },
+      etablissements.map((e) => el('option', { value: e.id, selected: e.id === plan.etab }, e.nom))) : null,
+    el('div', { classe: 'volet-section' }, el('h4', null, 'Plateaux'),
+      plEtab.map((p) => {
+        const c = el('input', { type: 'checkbox', checked: !plan.masques.has(p.id), onchange: () => {
+          if (c.checked) plan.masques.delete(p.id); else plan.masques.add(p.id);
+          afficher(); } });
+        return st(el('label', { classe: 'case-plateau' + (p.parent_id ? ' section' : '') }, c, el('span', null, p.nom)),
+          '--c:' + couleurPlateau(p, plateaux));
+      }),
+      peutModifier() ? el('button', { type: 'button', classe: 'discret lien', onclick: () => { etat.onglet = 'etablissement'; afficher(); } }, 'Couleurs et plateaux…') : null),
+    el('div', { classe: 'volet-section' }, el('h4', null, 'Client'),
+      el('select', { onchange: (ev) => { plan.client = ev.target.value; afficher(); } },
+        el('option', { value: '' }, 'Tous les clients'),
+        locataires.map((l) => el('option', { value: l.id, selected: l.id === plan.client }, l.nom)))),
+    el('div', { classe: 'volet-section legende' }, el('h4', null, 'Légende'),
+      pastille('#8892a6', 'Option', 'leg-option'), pastille('#8892a6', 'En conflit', 'leg-conflit'),
+      el('span', { classe: 'leg-txt' }, '● Match EspaceLigue'), el('span', { classe: 'leg-txt' }, '⇄ Calendrier importé'),
+      el('span', { classe: 'leg-txt' }, '↻ Série'), el('span', { classe: 'leg-txt' }, '❄ Resurfaçage')));
 }
 
 // --- Vue Mois : un calendrier, les réservations résumées par jour ----------------------
@@ -211,7 +237,7 @@ function grilleMois(ctx, premier, debutMois) {
         title: pl.nom + ' · ' + (r.titre || (r.locataires || {}).nom || 'Réservé'),
         onclick: (ev) => { ev.stopPropagation(); plan.panneau = { id: r.id }; afficher(); } },
         el('span', { classe: 'h' }, hhmm(bornes(r.periode)[0])), ' ', ICONES_SOURCE[r.source] ? ICONES_SOURCE[r.source] + ' ' : '',
-        (plan.plateauMois ? '' : pl.nom + ' · ') + (r.titre || (r.locataires || {}).nom || 'Réservé')), '--c:' + couleurPlateau(pl, ctx.plateaux));
+        '' + (r.titre || (r.locataires || {}).nom || 'Réservé')), '--c:' + couleurPlateau(pl, ctx.plateaux));
     };
     return el('div', { classe: 'case-mois' + (jour.getMonth() !== debutMois.getMonth() ? ' hors-mois' : '') + (cle === auj ? ' aujourdhui' : ''),
       title: 'Voir le ' + jour.toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'long' }),
@@ -237,7 +263,10 @@ function grille(ctx) {
   const tetes = ctx.colonnes.map((c) => {
     const n = ctx.surf.filter((s) => (!c.plateau || s.plateau_id === c.plateau.id) && s.jour === aaaammjj(c.jour)).reduce((x, s) => x + s.nombre, 0);
     return el('div', { classe: 'tete-col' + (aaaammjj(c.jour) === aaaammjj(new Date()) && plan.vue === 'semaine' ? ' aujourdhui' : '') },
-      el('strong', null, c.titre), c.plateau && c.plateau.parent_id && plan.vue === 'jour' ? el('span', { classe: 'doux' }, ' section') : null,
+      c.num ? el('span', { classe: 'jour-sem' }, c.titre) : null,
+      c.num ? el('strong', { classe: 'num-jour' }, String(c.num)) : el('strong', null, c.titre),
+      !c.num ? st(el('i', { classe: 'pastille-pl' }), '--c:' + couleurPlateau(c.plateau, ctx.plateaux)) : null,
+      c.plateau && c.plateau.parent_id && plan.vue === 'jour' ? el('span', { classe: 'doux' }, ' section') : null,
       n ? el('span', { classe: 'doux surf' }, ' ❄ ' + n) : null);
   });
   const gabarit = `56px repeat(${ctx.colonnes.length}, minmax(120px, 1fr))`;

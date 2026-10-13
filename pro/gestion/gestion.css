@@ -333,8 +333,7 @@ button.lien { justify-self: start; padding-left: 0; color: var(--bleu); }
 .ligne-client.actif { border-color: var(--bleu); }
 .ligne-client.inactif { opacity: .55; }
 .fiche-client textarea { width: 100%; font: inherit; }
-@media (max-width: 900px) {
-  .planif-corps.avec-panneau { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 1100px) {
   .panneau-planif { position: fixed; left: 0; right: 0; bottom: 0; top: auto; max-height: 75vh; border-radius: 14px 14px 0 0; z-index: 20; box-shadow: 0 -8px 30px #0006; }
   .clients { grid-template-columns: 1fr; }
 }
@@ -475,7 +474,7 @@ input[type="checkbox"] { accent-color: var(--bleu); width: 16px; height: 16px; }
 .panneau-planif .actions.annuler button { color: var(--rouge); }
 @keyframes glisse { from { opacity: 0; transform: translateX(14px); } }
 @keyframes apparait { from { opacity: 0; } }
-@media (max-width: 900px) { .panneau-planif { animation-name: monte; border-top-width: 0; } @keyframes monte { from { transform: translateY(30px); opacity: 0; } } }
+@media (max-width: 1100px) { .panneau-planif { animation-name: monte; border-top-width: 0; } @keyframes monte { from { transform: translateY(30px); opacity: 0; } } }
 
 /* Vue Mois, clients */
 .case-mois { transition: background-color .15s; }
@@ -506,3 +505,86 @@ input[type="checkbox"] { accent-color: var(--bleu); width: 16px; height: 16px; }
 .legende .sep { width: 1px; height: 14px; background: var(--ligne); }
 .legende .lien { margin-left: auto; padding: 0; font-size: .78rem; }
 .rangee-nom input[type="color"] { width: 38px; height: 38px; padding: 3px; flex: none; border-radius: 8px; cursor: pointer; }
+
+/* ===================================================================
+   Planification, allure Outlook : volet gauche, barre de commandes,
+   grandes dates, blocs plats.
+   =================================================================== */
+.vue-planif { font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Roboto, sans-serif; }
+.planif-corps { grid-template-columns: 236px minmax(0, 1fr); }
+.planif-corps.avec-panneau { grid-template-columns: 236px minmax(0, 1fr) 340px; }
+.volet-planif { display: grid; gap: 16px; align-content: start; position: sticky; top: 12px; }
+.volet-planif .nouvelle { width: 100%; padding: 11px 14px; font-size: .95rem; border-radius: 10px; text-align: left; }
+.volet-planif select { width: 100%; }
+.volet-section { display: grid; gap: 4px; }
+.volet-section h4 { margin: 0 0 4px; font-size: .74rem; text-transform: uppercase; letter-spacing: .06em; color: var(--doux); font-weight: 600; }
+.case-plateau { display: flex !important; align-items: center; gap: 9px; padding: 5px 8px; border-radius: 6px; color: var(--texte) !important; font-size: .88rem !important; cursor: pointer; transition: background-color .12s; }
+.case-plateau:hover { background: color-mix(in srgb, var(--texte) 6%, transparent); }
+.case-plateau.section { padding-left: 26px; font-size: .84rem !important; }
+.case-plateau input { appearance: none; -webkit-appearance: none; width: 16px; height: 16px; margin: 0; border-radius: 4px; border: 2px solid var(--c); background: transparent; display: grid; place-items: center; cursor: pointer; flex: none; }
+.case-plateau input:checked { background: var(--c); }
+.case-plateau input:checked::after { content: "✓"; color: #fff; font-size: 11px; font-weight: 700; line-height: 1; }
+.volet-planif .lien { font-size: .8rem; padding: 2px 8px; }
+.volet-planif .legende { border: 0; padding: 0; display: grid; gap: 4px; font-size: .8rem; }
+.volet-planif .legende .leg, .volet-planif .legende .leg-txt { padding-left: 8px; color: var(--doux); font-weight: 400; }
+.volet-planif .legende .leg { display: flex; align-items: center; gap: 8px; }
+.volet-planif .legende .leg i { width: 16px; height: 10px; border-radius: 2px; }
+.mini-cal { background: var(--carte); border: 1px solid var(--ligne); border-radius: 10px; padding: 10px; box-shadow: var(--ombre); }
+.mini-tete { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.mini-tete strong { font-size: .88rem; }
+.mini-tete strong::first-letter { text-transform: uppercase; }
+.mini-grille { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; text-align: center; }
+.mini-j { font-size: .68rem; color: var(--doux); padding: 2px 0 4px; font-weight: 600; }
+.mini-jour { background: transparent; color: var(--texte); font-size: .76rem; font-weight: 400; padding: 0; height: 26px; border-radius: 50%; box-shadow: none !important; font-variant-numeric: tabular-nums; }
+.mini-jour:hover { background: color-mix(in srgb, var(--bleu) 12%, transparent) !important; filter: none !important; }
+.mini-jour.autre { color: color-mix(in srgb, var(--doux) 70%, transparent); }
+.mini-jour.choisi { background: color-mix(in srgb, var(--bleu) 16%, transparent); border-radius: 0; }
+.mini-jour.auj { background: var(--bleu) !important; color: #fff; font-weight: 700; border-radius: 50%; }
+button.fleche { background: transparent; color: var(--texte); width: 30px; height: 30px; padding: 0; border-radius: 50%; font-size: 1.15rem; line-height: 1; box-shadow: none !important; }
+button.fleche:hover { background: color-mix(in srgb, var(--texte) 8%, transparent); filter: none; }
+.barre-planif { padding: 8px 12px; background: var(--carte); }
+.barre-planif .periode { font-size: 1.12rem; font-weight: 600; letter-spacing: -.01em; }
+.segment.vues button { padding: 6px 14px; }
+.tete-col { display: grid; justify-items: center; gap: 0; padding: 8px 4px 6px; text-transform: none; }
+.tete-col .jour-sem { font-size: .72rem; color: var(--doux); text-transform: capitalize; letter-spacing: .02em; }
+.tete-col .num-jour { font-size: 1.5rem; font-weight: 300; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.tete-col.aujourdhui .jour-sem { color: var(--bleu); font-weight: 600; }
+.tete-col.aujourdhui .num-jour { background: var(--bleu); color: #fff; border-radius: 50%; width: 36px; height: 36px; display: grid; place-items: center; font-weight: 500; padding: 0; }
+.tete-col .pastille-pl { width: 22px; height: 3px; border-radius: 2px; background: var(--c); margin-top: 4px; }
+.tete-col .surf { font-size: .7rem; }
+.col .trait::after { content: ""; position: absolute; left: 0; right: 0; top: 33px; border-top: 1px dotted color-mix(in srgb, var(--ligne) 80%, transparent); }
+.bloc { border-radius: 4px; box-shadow: none; padding: 4px 7px; border-left-width: 3px; background: color-mix(in srgb, var(--c) 20%, var(--carte)); }
+:root[data-theme="light"] .bloc { background: color-mix(in srgb, var(--c) 14%, #fff); }
+.bloc:hover { transform: none; box-shadow: 0 2px 8px #0002; filter: brightness(.98); }
+.bloc .b-titre { font-weight: 600; font-size: .78rem; }
+.bloc.choisi { outline: 2px solid var(--c); outline-offset: 0; box-shadow: 0 4px 14px #0003; }
+.evt-mois { border-radius: 3px; }
+@media (max-width: 1280px) { .planif-corps.avec-panneau { grid-template-columns: 210px minmax(0, 1fr) 320px; } .planif-corps { grid-template-columns: 210px minmax(0, 1fr); } }
+@media (max-width: 1100px) { .planif-corps, .planif-corps.avec-panneau { grid-template-columns: 200px minmax(0, 1fr); } }
+@media (max-width: 860px) {
+  .planif-corps, .planif-corps.avec-panneau { grid-template-columns: minmax(0, 1fr); }
+  .volet-planif { position: static; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); align-items: start; }
+  .volet-planif .legende { display: none; }
+}
+
+/* Menu réduit (Planification) : une barre d'icônes, dépliée au survol par-dessus la page. */
+.cote nav button { display: flex; align-items: center; gap: 10px; }
+.cote nav .icone { display: inline-grid; place-items: center; width: 20px; height: 20px; flex: none; }
+.cote nav .icone svg { width: 18px; height: 18px; }
+.cote nav .compte { margin-left: auto; }
+@media (min-width: 801px) {
+  .coquille { transition: grid-template-columns .2s ease; }
+  .coquille.reduit { grid-template-columns: 64px 1fr; }
+  .coquille.reduit .cote { position: sticky; top: 0; height: 100vh; width: 64px; overflow: hidden; z-index: 30; transition: width .2s ease, box-shadow .2s; }
+  .coquille.reduit .cote:hover, .coquille.reduit .cote:focus-within { width: 232px; box-shadow: var(--ombre-forte); }
+  .coquille.reduit .cote .libelle, .coquille.reduit .cote .marque strong, .coquille.reduit .cote .marque em,
+  .coquille.reduit .cote .compte, .coquille.reduit .cote #choix-organisation { opacity: 0; transition: opacity .15s; white-space: nowrap; }
+  .coquille.reduit .cote:hover .libelle, .coquille.reduit .cote:hover .marque strong, .coquille.reduit .cote:hover .marque em,
+  .coquille.reduit .cote:hover .compte, .coquille.reduit .cote:hover #choix-organisation { opacity: 1; }
+  .coquille.reduit .cote nav button { padding-left: 10px; white-space: nowrap; }
+  .coquille.reduit .cote nav .compte { position: absolute; left: 30px; top: 4px; opacity: 1; }
+}
+@media (min-width: 801px) {
+  .coquille.reduit .cote { background: var(--fond-2); z-index: 40; border-right: 1px solid var(--ligne); }
+  .coquille.reduit .principal { position: relative; z-index: 0; min-width: 0; }
+}
