@@ -18,7 +18,9 @@ const st = (n, css) => { n.style.cssText = css; return n; };
 
 const plan = { masques: new Set(), vue: 'jour', date: null, etab: null, plateau: null, client: '', sous: 'grille', panneau: null };
 const PAS = 15;          // minutes
-const PX_MIN = 1.1;      // pixels par minute
+// Pixels par minute : le zoom de la grille (curseur sous le calendrier), gardé d'une visite à l'autre.
+let PX_MIN = 1.1;
+try { const z = Number(localStorage.getItem('espaceligue-pro-zoom')); if (z >= 0.5 && z <= 3) PX_MIN = z; } catch (e) { /* bloqué */ }
 const ETATS = { confirmee: 'Confirmée', option: 'Option', demandee: 'En conflit', annulee: 'Annulée' };
 const JOURS_ISO = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 const CLES_JOURS = ['lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim'];
@@ -171,9 +173,34 @@ async function vuePlanification() {
   return el('section', { classe: 'vue-planif' }, entete,
     el('div', { classe: 'planif-corps' + (plan.panneau ? ' avec-panneau' : '') },
       volet,
-      el('div', { classe: 'carte-planif' }, barre, g),
+      el('div', { classe: 'carte-planif' }, barre, g, plan.vue === 'mois' ? null : curseurZoom(g, ctx)),
       plan.panneau ? panneau(ctx) : null),
     plan.vue === 'semaine' && nbSurf ? tableauSurfacages(ctx, premier) : null);
+}
+
+// Le zoom : plus ou moins d'heures visibles à la fois. La grille se redessine sur place,
+// centrée sur la même heure.
+function curseurZoom(g, ctx) {
+  const heures = () => Math.round(g.clientHeight / (60 * PX_MIN));
+  const etiquette = el('span', { classe: 'doux' });
+  const majEtiquette = () => { etiquette.textContent = '≈ ' + heures() + ' h visibles'; };
+  const curseur = el('input', { type: 'range', min: 0.5, max: 3, step: 0.1, valeur: PX_MIN, 'aria-label': 'Zoom de l’horaire',
+    oninput: () => {
+      const milieu = (g.scrollTop + g.clientHeight / 2) / PX_MIN;  // minutes depuis le haut
+      PX_MIN = Number(curseur.value);
+      try { localStorage.setItem('espaceligue-pro-zoom', String(PX_MIN)); } catch (e) { /* bloqué */ }
+      const neuf = grille(ctx);
+      g.replaceChildren(...neuf.childNodes);
+      g.scrollTop = milieu * PX_MIN - g.clientHeight / 2;
+      majEtiquette();
+    } });
+  requestAnimationFrame(majEtiquette);
+  const pas = (n) => () => { curseur.value = Math.min(3, Math.max(0.5, Number(curseur.value) + n)); curseur.dispatchEvent(new Event('input')); };
+  return el('div', { classe: 'zoom-planif' },
+    el('button', { type: 'button', classe: 'fleche', title: 'Voir plus d’heures', 'aria-label': 'Dézoomer', onclick: pas(-0.25) }, '−'),
+    curseur,
+    el('button', { type: 'button', classe: 'fleche', title: 'Voir moins d’heures', 'aria-label': 'Zoomer', onclick: pas(0.25) }, '+'),
+    etiquette);
 }
 
 // Le volet de gauche, à la Outlook : nouvelle réservation, mini-calendrier, plateaux à
@@ -270,9 +297,10 @@ function grille(ctx) {
       n ? el('span', { classe: 'doux surf' }, ' ❄ ' + n) : null);
   });
   const gabarit = `56px repeat(${ctx.colonnes.length}, minmax(120px, 1fr))`;
+  const demi = `--demi:${30 * PX_MIN}px`;
   return el('div', { classe: 'grille-planif' },
     st(el('div', { classe: 'tetes' }, el('div'), ...tetes), `grid-template-columns:${gabarit}`),
-    st(el('div', { classe: 'corps' }, regle, ...cols), `grid-template-columns:${gabarit}`));
+    st(el('div', { classe: 'corps' }, regle, ...cols), `grid-template-columns:${gabarit};${demi}`));
 }
 
 function colonne(ctx, c, haut) {

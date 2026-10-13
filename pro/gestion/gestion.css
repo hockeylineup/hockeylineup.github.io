@@ -552,7 +552,7 @@ button.fleche:hover { background: color-mix(in srgb, var(--texte) 8%, transparen
 .tete-col.aujourdhui .num-jour { background: var(--bleu); color: #fff; border-radius: 50%; width: 36px; height: 36px; display: grid; place-items: center; font-weight: 500; padding: 0; }
 .tete-col .pastille-pl { width: 22px; height: 3px; border-radius: 2px; background: var(--c); margin-top: 4px; }
 .tete-col .surf { font-size: .7rem; }
-.col .trait::after { content: ""; position: absolute; left: 0; right: 0; top: 33px; border-top: 1px dotted color-mix(in srgb, var(--ligne) 80%, transparent); }
+.col .trait::after { content: ""; position: absolute; left: 0; right: 0; top: var(--demi, 33px); border-top: 1px dotted color-mix(in srgb, var(--ligne) 80%, transparent); }
 .bloc { border-radius: 4px; box-shadow: none; padding: 4px 7px; border-left-width: 3px; background: color-mix(in srgb, var(--c) 20%, var(--carte)); }
 :root[data-theme="light"] .bloc { background: color-mix(in srgb, var(--c) 14%, #fff); }
 .bloc:hover { transform: none; box-shadow: 0 2px 8px #0002; filter: brightness(.98); }
@@ -595,3 +595,8 @@ button.fleche:hover { background: color-mix(in srgb, var(--texte) 8%, transparen
 .entete-planif { display: grid; grid-template-columns: var(--volet) minmax(0, 1fr); gap: 12px; align-items: center; }
 .entete-planif .segment { justify-self: start; }
 @media (max-width: 860px) { .entete-planif { display: flex; } }
+
+/* Zoom de l'horaire */
+.zoom-planif { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--ligne); font-size: .8rem; }
+.zoom-planif input[type="range"] { width: min(260px, 50%); accent-color: var(--bleu); padding: 0; border: 0; background: none; }
+.zoom-planif .doux { min-width: 110px; }
