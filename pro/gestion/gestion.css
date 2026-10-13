@@ -353,3 +353,23 @@ label.mini input { width: 70px; }
 .panneau-planif, .panneau-planif > * , .panneau-planif .champs > * { min-width: 0; }
 .panneau-planif input:not([type="checkbox"]), .panneau-planif select { width: 100%; min-width: 0; box-sizing: border-box; }
 .panneau-planif { overflow-x: hidden; }
+/* Vue Mois */
+.grille-mois { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.tete-mois { padding: 8px; font-size: .78rem; font-weight: 600; color: var(--doux); text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--ligne); }
+.case-mois { min-height: 112px; padding: 6px; border-right: 1px solid var(--ligne); border-bottom: 1px solid var(--ligne); display: grid; align-content: start; gap: 3px; cursor: pointer; transition: background .15s; }
+.case-mois:nth-child(7n) { border-right: 0; }
+.case-mois:hover { background: color-mix(in srgb, var(--bleu) 6%, transparent); }
+.case-mois.hors-mois { background: color-mix(in srgb, var(--fond) 60%, transparent); }
+.case-mois.hors-mois .num-mois span:first-child { color: var(--doux); }
+.num-mois { display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: .85rem; }
+.case-mois.aujourdhui .num-mois span:first-child { background: var(--bleu); color: #fff; border-radius: 999px; min-width: 24px; height: 24px; display: inline-grid; place-items: center; padding: 0 6px; }
+.evt-mois { display: block; width: 100%; text-align: left; font-size: .74rem; font-weight: 500; padding: 2px 6px; border-radius: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  background: color-mix(in srgb, var(--bleu) 16%, var(--carte)); color: var(--texte); border-left: 3px solid var(--bleu); }
+.evt-mois .h { font-variant-numeric: tabular-nums; color: var(--doux); }
+.evt-mois.src-espaceligue { background: color-mix(in srgb, var(--vert) 16%, var(--carte)); border-left-color: var(--vert); }
+.evt-mois.src-calendrier { background: color-mix(in srgb, var(--doux) 16%, var(--carte)); border-left-color: var(--doux); }
+.evt-mois.etat-option { background: color-mix(in srgb, #f5b642 14%, var(--carte)); border-left-color: #c98a10; }
+.evt-mois.etat-demandee { border-left-color: #c98a10; }
+.evt-mois.estompe { opacity: .3; }
+.plus-mois { font-size: .72rem; color: var(--doux); padding-left: 6px; }
+@media (max-width: 700px) { .case-mois { min-height: 64px; } .evt-mois { font-size: 0; padding: 0; height: 5px; border-left: 0; } .evt-mois .h { display: none; } }

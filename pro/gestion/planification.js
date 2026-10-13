@@ -69,10 +69,14 @@ async function vuePlanification() {
   if (!plEtab.some((p) => p.id === plan.plateau)) plan.plateau = plEtab[0] ? plEtab[0].id : null;
   if (!plan.date) plan.date = debutJour(new Date());
 
-  const premier = plan.vue === 'jour' ? plan.date : lundiDe(plan.date);
-  const nbJours = plan.vue === 'jour' ? 1 : 7;
+  // Mois : six semaines à partir du lundi qui précède le 1er.
+  const debutMois = new Date(plan.date.getFullYear(), plan.date.getMonth(), 1);
+  const premier = plan.vue === 'jour' ? plan.date : plan.vue === 'semaine' ? lundiDe(plan.date) : lundiDe(debutMois);
+  const nbJours = plan.vue === 'jour' ? 1 : plan.vue === 'semaine' ? 7 : 42;
   const dernier = ajouterJours(premier, nbJours);
-  const ids = plan.vue === 'jour' ? plEtab.map((p) => p.id) : [plan.plateau];
+  if (plan.vue === 'mois' && plan.plateauMois && !plEtab.some((p) => p.id === plan.plateauMois)) plan.plateauMois = '';
+  const ids = plan.vue === 'semaine' ? [plan.plateau]
+    : plan.vue === 'mois' && plan.plateauMois ? [plan.plateauMois] : plEtab.map((p) => p.id);
   // En vue Semaine, un gymnase entier ou une section montre aussi ce qui bloque l'autre.
   const lies = plan.vue === 'semaine' ? plateaux.filter((p) => p.id === (plateaux.find((x) => x.id === plan.plateau) || {}).parent_id
     || p.parent_id === plan.plateau).map((p) => p.id) : [];
@@ -87,7 +91,7 @@ async function vuePlanification() {
   const surfEtab = surf.filter((s) => plIds.has(s.plateau_id));
 
   // Colonnes : { cle, titre, jour, plateau }.
-  const colonnes = plan.vue === 'jour'
+  const colonnes = plan.vue === 'mois' ? [] : plan.vue === 'jour'
     ? plEtab.map((p) => ({ cle: p.id, titre: p.nom, sous: p.parent_id ? 'section' : (p.surfacage ? '' : ''), jour: plan.date, plateau: p }))
     : Array.from({ length: 7 }, (_, i) => { const j = ajouterJours(premier, i);
       return { cle: aaaammjj(j), titre: j.toLocaleDateString('fr-CA', { weekday: 'short', day: 'numeric' }), jour: j,
@@ -111,14 +115,17 @@ async function vuePlanification() {
   deb = Math.floor(deb / 60) * 60; fin = Math.ceil(fin / 60) * 60;
   const ctx = { deb, fin, colonnes, reservations, plateaux, locataires, etab, surf: surfEtab };
 
-  const nav = (n) => () => { plan.date = ajouterJours(plan.date, n * nbJours); plan.panneau = null; afficher(); };
+  const nav = (n) => () => {
+    plan.date = plan.vue === 'mois' ? new Date(plan.date.getFullYear(), plan.date.getMonth() + n, 1) : ajouterJours(plan.date, n * nbJours);
+    plan.panneau = null; afficher(); };
   // La date se choisit en cliquant le titre (le champ date est caché derrière).
   const dateChamp = el('input', { type: 'date', classe: 'date-cachee', valeur: aaaammjj(plan.date), 'aria-label': 'Choisir la date',
     onchange: (ev) => { if (!ev.target.value) return; const [y, m, d] = ev.target.value.split('-').map(Number);
       plan.date = new Date(y, m - 1, d); afficher(); } });
   const titrePeriode = plan.vue === 'jour'
     ? plan.date.toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'long' })
-    : 'Semaine du ' + premier.toLocaleDateString('fr-CA', { day: 'numeric', month: 'long' });
+    : plan.vue === 'semaine' ? 'Semaine du ' + premier.toLocaleDateString('fr-CA', { day: 'numeric', month: 'long' })
+    : debutMois.toLocaleDateString('fr-CA', { month: 'long', year: 'numeric' });
   const nbSurf = surfEtab.reduce((n, s) => n + s.nombre, 0);
   const choix = (valeur, options, auChoix, titre) => el('select', { title: titre, onchange: (ev) => auChoix(ev.target.value) },
     options.map(([k, v]) => el('option', { value: k, selected: k === valeur }, v)));
@@ -134,15 +141,17 @@ async function vuePlanification() {
     el('div', { classe: 'groupe' },
       etablissements.length > 1 ? choix(plan.etab, etablissements.map((e) => [e.id, e.nom]), (v) => { plan.etab = v; afficher(); }, 'Établissement') : null,
       plan.vue === 'semaine' ? choix(plan.plateau, plEtab.map((p) => [p.id, p.nom]), (v) => { plan.plateau = v; afficher(); }, 'Plateau') : null,
+      plan.vue === 'mois' ? choix(plan.plateauMois || '', [['', 'Tous les plateaux']].concat(plEtab.map((p) => [p.id, p.nom])),
+        (v) => { plan.plateauMois = v; afficher(); }, 'Plateau') : null,
       choix(plan.client, [['', 'Tous les clients']].concat(locataires.map((l) => [l.id, l.nom])), (v) => { plan.client = v; afficher(); }, 'Filtrer par client'),
-      el('div', { classe: 'segment' }, [['jour', 'Jour'], ['semaine', 'Semaine']].map(([k, v]) =>
+      el('div', { classe: 'segment' }, [['jour', 'Jour'], ['semaine', 'Semaine'], ['mois', 'Mois']].map(([k, v]) =>
         el('button', { type: 'button', classe: plan.vue === k ? 'actif' : null, onclick: () => { plan.vue = k; afficher(); } }, v))),
       peutReserver() ? el('button', { type: 'button', onclick: () => {
         const j = plan.vue === 'jour' ? plan.date : debutJour(new Date());
         ouvrirPanneau({ nouveau: true, plateau: plan.vue === 'jour' ? (plEtab[0] || {}).id : plan.plateau,
           debut: aHeure(j, 18 * 60), fin: aHeure(j, 19 * 60 + 30) }); } }, '+ Réserver') : null));
 
-  const g = grille(ctx);
+  const g = plan.vue === 'mois' ? grilleMois(ctx, premier, debutMois) : grille(ctx);
   // Ouvrir sur l'heure courante (aujourd'hui) ou sur la première réservation.
   const cible = (() => {
     const auj = colonnes.some((c) => aaaammjj(c.jour) === aaaammjj(new Date()));
@@ -150,13 +159,43 @@ async function vuePlanification() {
     const r = reservations[0];
     return r ? minutesDe(bornes(r.periode)[0], debutJour(bornes(r.periode)[0])) - 30 : deb;
   })();
-  requestAnimationFrame(() => { g.scrollTop = Math.max(0, (cible - deb) * PX_MIN); });
+  if (plan.vue !== 'mois') requestAnimationFrame(() => { g.scrollTop = Math.max(0, (cible - deb) * PX_MIN); });
 
   return el('section', { classe: 'vue-planif' }, entete,
     el('div', { classe: 'planif-corps' + (plan.panneau ? ' avec-panneau' : '') },
       el('div', { classe: 'carte-planif' }, barre, g),
       plan.panneau ? panneau(ctx) : null),
     plan.vue === 'semaine' && nbSurf ? tableauSurfacages(ctx, premier) : null);
+}
+
+// --- Vue Mois : un calendrier, les réservations résumées par jour ----------------------
+function grilleMois(ctx, premier, debutMois) {
+  const auj = aaaammjj(new Date());
+  const tetes = JOURS_ISO.map((j) => el('div', { classe: 'tete-mois' }, j));
+  const cases = Array.from({ length: 42 }, (_, i) => {
+    const jour = ajouterJours(premier, i);
+    const cle = aaaammjj(jour);
+    const duJour = ctx.reservations.filter((r) => aaaammjj(bornes(r.periode)[0]) === cle)
+      .sort((x, y) => bornes(x.periode)[0] - bornes(y.periode)[0]);
+    const nSurf = ctx.surf.filter((s) => s.jour === cle).reduce((n, s) => n + s.nombre, 0);
+    const MAX = 4;
+    const ligne = (r) => {
+      const pl = ctx.plateaux.find((p) => p.id === r.plateau_id) || {};
+      const filtre = plan.client && r.locataire_id !== plan.client;
+      return el('button', { type: 'button', classe: 'evt-mois etat-' + r.statut + ' src-' + r.source + (filtre ? ' estompe' : ''),
+        title: pl.nom + ' · ' + (r.titre || (r.locataires || {}).nom || 'Réservé'),
+        onclick: (ev) => { ev.stopPropagation(); plan.panneau = { id: r.id }; afficher(); } },
+        el('span', { classe: 'h' }, hhmm(bornes(r.periode)[0])), ' ', (plan.plateauMois ? '' : pl.nom + ' · ') + (r.titre || (r.locataires || {}).nom || 'Réservé'));
+    };
+    return el('div', { classe: 'case-mois' + (jour.getMonth() !== debutMois.getMonth() ? ' hors-mois' : '') + (cle === auj ? ' aujourdhui' : ''),
+      title: 'Voir le ' + jour.toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'long' }),
+      onclick: () => { plan.date = jour; plan.vue = 'jour'; plan.panneau = null; afficher(); } },
+      el('div', { classe: 'num-mois' }, el('span', null, String(jour.getDate())),
+        nSurf ? el('span', { classe: 'doux surf' }, '❄ ' + nSurf) : null),
+      duJour.slice(0, MAX).map(ligne),
+      duJour.length > MAX ? el('div', { classe: 'plus-mois' }, '+ ' + (duJour.length - MAX) + ' autre' + (duJour.length - MAX > 1 ? 's' : '')) : null);
+  });
+  return el('div', { classe: 'grille-mois' }, ...tetes, ...cases);
 }
 
 function minutesTexte(t) { if (!t) return 0; const [h, m] = t.split(':').map(Number); return h * 60 + m; }
