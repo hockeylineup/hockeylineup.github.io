@@ -64,7 +64,10 @@ async function vueLigues() {
       el('div', { classe: 'actions' },
         glaces.length ? el('button', { type: 'button', onclick: () => decider(true) },
           l.statut === 'acceptee' ? 'Enregistrer' : 'Accepter') : null,
-        l.statut !== 'refusee' ? el('button', { type: 'button', classe: 'discret', onclick: () => decider(false) }, 'Refuser') : null));
+        l.statut !== 'refusee' ? el('button', { type: 'button', classe: 'discret', onclick: () => decider(false) }, 'Refuser') : null),
+      l.statut === 'acceptee' ? el('div', null, el('h4', null, 'Vestiaires des équipes'),
+        tableVestiaires(equipes.filter((q) => q.ligue === l.ligue && q.saison === l.saison
+          && q.etablissement_id === l.etablissement_id), vestiaires, modifiable)) : null);
   };
 
   const enAttente = ligues.filter((l) => l.statut === 'demandee');
@@ -80,11 +83,11 @@ async function vueLigues() {
       ...(enAttente.length ? enAttente.map(carteLigue) : [el('p', { classe: 'doux' }, 'Aucune demande en attente.')]),
       ...(autres.length ? [el('h3', null, 'Déjà traitées'), ...autres.map(carteLigue)] : []),
     ] : [el('p', { classe: 'doux' }, 'Seuls l’administrateur et les gestionnaires approuvent les ligues.')]),
-    blocVestiaires(etablissements, vestiaires, equipes, modifiable, nomEtab));
+    blocVestiaires(etablissements, vestiaires, modifiable, nomEtab));
 }
 
 // --- Vestiaires --------------------------------------------------------------------
-function blocVestiaires(etablissements, vestiaires, equipes, modifiable, nomEtab) {
+function blocVestiaires(etablissements, vestiaires, modifiable, nomEtab) {
   const plusieurs = etablissements.length > 1;
   const liste = el('div', { classe: 'puces' }, vestiaires.map((v) => el('span', { classe: 'puce' },
     (plusieurs ? nomEtab(v.etablissement_id) + ' · ' : '') + v.nom,
@@ -105,8 +108,18 @@ function blocVestiaires(etablissements, vestiaires, equipes, modifiable, nomEtab
       } catch (e) { dire(e.message, true); }
     } }, nom, plusieurs ? etab : null, el('button', { type: 'submit' }, 'Ajouter un vestiaire')) : null;
 
+  return el('div', { classe: 'fiche' },
+    el('h3', null, 'Vestiaires'),
+    el('p', { classe: 'doux' }, 'Les vestiaires de l’aréna. Chaque équipe d’une ligue acceptée reçoit le sien dans la carte de sa ligue.'),
+    vestiaires.length ? liste : el('p', { classe: 'doux' }, 'Aucun vestiaire pour l’instant.'),
+    ajout);
+}
+
+// Dans la carte d'une ligue acceptée : le vestiaire de chacune de ses équipes.
+function tableVestiaires(equipes, vestiaires, modifiable) {
+  if (!equipes.length) return el('p', { classe: 'doux' }, 'Aucune équipe dans cette saison pour l’instant.');
   const lignes = equipes.map((q) => {
-    const choix = el('select', { disabled: !modifiable, onchange: async () => {
+    const choix = el('select', { disabled: !modifiable || !vestiaires.length, onchange: async () => {
         try {
           await rest('POST', 'rpc/assigner_vestiaire', { p_organisation: etat.organisation, p_equipe: q.equipe_id,
             p_vestiaire: choix.value || null }, PRO);
@@ -116,19 +129,10 @@ function blocVestiaires(etablissements, vestiaires, equipes, modifiable, nomEtab
       el('option', { value: '' }, '— aucun —'),
       vestiaires.filter((v) => v.etablissement_id === q.etablissement_id)
         .map((v) => el('option', { value: v.id, selected: v.id === q.vestiaire_id }, v.nom)));
-    return el('tr', null, el('td', null, el('strong', null, q.equipe)), el('td', { classe: 'doux' }, q.ligue + ' · ' + q.saison),
-      el('td', null, choix));
+    return el('tr', null, el('td', null, el('strong', null, q.equipe)), el('td', null, choix));
   });
-
-  return el('div', { classe: 'fiche' },
-    el('h3', null, 'Vestiaires'),
-    el('p', { classe: 'doux' }, 'Chaque équipe garde son vestiaire pour la saison ; l’écran l’affiche sous son nom.'),
-    vestiaires.length ? liste : el('p', { classe: 'doux' }, 'Aucun vestiaire pour l’instant.'),
-    ajout,
-    equipes.length
-      ? el('div', { classe: 'table' }, el('table', null, el('thead', null, el('tr', null,
-          el('th', null, 'Équipe'), el('th', null, 'Ligue'), el('th', null, 'Vestiaire'))), el('tbody', null, lignes)))
-      : el('p', { classe: 'doux' }, 'Les équipes des ligues acceptées paraîtront ici.'));
+  return el('div', { classe: 'table' }, el('table', null, el('thead', null, el('tr', null,
+    el('th', null, 'Équipe'), el('th', null, 'Vestiaire'))), el('tbody', null, lignes)));
 }
 
 // Dans l'onglet Horaire : la glace d'un match EspaceLigue précis.
