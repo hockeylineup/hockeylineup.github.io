@@ -116,7 +116,7 @@ function cadreApercu() {
 
 // --- Vue Contenu -------------------------------------------------------------------
 // L'aperçu à gauche, les réglages à droite en trois sections repliables
-// (Panneaux, Disposition, Apparence). Les modifications s'accumulent dans
+// (Disposition, Panneaux, Apparence). Les modifications s'accumulent dans
 // contenu.sale et partent ensemble par la barre « Enregistrer » ; ajouter,
 // retirer ou déplacer un panneau enregistre d'abord ce qui attend.
 contenu.sale = new Set();
@@ -210,8 +210,8 @@ async function vueContenu() {
     el('div', { classe: 'editeur' },
       cadreApercu(),
       el('div', { classe: 'reglages' },
-        section('panneaux', 'Panneaux', nbActifs + ' actif' + (nbActifs > 1 ? 's' : '') + ', en boucle', listePanneaux(af, modifiable)),
         section('disposition', 'Disposition', GABARITS[g] ? GABARITS[g].nom : '', formulaireGabarit(modifiable)),
+        section('panneaux', 'Panneaux', nbActifs + ' actif' + (nbActifs > 1 ? 's' : '') + ', en boucle', listePanneaux(af, modifiable)),
         section('apparence', 'Apparence', 'tous les affichages', formulaireApparence()))),
     barre);
   if (contenu.nouveau) {
