@@ -17,7 +17,7 @@ async function vueEtablissement() {
   const modifiable = peutModifier();
   const [etablissements, plateaux, vestiaires, fermetures, employes] = await Promise.all([
     lirePro('etablissements', { select: 'id,nom,adresse,heures', organisation_id: 'eq.' + org, order: 'nom' }),
-    lirePro('plateaux', { select: 'id,nom,etablissement_id,type,surfacage,parent_id', organisation_id: 'eq.' + org,
+    lirePro('plateaux', { select: 'id,nom,etablissement_id,type,surfacage,parent_id,couleur', organisation_id: 'eq.' + org,
       actif: 'is.true', order: 'nom' }),
     lirePro('vestiaires', { select: 'id,nom,etablissement_id', organisation_id: 'eq.' + org, order: 'nom' }),
     lirePro('fermetures', { select: 'id,etablissement_id,jour,motif', organisation_id: 'eq.' + org,
@@ -70,12 +70,14 @@ function listePlateaux(plateaux, modifiable) {
       disabled: !modifiable, 'aria-label': 'Nom du plateau' });
     const type = el('select', { disabled: !modifiable }, Object.entries(TYPES_PLATEAU).map(([k, v]) =>
       el('option', { value: k, selected: k === (item ? item.type : 'glace') }, v)));
+    const couleur = el('input', { type: 'color', disabled: !modifiable, title: 'Couleur dans la Planification',
+      valeur: item ? couleurPlateau(item, plateaux) : PALETTE_PLATEAUX[lignes.length % PALETTE_PLATEAUX.length] });
     const surf = el('input', { type: 'number', min: 0, max: 60, step: 1, valeur: item ? item.surfacage : 10, disabled: !modifiable,
       title: 'Minutes de resurfaçage comprises à la fin de chaque réservation' });
     const nbSections = el('select', { disabled: !modifiable, title: 'Diviser le gymnase' },
       [0, 2, 3, 4].map((n) => el('option', { value: n, selected: n === sections.length }, n ? n + ' sections' : 'Entier seulement')));
     const sousBoite = el('div', { classe: 'sections' });
-    const ligne = { item, nom, type, surf, nbSections, sections: [], retire: false };
+    const ligne = { item, nom, type, surf, couleur, nbSections, sections: [], retire: false };
     const ajouterSection = (s) => {
       const n = ligne.sections.filter((x) => !x.retire).length;
       const champ = el('input', { required: true, maxlength: 80, disabled: !modifiable, 'aria-label': 'Nom de la section',
@@ -96,7 +98,7 @@ function listePlateaux(plateaux, modifiable) {
       sousBoite.hidden = type.value !== 'gymnase'; };
     type.addEventListener('change', majType);
     majType();
-    const rangee = el('div', { classe: 'rangee-plateau' }, el('div', { classe: 'rangee-nom' }, nom, type,
+    const rangee = el('div', { classe: 'rangee-plateau' }, el('div', { classe: 'rangee-nom' }, couleur, nom, type,
       modifiable ? el('button', { type: 'button', classe: 'discret', title: 'Retirer',
         onclick: () => { ligne.retire = true; bloc.hidden = true; } }, '×') : null),
       el('div', { classe: 'options-plateau' }, champSurf, nbSections));
@@ -107,14 +109,14 @@ function listePlateaux(plateaux, modifiable) {
   plateaux.filter((p) => !p.parent_id).forEach((p) => ajouter(p, plateaux.filter((x) => x.parent_id === p.id)));
   return {
     noeud: el('div', null, boite, modifiable ? el('button', { type: 'button', classe: 'discret', onclick: () => ajouter(null, []) }, '+ Ajouter') : null),
-    lignes,
+    lignes, plateaux,
   };
 }
 
 async function enregistrerPlateaux(liste, etab) {
   const org = etat.organisation;
   for (const l of liste.lignes) {
-    const corps = { nom: l.nom.value.trim(), type: l.type.value,
+    const corps = { nom: l.nom.value.trim(), type: l.type.value, couleur: l.couleur.value,
       surfacage: l.type.value === 'glace' ? Math.max(0, Math.min(60, Number(l.surf.value) || 0)) : 0 };
     const gym = l.type.value === 'gymnase';
     if (l.retire) {
@@ -124,7 +126,8 @@ async function enregistrerPlateaux(liste, etab) {
     }
     let id = l.item && l.item.id;
     if (!id) id = (await ajoutPro('plateaux', Object.assign({ organisation_id: org, etablissement_id: etab }, corps)))[0].id;
-    else if (corps.nom !== l.item.nom || corps.type !== l.item.type || corps.surfacage !== l.item.surfacage) {
+    else if (corps.nom !== l.item.nom || corps.type !== l.item.type || corps.surfacage !== l.item.surfacage
+      || corps.couleur !== couleurPlateau(l.item, liste.plateaux)) {
       await majPro('plateaux', { id: 'eq.' + id }, corps);
     }
     // Les sections : un plateau qui n'est plus un gymnase les perd toutes.

@@ -486,3 +486,23 @@ input[type="checkbox"] { accent-color: var(--bleu); width: 16px; height: 16px; }
 .ligne-client.actif { background: color-mix(in srgb, var(--bleu) 10%, var(--carte)); }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+/* Couleur par plateau (--c), états par motif, source par icône */
+.bloc { --c: var(--bleu); background: color-mix(in srgb, var(--c) 16%, var(--carte)); border-left-color: var(--c); }
+.bloc.src-espaceligue, .bloc.src-calendrier { background: color-mix(in srgb, var(--c) 16%, var(--carte)); border-left-color: var(--c); }
+.bloc.etat-option { background: color-mix(in srgb, var(--c) 7%, var(--carte)); border: 1.5px dashed var(--c); border-left: 4px solid var(--c); }
+.bloc.etat-demandee { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--c) 22%, var(--carte)) 0 6px, var(--carte) 6px 12px); border-left-color: var(--c); }
+.bloc.choisi { outline-color: var(--c); }
+.bloc .icone-src { color: var(--c); }
+.bloc.src-espaceligue .b-titre::before { content: none; }
+.evt-mois, .evt-mois.src-espaceligue, .evt-mois.src-calendrier { --c: var(--bleu); background: color-mix(in srgb, var(--c) 16%, var(--carte)); border-left-color: var(--c); }
+.evt-mois.etat-option { background: color-mix(in srgb, var(--c) 6%, var(--carte)); outline: 1px dashed var(--c); outline-offset: -1px; }
+.evt-mois.etat-demandee { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--c) 22%, var(--carte)) 0 4px, var(--carte) 4px 8px); }
+.legende { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 8px 12px; border-bottom: 1px solid var(--ligne); font-size: .78rem; color: var(--doux); }
+.legende .leg { display: inline-flex; align-items: center; gap: 6px; color: var(--texte); font-weight: 500; }
+.legende .leg i { width: 14px; height: 10px; border-radius: 3px; background: color-mix(in srgb, var(--c) 30%, var(--carte)); border-left: 3px solid var(--c); }
+.legende .leg-option i { background: transparent; border: 1.5px dashed var(--c); }
+.legende .leg-conflit i { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--c) 40%, transparent) 0 3px, transparent 3px 6px); }
+.legende .sep { width: 1px; height: 14px; background: var(--ligne); }
+.legende .lien { margin-left: auto; padding: 0; font-size: .78rem; }
+.rangee-nom input[type="color"] { width: 38px; height: 38px; padding: 3px; flex: none; border-radius: 8px; cursor: pointer; }

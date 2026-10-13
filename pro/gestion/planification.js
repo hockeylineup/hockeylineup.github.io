@@ -22,6 +22,17 @@ const PX_MIN = 1.1;      // pixels par minute
 const ETATS = { confirmee: 'Confirmée', option: 'Option', demandee: 'En conflit', annulee: 'Annulée' };
 const JOURS_ISO = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 const CLES_JOURS = ['lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim'];
+// Couleurs par défaut des plateaux, dans l'ordre (réglables dans l'onglet Établissement).
+const PALETTE_PLATEAUX = ['#2f6fed', '#14a06b', '#d9822b', '#8b5cf6', '#e0457b', '#0ea5b7', '#a3a83a', '#6b7a99'];
+function couleurPlateau(pl, plateaux) {
+  if (!pl) return PALETTE_PLATEAUX[7];
+  if (pl.couleur) return pl.couleur;
+  // Une section prend la couleur de son gymnase.
+  if (pl.parent_id) return couleurPlateau(plateaux.find((p) => p.id === pl.parent_id), plateaux);
+  const racines = plateaux.filter((p) => !p.parent_id && p.etablissement_id === pl.etablissement_id).sort((a, b) => a.nom.localeCompare(b.nom, 'fr', { numeric: true }));
+  return PALETTE_PLATEAUX[Math.max(0, racines.findIndex((p) => p.id === pl.id)) % PALETTE_PLATEAUX.length];
+}
+const ICONES_SOURCE = { espaceligue: '●', calendrier: '⇄' };
 
 const debutJour = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 const ajouterJours = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
@@ -44,7 +55,7 @@ async function vuePlanification() {
   const org = etat.organisation;
   const [etablissements, plateaux, locataires] = await Promise.all([
     lirePro('etablissements', { select: 'id,nom,heures,fuseau', organisation_id: 'eq.' + org, order: 'nom' }),
-    lirePro('plateaux', { select: 'id,nom,etablissement_id,type,surfacage,parent_id', organisation_id: 'eq.' + org,
+    lirePro('plateaux', { select: 'id,nom,etablissement_id,type,surfacage,parent_id,couleur', organisation_id: 'eq.' + org,
       actif: 'is.true', order: 'nom' }),
     lirePro('locataires', { select: 'id,nom,type,telephone,courriel,actif', organisation_id: 'eq.' + org, order: 'nom' }),
   ]);
@@ -163,9 +174,22 @@ async function vuePlanification() {
 
   return el('section', { classe: 'vue-planif' }, entete,
     el('div', { classe: 'planif-corps' + (plan.panneau ? ' avec-panneau' : '') },
-      el('div', { classe: 'carte-planif' }, barre, g),
+      el('div', { classe: 'carte-planif' }, barre, legende(plEtab, plateaux), g),
       plan.panneau ? panneau(ctx) : null),
     plan.vue === 'semaine' && nbSurf ? tableauSurfacages(ctx, premier) : null);
+}
+
+// La légende : la couleur de chaque plateau, puis les états et les sources.
+function legende(plEtab, plateaux) {
+  const pastille = (couleur, texte, classe) => st(el('span', { classe: 'leg ' + (classe || '') }, el('i'), texte), '--c:' + couleur);
+  return el('div', { classe: 'legende' },
+    plEtab.filter((p) => !p.parent_id).map((p) => pastille(couleurPlateau(p, plateaux), p.nom)),
+    el('span', { classe: 'sep' }),
+    pastille('#8892a6', 'Option', 'leg-option'), pastille('#8892a6', 'En conflit', 'leg-conflit'),
+    el('span', { classe: 'leg-txt' }, '● Match EspaceLigue'), el('span', { classe: 'leg-txt' }, '⇄ Calendrier'),
+    el('span', { classe: 'leg-txt' }, '↻ Série'), el('span', { classe: 'leg-txt' }, '❄ Resurfaçage'),
+    peutModifier() ? el('button', { type: 'button', classe: 'discret lien', title: 'Changer les couleurs des plateaux',
+      onclick: () => { etat.onglet = 'etablissement'; afficher(); } }, 'Couleurs…') : null);
 }
 
 // --- Vue Mois : un calendrier, les réservations résumées par jour ----------------------
@@ -182,10 +206,11 @@ function grilleMois(ctx, premier, debutMois) {
     const ligne = (r) => {
       const pl = ctx.plateaux.find((p) => p.id === r.plateau_id) || {};
       const filtre = plan.client && r.locataire_id !== plan.client;
-      return el('button', { type: 'button', classe: 'evt-mois etat-' + r.statut + ' src-' + r.source + (filtre ? ' estompe' : ''),
+      return st(el('button', { type: 'button', classe: 'evt-mois etat-' + r.statut + ' src-' + r.source + (filtre ? ' estompe' : ''),
         title: pl.nom + ' · ' + (r.titre || (r.locataires || {}).nom || 'Réservé'),
         onclick: (ev) => { ev.stopPropagation(); plan.panneau = { id: r.id }; afficher(); } },
-        el('span', { classe: 'h' }, hhmm(bornes(r.periode)[0])), ' ', (plan.plateauMois ? '' : pl.nom + ' · ') + (r.titre || (r.locataires || {}).nom || 'Réservé'));
+        el('span', { classe: 'h' }, hhmm(bornes(r.periode)[0])), ' ', ICONES_SOURCE[r.source] ? ICONES_SOURCE[r.source] + ' ' : '',
+        (plan.plateauMois ? '' : pl.nom + ' · ') + (r.titre || (r.locataires || {}).nom || 'Réservé')), '--c:' + couleurPlateau(pl, ctx.plateaux));
     };
     return el('div', { classe: 'case-mois' + (jour.getMonth() !== debutMois.getMonth() ? ' hors-mois' : '') + (cle === auj ? ' aujourdhui' : ''),
       title: 'Voir le ' + jour.toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'long' }),
@@ -279,12 +304,13 @@ function bloc(ctx, c, r, couloir, nbCouloirs, fantome) {
   if (filtre) classes.push('estompe');
   if (plan.panneau && plan.panneau.id === r.id) classes.push('choisi');
   const d = st(el('div', { classe: classes.join(' ') },
-    el('div', { classe: 'b-titre' }, (r.serie_id ? '↻ ' : '') + (fantome ? pl.nom + ' · ' : '') + (r.titre || client || 'Réservé')),
+    el('div', { classe: 'b-titre' }, ICONES_SOURCE[r.source] ? el('span', { classe: 'icone-src', title: r.source === 'espaceligue' ? 'Match EspaceLigue' : 'Calendrier importé' }, ICONES_SOURCE[r.source] + ' ') : null,
+      (r.serie_id ? '↻ ' : '') + (fantome ? pl.nom + ' · ' : '') + (r.titre || client || 'Réservé')),
     el('div', { classe: 'b-heure' }, hhmm(a) + '–' + hhmm(b) + (client && r.titre ? ' · ' + client : '')),
     r.statut === 'option' ? el('div', { classe: 'b-etat' }, 'Option' + (r.option_jusqu ? ' → ' + new Date(r.option_jusqu)
       .toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }) : '')) : null,
     r.statut === 'demandee' ? el('div', { classe: 'b-etat' }, 'En conflit') : null), `top:${(top - ctx.deb) * PX_MIN}px;height:${Math.max(14, (bas - top) * PX_MIN)}px;`
-      + `left:calc(${(couloir / nbCouloirs) * 100}% + 2px);width:calc(${100 / nbCouloirs}% - 4px)`);
+      + `left:calc(${(couloir / nbCouloirs) * 100}% + 2px);width:calc(${100 / nbCouloirs}% - 4px);--c:${couleurPlateau(pl, ctx.plateaux)}`);
   // Resurfaçage : les dernières minutes du bloc.
   if (!fantome && r.surfacage && pl.surfacage && minutesDe(b, c.jour) <= ctx.fin) {
     d.append(st(el('div', { classe: 'b-surf', title: 'Resurfaçage compris' }, '❄'), `height:${pl.surfacage * PX_MIN}px`));
