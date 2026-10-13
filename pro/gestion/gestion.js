@@ -95,7 +95,7 @@ async function afficher() {
   dire('');
   etat.enAttente = await liguesEnAttente();
   $('onglets').replaceChildren(...Object.entries(ONGLETS).map(([k, v]) => el('button', {
-    classe: k === etat.onglet ? 'actif' : null, onclick: () => { etat.onglet = k; afficher(); } }, v,
+    classe: k === etat.onglet ? 'actif' : null, onclick: () => { if (etat.onglet === 'contenu' && k !== 'contenu' && !quitterContenu()) return; etat.onglet = k; afficher(); } }, v,
     k === 'ligues' && etat.enAttente ? el('span', { classe: 'compte', title: 'Ligues à approuver' }, String(etat.enAttente)) : null)));
   try {
     const vue = { horaire: vueHoraire, ligues: vueLigues, lecteurs: vueLecteurs, contenu: vueContenu, urgence: vueUrgence }[etat.onglet];

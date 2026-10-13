@@ -111,10 +111,56 @@ function cadreApercu() {
   const f = el('iframe', { id: 'apercu', src: '../affichage/?apercu', title: 'Aperçu de l’affichage', tabindex: '-1' });
   f.addEventListener('load', envoyerApercu);
   return el('div', { classe: 'apercu' }, f,
-    el('p', { classe: 'doux' }, 'Aperçu en direct, avec vos modifications non enregistrées ; chaque panneau y dure 8 s au plus.'));
+    el('p', { classe: 'doux' }, 'Aperçu en direct, 8 s par panneau.'));
 }
 
 // --- Vue Contenu -------------------------------------------------------------------
+// L'aperçu à gauche, les réglages à droite en trois sections repliables
+// (Panneaux, Disposition, Apparence). Les modifications s'accumulent dans
+// contenu.sale et partent ensemble par la barre « Enregistrer » ; ajouter,
+// retirer ou déplacer un panneau enregistre d'abord ce qui attend.
+contenu.sale = new Set();
+contenu.recolte = {};
+contenu.ouverts = new Set(['panneaux']);
+
+function marquer(cle) {
+  if (!peutModifier()) return;
+  contenu.sale.add(cle);
+  const barre = $('barre-enregistrer');
+  if (barre) barre.hidden = false;
+}
+// Appelé par gestion.js avant de changer d'onglet.
+function quitterContenu() {
+  return !contenu.sale.size || confirm('Des modifications ne sont pas enregistrées. Les abandonner ?');
+}
+window.addEventListener('beforeunload', (ev) => { if (contenu.sale.size) ev.preventDefault(); });
+
+async function enregistrerContenu() {
+  const af = contenu.affichages.find((a) => a.id === contenu.affichage);
+  for (const cle of [...contenu.sale]) {
+    if (cle === 'reglages') {
+      await majPro('affichages', { id: 'eq.' + af.id }, { reglages: contenu.reglages });
+      af.reglages = JSON.parse(JSON.stringify(contenu.reglages));
+    } else if (cle === 'apparence') {
+      await majPro('organisations', { id: 'eq.' + etat.organisation }, { apparence: contenu.apparence });
+    } else if (contenu.recolte[cle]) {
+      await majPro('panneaux', { id: 'eq.' + cle }, contenu.recolte[cle]());
+    }
+    contenu.sale.delete(cle);
+  }
+}
+async function avantStructure() {
+  if (contenu.sale.size) await enregistrerContenu();
+}
+
+// Une section repliable dont l'état ouvert survit au réaffichage.
+function section(cle, titre, resume, ...corps) {
+  const d = el('details', { classe: 'section-contenu', open: contenu.ouverts.has(cle),
+    ontoggle: () => { d.open ? contenu.ouverts.add(cle) : contenu.ouverts.delete(cle); } },
+    el('summary', null, el('strong', null, titre), resume ? el('span', { classe: 'doux' }, resume) : null), ...corps);
+  return d;
+}
+
 async function vueContenu() {
   const org = etat.organisation;
   const [affichages, etablissements, panneaux, orgs, plateaux] = await Promise.all([
@@ -124,11 +170,13 @@ async function vueContenu() {
     lirePro('organisations', { select: 'apparence', id: 'eq.' + org }),
     lirePro('plateaux', { select: 'id,nom,etablissement_id', organisation_id: 'eq.' + org, order: 'nom' }),
   ]);
+  contenu.sale.clear();
+  contenu.recolte = {};
   contenu.affichages = affichages;
   contenu.plateaux = plateaux;
-  contenu.apparence = (orgs[0] && orgs[0].apparence) || {};
-  if (!affichages.length) return el('section', { classe: 'fiche' }, el('h2', null, 'Contenu des affichages'),
-    el('p', { classe: 'doux' }, 'Aucun affichage pour l’instant. Ajoutez-en un dans l’onglet Lecteurs.'));
+  contenu.apparence = Object.assign({}, (orgs[0] && orgs[0].apparence) || {});
+  if (!affichages.length) return el('section', { classe: 'fiche' }, el('h2', null, 'Contenu'),
+    el('p', { classe: 'doux' }, 'Aucun affichage. Créez-en un dans l’onglet Lecteurs.'));
   if (!affichages.some((a) => a.id === contenu.affichage)) contenu.affichage = affichages[0].id;
   const af = affichages.find((a) => a.id === contenu.affichage);
   contenu.reglages = JSON.parse(JSON.stringify(af.reglages || {}));
@@ -136,25 +184,36 @@ async function vueContenu() {
   const nomEtab = (id) => (etablissements.find((e) => e.id === id) || {}).nom || '';
   const modifiable = peutModifier();
 
-  const choix = el('select', { onchange: () => { contenu.affichage = choix.value; afficher(); } },
+  const choix = el('select', { onchange: () => {
+      if (!quitterContenu()) { choix.value = contenu.affichage; return; }
+      contenu.affichage = choix.value; afficher();
+    } },
     affichages.map((a) => el('option', { value: a.id, selected: a.id === af.id }, a.nom + (nomEtab(a.etablissement_id) ? ' (' + nomEtab(a.etablissement_id) + ')' : ''))));
 
+  const g = contenu.reglages.gabarit || 'plein';
+  const nbActifs = contenu.panneaux.filter((p) => p.actif).length;
+  const barre = modifiable ? el('div', { id: 'barre-enregistrer', classe: 'barre-enregistrer', hidden: true },
+    el('span', null, 'Modifications non enregistrées'),
+    el('button', { type: 'button', classe: 'discret', onclick: () => { contenu.sale.clear(); afficher(); } }, 'Annuler'),
+    el('button', { type: 'button', onclick: async (ev) => {
+      ev.target.disabled = true;
+      try {
+        await enregistrerContenu();
+        await afficher();
+        dire('Enregistré. Les écrans suivent dans les 30 secondes.');
+      } catch (e) { ev.target.disabled = false; dire(e.message, true); }
+    } }, 'Enregistrer')) : null;
+
   const vue = el('section', { classe: 'vue-contenu' },
-    el('div', { classe: 'entete-vue' }, el('h2', null, 'Contenu des affichages'), el('label', { classe: 'choix-affichage' }, el('span', null, 'Affichage à modifier'), choix)),
-    el('p', { classe: 'doux' }, 'Les panneaux défilent l’un après l’autre dans la zone principale. Un panneau sans contenu '
-      + 'du moment (pointage sans match, plage horaire passée) est sauté. Sans aucun panneau, l’écran montre l’horaire.'),
-    cadreApercu(),
-    formulaireGabarit(af, modifiable),
-    formulaireApparence(),
-    el('section', { classe: 'carte-formulaire' },
-      el('div', { classe: 'entete-zone' }, schemaGabarit(contenu.reglages.gabarit || 'plein'),
-        el('div', null, el('h3', null, 'Contenu de la zone Panneaux'),
-          el('p', { classe: 'doux' }, 'Ce qui défile dans la grande zone bleue, un panneau après l’autre. '
-            + 'Ajoutez ce que vous voulez montrer ; l’ordre et la durée se règlent sur chaque panneau.'))),
-      modifiable ? choixPanneaux(af) : null),
-    el('h3', null, 'Vos panneaux, dans l’ordre'),
-    contenu.panneaux.length ? contenu.panneaux.map((p, i) => cartePanneau(p, i, af, modifiable))
-      : el('p', { classe: 'doux fiche' }, 'Aucun panneau : l’écran montre l’horaire seul.'));
+    el('div', { classe: 'entete-vue' }, el('h2', null, 'Contenu'),
+      el('label', { classe: 'choix-affichage' }, el('span', null, 'Affichage'), choix)),
+    el('div', { classe: 'editeur' },
+      cadreApercu(),
+      el('div', { classe: 'reglages' },
+        section('panneaux', 'Panneaux', nbActifs + ' actif' + (nbActifs > 1 ? 's' : '') + ', en boucle', listePanneaux(af, modifiable)),
+        section('disposition', 'Disposition', GABARITS[g] ? GABARITS[g].nom : '', formulaireGabarit(modifiable)),
+        section('apparence', 'Apparence', 'tous les affichages', formulaireApparence()))),
+    barre);
   if (contenu.nouveau) {
     const id = contenu.nouveau;
     contenu.nouveau = null;
@@ -164,11 +223,11 @@ async function vueContenu() {
   return vue;
 }
 
-function formulaireGabarit(af, modifiable) {
+function formulaireGabarit(modifiable) {
   const r = contenu.reglages;
   r.bandeau = r.bandeau || {};
   r.colonne = r.colonne || {};
-  const majR = () => { rafraichirApercu(); };
+  const majR = () => { marquer('reglages'); rafraichirApercu(); };
   const gabarit = choixGabarit(r.gabarit || 'plein', modifiable, (g) => { r.gabarit = g; zones(); majR(); });
   const texte = el('input', { valeur: r.bandeau.texte || '', placeholder: 'ex. Bienvenue à l’aréna !', disabled: !modifiable,
     oninput: () => { r.bandeau.texte = texte.value; majR(); } });
@@ -188,28 +247,16 @@ function formulaireGabarit(af, modifiable) {
   dessinerLogos();
   const blocBandeau = el('div', { classe: 'champs' }, el('h4', null, 'Bandeau'),
     el('label', null, 'Texte défilant', texte), el('label', null, 'Fil RSS défilant', rss));
-  const blocColonne = el('div', { classe: 'champs' }, el('h4', null, 'Colonne'), el('label', { classe: 'case' }, meteo, ' Météo dans la colonne'),
-    el('div', { classe: 'large' }, el('span', { classe: 'doux' }, 'Commanditaires (un à la fois, 8 s chacun)'), logos));
+  const blocColonne = el('div', { classe: 'champs' }, el('h4', null, 'Colonne'), el('label', { classe: 'case' }, meteo, ' Météo'),
+    el('div', { classe: 'large' }, el('span', { classe: 'doux' }, 'Commanditaires (8 s chacun)'), logos));
   const zones = () => { blocBandeau.hidden = (r.gabarit || 'plein') === 'plein'; blocColonne.hidden = r.gabarit !== 'colonne'; };
   zones();
-
-  return el('form', { classe: 'carte-formulaire', onsubmit: async (ev) => {
-      ev.preventDefault();
-      try {
-        await majPro('affichages', { id: 'eq.' + af.id }, { reglages: r });
-        af.reglages = JSON.parse(JSON.stringify(r));
-        dire('Mise en page enregistrée. L’écran la prend dans les 30 secondes.');
-      } catch (e) { dire(e.message, true); }
-    } },
-    el('h3', null, 'Mise en page'),
-    el('div', null, el('span', { classe: 'doux' }, 'Choix du gabarit'), gabarit),
-    blocBandeau, blocColonne,
-    modifiable ? el('div', { classe: 'actions' }, el('button', { type: 'submit' }, 'Enregistrer la mise en page')) : null);
+  return el('div', { classe: 'corps-section' }, gabarit, blocBandeau, blocColonne);
 }
 
 // Les types de panneaux en cartes illustrées : une miniature de ce que montre
-// l'écran, et « + Ajouter ». Le panneau ajouté est actif : vide, il est sauté
-// à l'écran jusqu'à ce qu'on le remplisse.
+// l'écran. Le panneau ajouté est actif : vide, il est sauté à l'écran jusqu'à
+// ce qu'on le remplisse.
 const VIGNETTES = {
   horaire: () => el('div', { classe: 'v-horaire' }, el('b', null, 'Glace 1'), el('i'), el('i'), el('i')),
   pointage: () => el('div', { classe: 'v-pointage' }, el('span', null, '●'), el('b', null, '2 : 1'), el('span', null, '●')),
@@ -220,27 +267,45 @@ const VIGNETTES = {
   meteo: () => el('div', { classe: 'v-meteo' }, '⛅', el('b', null, '16°')),
 };
 
-function choixPanneaux(af) {
-  return el('div', { classe: 'galerie-panneaux' }, Object.entries(TYPES).map(([k, t]) =>
+function listePanneaux(af, modifiable) {
+  const galerie = el('div', { classe: 'galerie-panneaux', hidden: true }, Object.entries(TYPES).map(([k, t]) =>
     el('button', { type: 'button', classe: 'carte-type', onclick: async () => {
       try {
+        await avantStructure();
         const ordre = contenu.panneaux.reduce((m, p) => Math.max(m, p.ordre), 0) + 10;
         const [p] = await ajoutPro('panneaux', { organisation_id: etat.organisation, affichage_id: af.id, type: k,
           duree: t.duree, ordre, actif: true });
         contenu.nouveau = p.id;
+        contenu.ouverts.add(p.id);
         await afficher();
-        dire(['horaire', 'pointage', 'meteo'].includes(k)
-          ? t.nom + ' ajouté : il paraît déjà dans la rotation.'
-          : t.nom + ' ajouté : remplissez-le ci-dessous, puis enregistrez.');
+        dire(t.nom + ' ajouté.');
       } catch (e) { dire(e.message, true); }
     } },
     el('div', { classe: 'vignette-type' }, VIGNETTES[k]()),
-    el('strong', null, t.nom), el('span', { classe: 'doux' }, t.aide), el('span', { classe: 'ajouter' }, '+ Ajouter'))));
+    el('strong', null, t.nom), el('span', { classe: 'doux' }, t.aide))));
+  const ajouter = el('button', { type: 'button', classe: 'ajout-panneau', onclick: () => {
+    galerie.hidden = !galerie.hidden;
+    ajouter.textContent = galerie.hidden ? '+ Ajouter un panneau' : 'Fermer';
+  } }, '+ Ajouter un panneau');
+  return el('div', { classe: 'corps-section' },
+    contenu.panneaux.length ? el('div', { classe: 'liste-panneaux' }, contenu.panneaux.map((p, i) => lignePanneau(p, i, af, modifiable)))
+      : el('p', { classe: 'doux' }, 'Aucun panneau : l’écran montre l’horaire.'),
+    modifiable ? ajouter : null, galerie);
 }
 
-function cartePanneau(p, i, af, modifiable) {
+// Ce qu'on reconnaît d'un panneau sans l'ouvrir.
+function resumePanneau(p) {
+  const c = p.contenu || {};
+  if (p.type === 'horaire') return (contenu.plateaux.find((pl) => pl.id === c.plateau) || {}).nom || 'Tous les plateaux';
+  if (p.type === 'annonce') return c.titre || 'Sans titre';
+  if (p.type === 'rss') return c.titre || (c.url ? c.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] : 'Adresse à donner');
+  if (p.type === 'image' || p.type === 'video') return c.url ? '' : 'Fichier à donner';
+  return '';
+}
+
+function lignePanneau(p, i, af, modifiable) {
   const c = p.contenu = p.contenu || {};
-  const maj = () => rafraichirApercu();
+  const maj = () => { marquer(p.id); rafraichirApercu(); };
   const entree = (cle, attrs) => {
     const n = el(attrs && attrs.zone ? 'textarea' : 'input', Object.assign({ disabled: !modifiable,
       oninput: () => { c[cle] = n.type === 'number' ? Number(n.value) || undefined : n.value; maj(); } }, attrs || {}));
@@ -256,7 +321,7 @@ function cartePanneau(p, i, af, modifiable) {
     // Le plateau se choisit ici, panneau par panneau : l'affichage n'est qu'une liste de panneaux.
     horaire: () => [el('label', null, 'Plateau', choixDe('plateau', Object.assign({ '': 'Tous les plateaux (une colonne chacun)' },
       Object.fromEntries(contenu.plateaux.filter((pl) => pl.etablissement_id === af.etablissement_id)
-        .map((pl) => [pl.id, pl.nom + ' seulement (en cours et à suivre)'])))))],
+        .map((pl) => [pl.id, pl.nom + ' seulement'])))))],
     pointage: () => [],
     annonce: () => [el('label', { classe: 'large' }, 'Titre', entree('titre', { maxlength: 80 })),
       el('label', { classe: 'large' }, 'Texte', entree('texte', { zone: true, rows: 3, maxlength: 300 })),
@@ -274,90 +339,86 @@ function cartePanneau(p, i, af, modifiable) {
 
   const duree = el('input', { type: 'number', min: 5, max: 600, valeur: p.duree, disabled: !modifiable,
     oninput: () => { p.duree = Number(duree.value) || 15; maj(); } });
-  const actif = el('input', { type: 'checkbox', checked: p.actif, disabled: !modifiable, onchange: () => { p.actif = actif.checked; maj(); } });
-  const tous = el('input', { type: 'checkbox', checked: !p.affichage_id, disabled: !modifiable });
+  const actif = el('input', { type: 'checkbox', checked: p.actif, disabled: !modifiable, title: 'Actif',
+    onclick: (ev) => ev.stopPropagation(),
+    onchange: () => { p.actif = actif.checked; ligne.classList.toggle('inactif', !p.actif); maj(); } });
+  const tous = el('input', { type: 'checkbox', checked: !p.affichage_id, disabled: !modifiable, onchange: maj });
   const jours = JOURS.map((j, n) => el('label', { classe: 'jour' },
-    el('input', { type: 'checkbox', checked: !p.jours || p.jours.includes(n), disabled: !modifiable }), j));
-  const debut = el('input', { type: 'time', valeur: (p.heure_debut || '').slice(0, 5), disabled: !modifiable });
-  const fin = el('input', { type: 'time', valeur: (p.heure_fin || '').slice(0, 5), disabled: !modifiable });
+    el('input', { type: 'checkbox', checked: !p.jours || p.jours.includes(n), disabled: !modifiable, onchange: maj }), j));
+  const debut = el('input', { type: 'time', valeur: (p.heure_debut || '').slice(0, 5), disabled: !modifiable, onchange: maj });
+  const fin = el('input', { type: 'time', valeur: (p.heure_fin || '').slice(0, 5), disabled: !modifiable, onchange: maj });
+  contenu.recolte[p.id] = () => {
+    const coches = jours.map((j, n) => (j.firstChild.checked ? n : -1)).filter((n) => n >= 0);
+    return { contenu: c, duree: p.duree, actif: p.actif, affichage_id: tous.checked ? null : af.id,
+      jours: coches.length === 7 ? null : coches, heure_debut: debut.value || null, heure_fin: fin.value || null };
+  };
 
+  const geste = (titre, texte, action, desactive) => el('button', { type: 'button', classe: 'discret', title: titre, disabled: desactive,
+    onclick: async (ev) => { ev.preventDefault(); ev.stopPropagation(); try { await action(); } catch (e) { dire(e.message, true); } } }, texte);
   const deplacer = async (sens) => {
     const autre = contenu.panneaux[i + sens];
     if (!autre) return;
-    try {
-      await Promise.all([majPro('panneaux', { id: 'eq.' + p.id }, { ordre: autre.ordre === p.ordre ? autre.ordre + sens : autre.ordre }),
-        majPro('panneaux', { id: 'eq.' + autre.id }, { ordre: p.ordre })]);
-      await afficher();
-    } catch (e) { dire(e.message, true); }
+    await avantStructure();
+    await Promise.all([majPro('panneaux', { id: 'eq.' + p.id }, { ordre: autre.ordre === p.ordre ? autre.ordre + sens : autre.ordre }),
+      majPro('panneaux', { id: 'eq.' + autre.id }, { ordre: p.ordre })]);
+    await afficher();
+  };
+  const supprimer = async () => {
+    if (!confirm('Supprimer ce panneau ?' + (p.affichage_id ? '' : ' Il disparaîtra de tous les affichages.'))) return;
+    contenu.sale.delete(p.id);
+    await avantStructure();
+    await retraitPro('panneaux', { id: 'eq.' + p.id });
+    await afficher();
+    dire('Panneau supprimé.');
   };
 
-  return el('form', { classe: 'carte-formulaire panneau' + (p.actif ? '' : ' inactif'), 'data-panneau': p.id, onsubmit: async (ev) => {
-      ev.preventDefault();
-      const coches = jours.map((j, n) => (j.firstChild.checked ? n : -1)).filter((n) => n >= 0);
-      try {
-        await majPro('panneaux', { id: 'eq.' + p.id }, {
-          contenu: c, duree: p.duree, actif: p.actif, affichage_id: tous.checked ? null : af.id,
-          jours: coches.length === 7 ? null : coches, heure_debut: debut.value || null, heure_fin: fin.value || null });
-        await afficher();
-        dire('Panneau enregistré. L’écran le prend dans les 30 secondes.');
-      } catch (e) { dire(e.message, true); }
-    } },
-    el('div', { classe: 'tete-lecteur' },
-      el('div', null, el('strong', null, TYPES[p.type].nom), ' ',
-        p.actif ? el('span', { classe: 'pastille vert-fond' }, 'Actif') : el('span', { classe: 'pastille' }, 'Inactif'),
-        !p.affichage_id ? el('span', { classe: 'pastille' }, 'Tous les affichages') : null,
-        el('div', { classe: 'doux' }, TYPES[p.type].aide)),
-      modifiable ? el('div', { classe: 'actions' },
-        el('button', { type: 'button', classe: 'discret', title: 'Monter', disabled: i === 0, onclick: () => deplacer(-1) }, '↑'),
-        el('button', { type: 'button', classe: 'discret', title: 'Descendre', disabled: i === contenu.panneaux.length - 1, onclick: () => deplacer(1) }, '↓')) : null),
-    champs.length ? el('div', { classe: 'champs' }, champs) : null,
-    el('details', null, el('summary', null, 'Durée, plage horaire, portée'),
-      el('div', { classe: 'champs' },
-        el('label', null, 'Durée (secondes)', duree),
-        el('label', null, 'De', debut), el('label', null, 'À', fin),
-        el('div', { classe: 'large jours' }, jours),
-        el('label', { classe: 'case large' }, tous, ' Sur tous les affichages de l’organisation'))),
-    modifiable ? el('div', { classe: 'actions' },
-      el('label', { classe: 'case' }, actif, ' Actif'),
-      el('button', { type: 'submit' }, 'Enregistrer'),
-      el('button', { type: 'button', classe: 'discret', onclick: async () => {
-        if (!confirm('Supprimer ce panneau ?' + (p.affichage_id ? '' : ' Il disparaîtra de tous les affichages.'))) return;
-        try { await retraitPro('panneaux', { id: 'eq.' + p.id }); await afficher(); dire('Panneau supprimé.'); }
-        catch (e) { dire(e.message, true); }
-      } }, 'Supprimer')) : null);
+  const resume = resumePanneau(p);
+  const ligne = el('details', { classe: 'ligne-panneau' + (p.actif ? '' : ' inactif'), 'data-panneau': p.id, open: contenu.ouverts.has(p.id),
+    ontoggle: () => { ligne.open ? contenu.ouverts.add(p.id) : contenu.ouverts.delete(p.id); } },
+    el('summary', null,
+      el('span', { classe: 'mini-type' }, VIGNETTES[p.type]()),
+      el('span', { classe: 'nom-panneau' }, el('strong', null, TYPES[p.type].nom),
+        resume ? el('span', { classe: 'doux' }, resume) : null,
+        !p.affichage_id ? el('span', { classe: 'pastille' }, 'Tous les affichages') : null),
+      el('span', { classe: 'doux duree' }, p.duree + ' s'),
+      modifiable ? el('span', { classe: 'gestes' },
+        el('label', { classe: 'interrupteur', title: 'Actif', onclick: (ev) => ev.stopPropagation() }, actif),
+        geste('Monter', '↑', () => deplacer(-1), i === 0),
+        geste('Descendre', '↓', () => deplacer(1), i === contenu.panneaux.length - 1),
+        geste('Supprimer', '×', supprimer)) : null),
+    el('div', { classe: 'corps-panneau' },
+      champs.length ? el('div', { classe: 'champs' }, champs) : el('p', { classe: 'doux' }, TYPES[p.type].aide),
+      el('details', { classe: 'plus' }, el('summary', null, 'Durée et horaire de diffusion'),
+        el('div', { classe: 'champs' },
+          el('label', null, 'Durée (secondes)', duree),
+          el('label', null, 'De', debut), el('label', null, 'À', fin),
+          el('div', { classe: 'large jours' }, jours),
+          el('label', { classe: 'case large' }, tous, ' Sur tous les affichages de l’organisation')))));
+  return ligne;
 }
 
 // --- Apparence (dans l'onglet Contenu) ---------------------------------------------
 // Logo, couleur et thème de l'organisation, communs à tous ses affichages
-// (admin seulement). L'aperçu de Contenu les montre en direct.
+// (admin seulement). L'aperçu les montre en direct.
 function formulaireApparence() {
   const a = contenu.apparence;
   const admin = roleIci() === 'admin';
-  const g = contenu.reglages.gabarit || 'plein';
+  const maj = () => { marquer('apparence'); rafraichirApercu(); };
   const apercuLogo = el('img', { classe: 'logo-apercu', src: a.logo || '', alt: '', hidden: !a.logo });
-  const accent = el('input', { type: 'color', valeur: a.accent || '#1f6fff', disabled: !admin, oninput: () => { a.accent = accent.value; rafraichirApercu(); } });
-  const theme = el('select', { disabled: !admin, onchange: () => { a.theme = theme.value; rafraichirApercu(); } },
-    el('option', { value: 'sombre', selected: a.theme !== 'clair' }, 'Sombre (recommandé, lisible de loin)'),
+  const accent = el('input', { type: 'color', valeur: a.accent || '#1f6fff', disabled: !admin, oninput: () => { a.accent = accent.value; maj(); } });
+  const theme = el('select', { disabled: !admin, onchange: () => { a.theme = theme.value; maj(); } },
+    el('option', { value: 'sombre', selected: a.theme !== 'clair' }, 'Sombre (lisible de loin)'),
     el('option', { value: 'clair', selected: a.theme === 'clair' }, 'Clair'));
-  return el('form', { classe: 'carte-formulaire', onsubmit: async (ev) => {
-      ev.preventDefault();
-      try {
-        await majPro('organisations', { id: 'eq.' + etat.organisation }, { apparence: a });
-        dire('Apparence enregistrée. Les écrans la prennent dans les 30 secondes.');
-      } catch (e) { dire(e.message, true); }
-    } },
-    el('h3', null, 'Apparence'),
-    el('p', { classe: 'doux' }, 'Logo et couleurs, communs à tous vos affichages.'
-      + (admin ? '' : ' Seul l’administrateur peut les changer.')
-      + (g === 'plein' ? ' Le logo paraît avec un gabarit bandeau ou colonne.' : '')),
+  return el('div', { classe: 'corps-section' },
+    admin ? null : el('p', { classe: 'doux' }, 'Seul l’administrateur peut les changer.'),
     el('div', { classe: 'champs' },
       admin ? champMedia('Logo (PNG transparent ou SVG)', a.logo, 'image/png,image/svg+xml,image/webp', (u) => {
-        a.logo = u || undefined; apercuLogo.src = u || ''; apercuLogo.hidden = !u; rafraichirApercu();
+        a.logo = u || undefined; apercuLogo.src = u || ''; apercuLogo.hidden = !u; maj();
       }) : null,
       el('label', null, 'Couleur d’accent', accent),
       el('label', null, 'Thème', theme)),
     apercuLogo,
-    admin ? el('div', { classe: 'actions' }, el('button', { type: 'submit' }, 'Enregistrer l’apparence')) : null);
+    (contenu.reglages.gabarit || 'plein') === 'plein' ? el('p', { classe: 'doux' }, 'Le logo paraît avec la disposition bandeau ou colonne.') : null);
 }
 
 // --- Vue Urgence -------------------------------------------------------------------
