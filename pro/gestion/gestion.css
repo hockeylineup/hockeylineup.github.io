@@ -255,3 +255,5 @@ main#contenu, .vue-contenu, .editeur, .reglages, .corps-section, .liste-panneaux
 .sous-repli { border-top: 1px solid var(--ligne); padding-top: 10px; display: grid; gap: 12px; }
 .sous-repli > summary { font-weight: 600; }
 .carte-ligue[open] { display: grid; gap: 12px; }
+.vestiaires-match { display: grid; gap: 4px; }
+.vestiaires-match label { display: grid; grid-template-columns: 70px 1fr; align-items: center; gap: 6px; font-size: .85rem; }

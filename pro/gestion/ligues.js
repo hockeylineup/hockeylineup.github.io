@@ -82,7 +82,8 @@ async function vueLigues() {
     const sousTitres = [
       ['reglages', 'Glace et durée', reglages],
       l.statut === 'acceptee' ? ['matchs', `Matchs à venir (${nMatchs})`,
-        [tableMatchs(matchs[l.lieu_id] || [], plateaux.filter((p) => p.etablissement_id === l.etablissement_id), modifiable)]] : null,
+        [tableMatchs(matchs[l.lieu_id] || [], plateaux.filter((p) => p.etablissement_id === l.etablissement_id), modifiable,
+          vestiaires.filter((v) => v.etablissement_id === l.etablissement_id), eqs)]] : null,
       l.statut === 'acceptee' ? ['vestiaires', `Vestiaires des équipes (${eqs.length})`, [tableVestiaires(eqs, vestiaires, modifiable)]] : null,
     ].filter(Boolean).map(([k, titre, contenu]) => repli(l.lieu_id + ':' + k, el('summary', null, titre), contenu, 'sous-repli'));
     return repli(l.lieu_id, el('summary', null, entete), sousTitres, 'carte-formulaire carte-ligue');
@@ -108,12 +109,21 @@ async function vueLigues() {
 // EspaceLigue et les gérants de la ligue reçoivent un avis (pro.deplacer_match).
 const pourChamp = (iso) => { const d = new Date(iso); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
 
-function tableMatchs(matchs, glaces, modifiable) {
+function tableMatchs(matchs, glaces, modifiable, vestiaires, equipes) {
   if (!matchs.length) return el('p', { classe: 'doux' }, 'Aucun match à venir.');
   const lignes = matchs.map((m) => {
     const debut = el('input', { type: 'datetime-local', valeur: pourChamp(m.debut), disabled: !modifiable });
     const glace = el('select', { disabled: !modifiable || glaces.length < 2 },
       glaces.map((p) => el('option', { value: p.id, selected: p.id === m.plateau_id }, p.nom)));
+    // Le vestiaire de chaque équipe pour ce match ; « Saison » : celui de la saison.
+    const choixVestiaire = (equipeId, actuel) => {
+      const saison = vestiaires.find((v) => v.id === (equipes.find((q) => q.equipe_id === equipeId) || {}).vestiaire_id);
+      return el('select', { disabled: !modifiable || !vestiaires.length, title: 'Vestiaire pour ce match' },
+        el('option', { value: '' }, saison ? 'Saison (' + saison.nom + ')' : '— aucun —'),
+        vestiaires.map((v) => el('option', { value: v.id, selected: v.id === actuel }, v.nom)));
+    };
+    const vDom = choixVestiaire(m.domicile_id, m.vestiaire_domicile);
+    const vVis = choixVestiaire(m.visiteur_id, m.vestiaire_visiteur);
     const bouton = el('button', { type: 'button', hidden: true, onclick: async () => {
         const quand = new Date(debut.value);
         if (isNaN(quand)) { dire('Heure invalide.', true); return; }
@@ -121,6 +131,10 @@ function tableMatchs(matchs, glaces, modifiable) {
         if (change && !confirm('Déplacer « ' + m.domicile + ' – ' + m.visiteur + ' » ? L’heure change aussi dans '
           + 'EspaceLigue pour les joueurs, et les gérants de la ligue sont avisés.')) return;
         try {
+          for (const [eq, sel, avant] of [[m.domicile_id, vDom, m.vestiaire_domicile], [m.visiteur_id, vVis, m.vestiaire_visiteur]]) {
+            if ((sel.value || null) !== (avant || null)) await rest('POST', 'rpc/vestiaire_match', { p_organisation: etat.organisation,
+              p_match: m.match_id, p_equipe: eq, p_vestiaire: sel.value || null }, PRO);
+          }
           const etatRes = await rest('POST', 'rpc/deplacer_match', { p_organisation: etat.organisation, p_match: m.match_id,
             p_debut: change ? quand.toISOString() : null, p_plateau: glace.value || null }, PRO);
           await afficher();
@@ -131,10 +145,13 @@ function tableMatchs(matchs, glaces, modifiable) {
     const montrer = () => { bouton.hidden = false; };
     debut.addEventListener('input', montrer);
     glace.addEventListener('change', montrer);
+    vDom.addEventListener('change', montrer);
+    vVis.addEventListener('change', montrer);
     return el('tr', null,
       el('td', null, debut),
       el('td', null, el('strong', null, m.domicile + ' – ' + m.visiteur),
         m.statut === 'demandee' ? el('span', { classe: 'pastille rouge-fond', title: 'La glace était déjà prise' }, 'Conflit') : null),
+      el('td', { classe: 'vestiaires-match' }, el('label', null, m.domicile, vDom), el('label', null, m.visiteur, vVis)),
       el('td', null, glace), el('td', null, bouton));
   });
   // Les quatre prochains ; « Voir tous » montre le reste.
@@ -142,7 +159,7 @@ function tableMatchs(matchs, glaces, modifiable) {
   const tous = lignes.length > 4 ? el('button', { type: 'button', classe: 'discret', onclick: () => {
     lignes.forEach((tr) => { tr.hidden = false; }); tous.remove(); } }, `Voir tous (${lignes.length})`) : null;
   return el('div', null, el('div', { classe: 'table' }, el('table', null, el('thead', null, el('tr', null,
-    el('th', null, 'Heure'), el('th', null, 'Match'), el('th', null, 'Glace'), el('th', null, ''))), el('tbody', null, lignes))), tous);
+    el('th', null, 'Heure'), el('th', null, 'Match'), el('th', null, 'Vestiaires'), el('th', null, 'Glace'), el('th', null, ''))), el('tbody', null, lignes))), tous);
 }
 
 // --- Vestiaires ----------------------------------------------------------------------
