@@ -21,7 +21,7 @@ const majPro = (table, filtre, corps) => rest('PATCH', table + '?' + new URLSear
 const ROLES = { admin: 'Administrateur', gestionnaire: 'Gestionnaire', prepose: 'Préposé' };
 const EN_LIGNE_MS = 3 * 60 * 1000;
 const etat = { membres: [], organisations: [], organisation: null, onglet: 'horaire', enAttente: 0 };
-const ONGLETS = { horaire: 'Horaire', ligues: 'Ligues', contenu: 'Contenu', urgence: 'Urgence', lecteurs: 'Lecteurs',
+const ONGLETS = { horaire: 'Planification', ligues: 'Ligues', contenu: 'Contenu', urgence: 'Urgence', lecteurs: 'Lecteurs',
   etablissement: 'Établissement' };
 
 function dire(texte, erreur) {
@@ -66,7 +66,7 @@ function deconnecter(raison) {
 async function ouvrir() {
   const u = session.utilisateur;
   [etat.membres, etat.organisations] = await Promise.all([
-    lirePro('membres', { select: 'organisation_id,role', user_id: 'eq.' + u.id }),
+    lirePro('membres', { select: 'organisation_id,role,permissions', user_id: 'eq.' + u.id }),
     lirePro('organisations', { select: 'id,nom', order: 'nom' }),
   ]);
   etat.organisations = etat.organisations.filter((o) => etat.membres.some((m) => m.organisation_id === o.id));
@@ -99,7 +99,7 @@ async function afficher() {
     classe: k === etat.onglet ? 'actif' : null, onclick: () => { if (etat.onglet === 'contenu' && k !== 'contenu' && !quitterContenu()) return; etat.onglet = k; afficher(); } }, v,
     k === 'ligues' && etat.enAttente ? el('span', { classe: 'compte', title: 'Ligues à approuver' }, String(etat.enAttente)) : null)));
   try {
-    const vue = { horaire: vueHoraire, ligues: vueLigues, lecteurs: vueLecteurs, contenu: vueContenu, urgence: vueUrgence,
+    const vue = { horaire: vuePlanification, ligues: vueLigues, lecteurs: vueLecteurs, contenu: vueContenu, urgence: vueUrgence,
       etablissement: vueEtablissement }[etat.onglet];
     $('contenu').replaceChildren(await vue());
   } catch (e) {

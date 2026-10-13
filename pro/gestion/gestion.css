@@ -257,3 +257,71 @@ main#contenu, .vue-contenu, .editeur, .reglages, .corps-section, .liste-panneaux
 .carte-ligue[open] { display: grid; gap: 12px; }
 .vestiaires-match { display: grid; gap: 4px; }
 .vestiaires-match label { display: grid; grid-template-columns: 70px 1fr; align-items: center; gap: 6px; font-size: .85rem; }
+/* Planification */
+main#contenu:has(.vue-planif) { max-width: none; }
+.vue-planif { display: grid; gap: 12px; }
+.sous-onglets button { font-size: .88rem; }
+.barre-planif { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.barre-planif .groupe { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.barre-planif .periode { margin: 0 6px; display: inline-block; }
+.barre-planif .periode::first-letter { text-transform: uppercase; }
+.barre-planif input[type="date"], .barre-planif select { width: auto; }
+.bascule { display: inline-flex; border: 1px solid var(--ligne); border-radius: 8px; overflow: hidden; }
+.bascule button { border-radius: 0; }
+.compte-surfacage { width: 100%; color: var(--doux); font-size: .88rem; }
+.planif-corps { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; }
+.planif-corps.avec-panneau { grid-template-columns: minmax(0, 1fr) 340px; }
+.grille-planif { background: var(--carte); border: 1px solid var(--ligne); border-radius: 12px; overflow: auto; max-height: 78vh; }
+.grille-planif .tetes { display: grid; position: sticky; top: 0; z-index: 3; background: var(--carte); border-bottom: 1px solid var(--ligne); }
+.tete-col { padding: 8px 6px; font-size: .88rem; text-align: center; border-left: 1px solid var(--ligne); text-transform: capitalize; }
+.tete-col.aujourdhui { color: var(--bleu); }
+.grille-planif .corps { display: grid; position: relative; }
+.regle { position: relative; }
+.regle .heure { position: absolute; right: 6px; transform: translateY(-50%); font-size: .72rem; color: var(--doux); }
+.regle .heure:first-child { transform: none; }
+.col { position: relative; border-left: 1px solid var(--ligne); touch-action: pan-y; user-select: none; cursor: cell; }
+.col .trait { position: absolute; left: 0; right: 0; border-top: 1px solid color-mix(in srgb, var(--ligne) 60%, transparent); }
+.col .hors-heures { position: absolute; left: 0; right: 0; background: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--doux) 10%, transparent) 6px 8px); }
+.col .maintenant { position: absolute; left: 0; right: 0; border-top: 2px solid var(--rouge); z-index: 2; }
+.col .selection { position: absolute; left: 2px; right: 2px; background: color-mix(in srgb, var(--bleu) 25%, transparent); border: 1px dashed var(--bleu); border-radius: 6px; font-size: .75rem; padding: 2px 4px; z-index: 2; }
+.bloc { position: absolute; overflow: hidden; border-radius: 6px; padding: 3px 6px; font-size: .76rem; line-height: 1.25; cursor: pointer; z-index: 1;
+  background: color-mix(in srgb, var(--bleu) 22%, var(--carte)); border-left: 3px solid var(--bleu); color: var(--texte); }
+.bloc.mobile { cursor: grab; }
+.bloc .b-titre { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bloc .b-heure, .bloc .b-etat { color: var(--doux); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bloc.etat-option { background: color-mix(in srgb, #f5b642 14%, var(--carte)); border: 1px dashed #c98a10; border-left-width: 3px; }
+.bloc.etat-demandee { background: repeating-linear-gradient(135deg, color-mix(in srgb, #f5b642 25%, var(--carte)) 0 6px, var(--carte) 6px 12px); border-left-color: #c98a10; }
+.bloc.src-espaceligue { background: color-mix(in srgb, var(--vert) 18%, var(--carte)); border-left-color: var(--vert); }
+.bloc.src-calendrier { background: color-mix(in srgb, var(--doux) 18%, var(--carte)); border-left-color: var(--doux); }
+.bloc.fantome { opacity: .45; background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--doux) 18%, transparent) 0 5px, transparent 5px 10px); border-left-color: var(--doux); cursor: default; }
+.bloc.estompe { opacity: .25; }
+.bloc.choisi { outline: 2px solid var(--bleu); }
+.bloc.en-mouvement { opacity: .8; box-shadow: 0 6px 18px #0005; z-index: 4; }
+.bloc .b-surf { position: absolute; left: 0; right: 0; bottom: 0; font-size: .62rem; text-align: right; padding-right: 4px;
+  background: repeating-linear-gradient(90deg, color-mix(in srgb, #7cc6ff 45%, transparent) 0 4px, color-mix(in srgb, #7cc6ff 25%, transparent) 4px 8px); }
+.bloc .poignee { position: absolute; left: 0; right: 0; bottom: 0; height: 7px; cursor: ns-resize; z-index: 2; }
+.panneau-planif { position: sticky; top: 12px; display: grid; gap: 10px; background: var(--carte); border: 1px solid var(--ligne); border-radius: 12px; padding: 14px; max-height: 78vh; overflow: auto; }
+.panneau-planif label { display: grid; gap: 4px; }
+.panneau-planif label.case, .panneau-planif label.jour { display: flex; align-items: center; gap: 6px; }
+.panneau-planif label.case input, .panneau-planif label.jour input { width: auto; }
+.panneau-planif .champs.trois { grid-template-columns: 1.3fr 1fr 1fr; }
+.panneau-planif textarea { width: 100%; font: inherit; }
+.panneau-planif .repeter { display: grid; gap: 8px; padding: 8px; border-radius: 8px; background: var(--fond); }
+.panneau-planif [hidden] { display: none !important; }
+.panneau-planif .actions.annuler button { font-size: .82rem; }
+.tete-panneau { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.tete-panneau h3 { margin: 0; }
+button.lien { justify-self: start; padding-left: 0; color: var(--bleu); }
+.clients { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 12px; align-items: start; }
+.col-liste { display: grid; gap: 8px; }
+.col-liste .outils { display: grid; gap: 6px; }
+.liste-clients { display: grid; gap: 4px; max-height: 70vh; overflow: auto; }
+.ligne-client { display: flex; justify-content: space-between; gap: 8px; text-align: left; background: var(--carte); color: var(--texte); border: 1px solid var(--ligne); }
+.ligne-client.actif { border-color: var(--bleu); }
+.ligne-client.inactif { opacity: .55; }
+.fiche-client textarea { width: 100%; font: inherit; }
+@media (max-width: 900px) {
+  .planif-corps.avec-panneau { grid-template-columns: minmax(0, 1fr); }
+  .panneau-planif { position: fixed; left: 0; right: 0; bottom: 0; top: auto; max-height: 75vh; border-radius: 14px 14px 0 0; z-index: 20; box-shadow: 0 -8px 30px #0006; }
+  .clients { grid-template-columns: 1fr; }
+}
