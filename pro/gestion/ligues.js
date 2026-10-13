@@ -172,6 +172,7 @@ function tableVestiaires(equipes, vestiaires, modifiable) {
         try {
           await rest('POST', 'rpc/assigner_vestiaire', { p_organisation: etat.organisation, p_equipe: q.equipe_id,
             p_vestiaire: choix.value || null }, PRO);
+          await afficher();
           dire('Vestiaire de « ' + q.equipe + ' » enregistré. Il paraît à l’écran dans la minute.');
         } catch (e) { dire(e.message, true); }
       } },
