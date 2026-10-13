@@ -118,8 +118,9 @@ function blocVestiaires(etablissements, vestiaires, modifiable, nomEtab) {
 // Dans la carte d'une ligue acceptée : le vestiaire de chacune de ses équipes.
 function tableVestiaires(equipes, vestiaires, modifiable) {
   if (!equipes.length) return el('p', { classe: 'doux' }, 'Aucune équipe dans cette saison pour l’instant.');
+  if (!vestiaires.length) return el('p', { classe: 'doux' }, 'Ajoutez d’abord vos vestiaires, plus bas.');
   const lignes = equipes.map((q) => {
-    const choix = el('select', { disabled: !modifiable || !vestiaires.length, onchange: async () => {
+    const choix = el('select', { disabled: !modifiable, onchange: async () => {
         try {
           await rest('POST', 'rpc/assigner_vestiaire', { p_organisation: etat.organisation, p_equipe: q.equipe_id,
             p_vestiaire: choix.value || null }, PRO);
