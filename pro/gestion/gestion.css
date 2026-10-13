@@ -260,18 +260,26 @@ main#contenu, .vue-contenu, .editeur, .reglages, .corps-section, .liste-panneaux
 /* Planification */
 main#contenu:has(.vue-planif) { max-width: none; }
 .vue-planif { display: grid; gap: 12px; }
-.sous-onglets button { font-size: .88rem; }
-.barre-planif { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
-.barre-planif .groupe { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.barre-planif .periode { margin: 0 6px; display: inline-block; }
-.barre-planif .periode::first-letter { text-transform: uppercase; }
-.barre-planif input[type="date"], .barre-planif select { width: auto; }
-.bascule { display: inline-flex; border: 1px solid var(--ligne); border-radius: 8px; overflow: hidden; }
-.bascule button { border-radius: 0; }
-.compte-surfacage { width: 100%; color: var(--doux); font-size: .88rem; }
 .planif-corps { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; }
-.planif-corps.avec-panneau { grid-template-columns: minmax(0, 1fr) 340px; }
-.grille-planif { background: var(--carte); border: 1px solid var(--ligne); border-radius: 12px; overflow: auto; max-height: 78vh; }
+.planif-corps.avec-panneau { grid-template-columns: minmax(0, 1fr) 360px; }
+.entete-planif { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.entete-planif h2 { margin: 0; }
+.segment { display: inline-flex; border: 1px solid var(--ligne); border-radius: 8px; overflow: hidden; background: var(--carte); }
+.segment button { border-radius: 0; background: transparent; color: var(--texte); border: 0; padding: 6px 12px; font-weight: 500; }
+.segment button + button { border-left: 1px solid var(--ligne); }
+.segment button.actif { background: var(--bleu); color: #fff; }
+.carte-planif { background: var(--carte); border: 1px solid var(--ligne); border-radius: 12px; overflow: hidden; min-width: 0; }
+.barre-planif { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 12px; border-bottom: 1px solid var(--ligne); }
+.barre-planif .groupe { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.barre-planif select { width: auto; max-width: 220px; }
+.barre-planif .periode { position: relative; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; color: var(--texte); font-size: 1rem; font-weight: 700; cursor: pointer; padding: 4px 6px; border-radius: 6px; }
+.barre-planif .periode:hover { background: var(--fond); }
+.barre-planif .periode span { display: inline-block; }
+.barre-planif .periode span::first-letter { text-transform: uppercase; }
+.barre-planif .date-cachee { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+.pastille.surf-fond { background: color-mix(in srgb, #7cc6ff 22%, transparent); color: var(--texte); }
+.grille-planif { overflow: auto; max-height: calc(100vh - 210px); min-height: 420px; }
 .grille-planif .tetes { display: grid; position: sticky; top: 0; z-index: 3; background: var(--carte); border-bottom: 1px solid var(--ligne); }
 .tete-col { padding: 8px 6px; font-size: .88rem; text-align: center; border-left: 1px solid var(--ligne); text-transform: capitalize; }
 .tete-col.aujourdhui { color: var(--bleu); }
@@ -304,7 +312,12 @@ main#contenu:has(.vue-planif) { max-width: none; }
 .panneau-planif label { display: grid; gap: 4px; }
 .panneau-planif label.case, .panneau-planif label.jour { display: flex; align-items: center; gap: 6px; }
 .panneau-planif label.case input, .panneau-planif label.jour input { width: auto; }
-.panneau-planif .champs.trois { grid-template-columns: 1.3fr 1fr 1fr; }
+.panneau-planif .champs.trois { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 6px; }
+.panneau-planif .champs.trois input { min-width: 0; padding-left: 6px; padding-right: 4px; }
+.panneau-planif .champs.deux { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.panneau-planif { gap: 8px; font-size: .92rem; }
+.panneau-planif label { font-size: .85rem; color: var(--doux); }
+.panneau-planif label input, .panneau-planif label select, .panneau-planif label textarea { color: var(--texte); }
 .panneau-planif textarea { width: 100%; font: inherit; }
 .panneau-planif .repeter { display: grid; gap: 8px; padding: 8px; border-radius: 8px; background: var(--fond); }
 .panneau-planif [hidden] { display: none !important; }
@@ -337,3 +350,6 @@ label.mini input { width: 70px; }
 .sections { display: grid; gap: 6px; padding-left: 14px; }
 .fiche-etablissement .outils { display: flex; flex-wrap: wrap; gap: 6px; }
 .fiche-etablissement .outils input { width: auto; }
+.panneau-planif, .panneau-planif > * , .panneau-planif .champs > * { min-width: 0; }
+.panneau-planif input:not([type="checkbox"]), .panneau-planif select { width: 100%; min-width: 0; box-sizing: border-box; }
+.panneau-planif { overflow-x: hidden; }

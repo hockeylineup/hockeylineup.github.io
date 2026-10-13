@@ -48,10 +48,10 @@ async function vuePlanification() {
       actif: 'is.true', order: 'nom' }),
     lirePro('locataires', { select: 'id,nom,type,telephone,courriel,actif', organisation_id: 'eq.' + org, order: 'nom' }),
   ]);
-  const onglets = el('div', { classe: 'puces sous-onglets' }, [['grille', 'Horaire'], ['clients', 'Clients'], ['sources', 'Sources automatiques']]
+  const onglets = el('div', { classe: 'segment' }, [['grille', 'Horaire'], ['clients', 'Clients'], ['sources', 'Calendriers']]
     .map(([k, v]) => el('button', { type: 'button', classe: plan.sous === k ? 'actif' : null,
       onclick: () => { plan.sous = k; plan.panneau = null; afficher(); } }, v)));
-  const entete = el('div', { classe: 'entete-vue' }, el('h2', null, 'Planification'), onglets);
+  const entete = el('div', { classe: 'entete-planif' }, el('h2', null, 'Planification'), onglets);
 
   if (plan.sous === 'clients') return el('section', { classe: 'vue-planif' }, entete, await vueClients(locataires));
   if (plan.sous === 'sources') {
@@ -112,37 +112,49 @@ async function vuePlanification() {
   const ctx = { deb, fin, colonnes, reservations, plateaux, locataires, etab, surf: surfEtab };
 
   const nav = (n) => () => { plan.date = ajouterJours(plan.date, n * nbJours); plan.panneau = null; afficher(); };
-  const dateChamp = el('input', { type: 'date', valeur: aaaammjj(plan.date), onchange: (ev) => {
-    if (!ev.target.value) return; const [y, m, d] = ev.target.value.split('-').map(Number); plan.date = new Date(y, m - 1, d); afficher(); } });
+  // La date se choisit en cliquant le titre (le champ date est caché derrière).
+  const dateChamp = el('input', { type: 'date', classe: 'date-cachee', valeur: aaaammjj(plan.date), 'aria-label': 'Choisir la date',
+    onchange: (ev) => { if (!ev.target.value) return; const [y, m, d] = ev.target.value.split('-').map(Number);
+      plan.date = new Date(y, m - 1, d); afficher(); } });
   const titrePeriode = plan.vue === 'jour'
     ? plan.date.toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'long' })
     : 'Semaine du ' + premier.toLocaleDateString('fr-CA', { day: 'numeric', month: 'long' });
   const nbSurf = surfEtab.reduce((n, s) => n + s.nombre, 0);
+  const choix = (valeur, options, auChoix, titre) => el('select', { title: titre, onchange: (ev) => auChoix(ev.target.value) },
+    options.map(([k, v]) => el('option', { value: k, selected: k === valeur }, v)));
   const barre = el('div', { classe: 'barre-planif' },
     el('div', { classe: 'groupe' },
-      el('button', { type: 'button', classe: 'discret', onclick: nav(-1), title: 'Précédent' }, '‹'),
-      el('button', { type: 'button', classe: 'discret', onclick: () => { plan.date = debutJour(new Date()); afficher(); } }, 'Aujourd’hui'),
-      el('button', { type: 'button', classe: 'discret', onclick: nav(1), title: 'Suivant' }, '›'),
-      el('strong', { classe: 'periode' }, titrePeriode), dateChamp),
+      el('div', { classe: 'segment' },
+        el('button', { type: 'button', onclick: nav(-1), title: 'Précédent' }, '‹'),
+        el('button', { type: 'button', onclick: () => { plan.date = debutJour(new Date()); afficher(); } }, 'Aujourd’hui'),
+        el('button', { type: 'button', onclick: nav(1), title: 'Suivant' }, '›')),
+      el('label', { classe: 'periode', title: 'Choisir la date' }, el('span', null, titrePeriode), ' ▾', dateChamp),
+      nbSurf ? el('span', { classe: 'pastille surf-fond', title: 'Resurfaçages compris dans les réservations' },
+        '❄ ' + nbSurf + ' resurfaçage' + (nbSurf > 1 ? 's' : '')) : null),
     el('div', { classe: 'groupe' },
-      el('div', { classe: 'bascule' }, [['jour', 'Jour'], ['semaine', 'Semaine']].map(([k, v]) =>
-        el('button', { type: 'button', classe: plan.vue === k ? 'actif' : 'discret', onclick: () => { plan.vue = k; afficher(); } }, v))),
-      plan.vue === 'semaine' ? el('select', { onchange: (ev) => { plan.plateau = ev.target.value; afficher(); } },
-        plEtab.map((p) => el('option', { value: p.id, selected: p.id === plan.plateau }, p.nom))) : null,
-      etablissements.length > 1 ? el('select', { onchange: (ev) => { plan.etab = ev.target.value; afficher(); } },
-        etablissements.map((e) => el('option', { value: e.id, selected: e.id === plan.etab }, e.nom))) : null,
-      el('select', { title: 'Filtrer par client', onchange: (ev) => { plan.client = ev.target.value; afficher(); } },
-        el('option', { value: '' }, 'Tous les clients'),
-        locataires.map((l) => el('option', { value: l.id, selected: l.id === plan.client }, l.nom))),
+      etablissements.length > 1 ? choix(plan.etab, etablissements.map((e) => [e.id, e.nom]), (v) => { plan.etab = v; afficher(); }, 'Établissement') : null,
+      plan.vue === 'semaine' ? choix(plan.plateau, plEtab.map((p) => [p.id, p.nom]), (v) => { plan.plateau = v; afficher(); }, 'Plateau') : null,
+      choix(plan.client, [['', 'Tous les clients']].concat(locataires.map((l) => [l.id, l.nom])), (v) => { plan.client = v; afficher(); }, 'Filtrer par client'),
+      el('div', { classe: 'segment' }, [['jour', 'Jour'], ['semaine', 'Semaine']].map(([k, v]) =>
+        el('button', { type: 'button', classe: plan.vue === k ? 'actif' : null, onclick: () => { plan.vue = k; afficher(); } }, v))),
       peutReserver() ? el('button', { type: 'button', onclick: () => {
         const j = plan.vue === 'jour' ? plan.date : debutJour(new Date());
         ouvrirPanneau({ nouveau: true, plateau: plan.vue === 'jour' ? (plEtab[0] || {}).id : plan.plateau,
-          debut: aHeure(j, 18 * 60), fin: aHeure(j, 19 * 60 + 30) }); } }, '+ Réserver') : null),
-    nbSurf ? el('div', { classe: 'compte-surfacage', title: 'Resurfaçages compris dans les réservations' },
-      '❄ ' + nbSurf + ' resurfaçage' + (nbSurf > 1 ? 's' : '') + (plan.vue === 'jour' ? ' ce jour' : ' cette semaine')) : null);
+          debut: aHeure(j, 18 * 60), fin: aHeure(j, 19 * 60 + 30) }); } }, '+ Réserver') : null));
 
-  return el('section', { classe: 'vue-planif' }, entete, barre,
-    el('div', { classe: 'planif-corps' + (plan.panneau ? ' avec-panneau' : '') }, grille(ctx),
+  const g = grille(ctx);
+  // Ouvrir sur l'heure courante (aujourd'hui) ou sur la première réservation.
+  const cible = (() => {
+    const auj = colonnes.some((c) => aaaammjj(c.jour) === aaaammjj(new Date()));
+    if (auj) return minutesDe(new Date(), debutJour(new Date())) - 60;
+    const r = reservations[0];
+    return r ? minutesDe(bornes(r.periode)[0], debutJour(bornes(r.periode)[0])) - 30 : deb;
+  })();
+  requestAnimationFrame(() => { g.scrollTop = Math.max(0, (cible - deb) * PX_MIN); });
+
+  return el('section', { classe: 'vue-planif' }, entete,
+    el('div', { classe: 'planif-corps' + (plan.panneau ? ' avec-panneau' : '') },
+      el('div', { classe: 'carte-planif' }, barre, g),
       plan.panneau ? panneau(ctx) : null),
     plan.vue === 'semaine' && nbSurf ? tableauSurfacages(ctx, premier) : null);
 }
@@ -174,9 +186,12 @@ function colonne(ctx, c, haut) {
   col.dataset.cle = c.cle;
   col.colonne = c;
   // Hors des heures d'ouverture : grisé.
-  const h = (ctx.etab.heures || {})[CLES_JOURS[isoJour(c.jour)]];
+  // Sans aucune heure connue (aucun jour ouvert), rien n'est grisé.
+  const toutes = ctx.etab.heures || {};
+  const connues = Object.values(toutes).some(Boolean);
+  const h = toutes[CLES_JOURS[isoJour(c.jour)]];
   const ouvre = h ? minutesTexte(h.ouvre) : null, ferme = h ? (minutesTexte(h.ferme) || 24 * 60) : null;
-  const ferme1 = h ? [[ctx.deb, ouvre], [ferme, ctx.fin]] : [[ctx.deb, ctx.fin]];
+  const ferme1 = !connues ? [] : h ? [[ctx.deb, ouvre], [ferme, ctx.fin]] : [[ctx.deb, ctx.fin]];
   for (const [a, b] of ferme1) if (b > a) col.append(st(el('div', { classe: 'hors-heures' }), `top:${(Math.max(a, ctx.deb) - ctx.deb) * PX_MIN}px;height:${(Math.min(b, ctx.fin) - Math.max(a, ctx.deb)) * PX_MIN}px`));
   for (let m = ctx.deb; m < ctx.fin; m += 60) col.append(st(el('div', { classe: 'trait' }), `top:${(m - ctx.deb) * PX_MIN}px`));
   // Maintenant.
@@ -359,10 +374,10 @@ function panneau(ctx) {
   // État : confirmée ou option (admin et gestionnaire).
   const statut = el('select', { disabled: !modifiable || !peutModifier() },
     el('option', { value: 'confirmee', selected: !r || r.statut === 'confirmee' }, 'Confirmée'),
-    el('option', { value: 'option', selected: r && r.statut === 'option' }, 'Option (en attente du client)'),
+    el('option', { value: 'option', selected: r && r.statut === 'option' }, 'Option'),
     r && r.statut === 'demandee' ? el('option', { value: 'demandee', selected: true }, 'En conflit (pas à l’écran)') : null);
   const echeance = el('input', { type: 'date', valeur: r && r.option_jusqu ? aaaammjj(new Date(r.option_jusqu)) : aaaammjj(ajouterJours(new Date(), 7)) });
-  const ligneEcheance = el('label', null, 'Option jusqu’au', echeance);
+  const ligneEcheance = el('label', null, 'Jusqu’au', echeance);
   const majStatut = () => { ligneEcheance.hidden = statut.value !== 'option'; };
   statut.addEventListener('change', majStatut);
   majStatut();
@@ -471,12 +486,11 @@ function panneau(ctx) {
     r ? el('div', { classe: 'doux' }, ETATS[r.statut] + (r.serie_id ? ' · ↻ série' : '')
       + (r.modifie_le ? ' · modifiée ' + quand(r.modifie_le) : '')) : null,
     el('label', null, 'Client', client, liste),
-    el('label', null, 'Activité', titre),
-    el('label', null, 'Plateau', plateau),
+    el('div', { classe: 'champs deux' }, el('label', null, 'Activité', titre), el('label', null, 'Plateau', plateau)),
     el('div', { classe: 'champs trois' }, el('label', null, 'Date', date), el('label', null, 'Début', debut), el('label', null, 'Fin', fin)),
     ligneSurf,
-    peutModifier() || (r && r.statut !== 'confirmee') ? el('label', null, 'État', statut) : null,
-    ligneEcheance,
+    peutModifier() || (r && r.statut !== 'confirmee')
+      ? el('div', { classe: 'champs deux' }, el('label', null, 'État', statut), ligneEcheance) : ligneEcheance,
     !r && peutModifier() ? el('label', null, 'Répéter', repeter) : null,
     !r && peutModifier() ? blocRepeter : null,
     r && r.serie_id && peutModifier() ? el('label', null, 'Appliquer à', portee) : null,
