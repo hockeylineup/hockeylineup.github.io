@@ -214,3 +214,22 @@ main#contenu:has(.vue-contenu) { max-width: 1400px; }
   .barre-enregistrer { left: 16px; right: 16px; transform: none; }
   .barre-enregistrer span { flex: 1; font-size: .9rem; }
 }
+/* Champs de l'onglet Contenu (hors .carte-formulaire) ; rien ne déborde */
+main#contenu, .vue-contenu, .editeur, .reglages, .corps-section, .liste-panneaux, .corps-panneau { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1001px) { .editeur { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); } }
+.vue-contenu .champs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); gap: 12px; }
+.vue-contenu .champs .large { grid-column: 1 / -1; }
+.vue-contenu .champs > h4 { grid-column: 1 / -1; margin: 4px 0 -4px; }
+.vue-contenu input, .vue-contenu select { width: 100%; height: 40px; }
+.vue-contenu input[type="checkbox"] { width: auto; height: auto; }
+.vue-contenu input[type="color"] { padding: 2px; }
+.vue-contenu textarea { width: 100%; font: inherit; }
+.vue-contenu label.case { display: flex; align-items: center; gap: 6px; }
+.nom-panneau strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 560px) {
+  .mini-type { display: none; }
+  .ligne-panneau > summary { flex-wrap: wrap; }
+  .gestes { margin-left: auto; }
+  .barre-enregistrer { flex-wrap: wrap; justify-content: flex-end; }
+  .barre-enregistrer span { flex-basis: 100%; }
+}
