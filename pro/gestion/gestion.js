@@ -21,7 +21,8 @@ const majPro = (table, filtre, corps) => rest('PATCH', table + '?' + new URLSear
 const ROLES = { admin: 'Administrateur', gestionnaire: 'Gestionnaire', prepose: 'Préposé' };
 const EN_LIGNE_MS = 3 * 60 * 1000;
 const etat = { membres: [], organisations: [], organisation: null, onglet: 'horaire', enAttente: 0 };
-const ONGLETS = { horaire: 'Horaire', ligues: 'Ligues', contenu: 'Contenu', urgence: 'Urgence', lecteurs: 'Lecteurs' };
+const ONGLETS = { horaire: 'Horaire', ligues: 'Ligues', contenu: 'Contenu', urgence: 'Urgence', lecteurs: 'Lecteurs',
+  etablissement: 'Établissement' };
 
 function dire(texte, erreur) {
   const m = $('message');
@@ -98,7 +99,8 @@ async function afficher() {
     classe: k === etat.onglet ? 'actif' : null, onclick: () => { if (etat.onglet === 'contenu' && k !== 'contenu' && !quitterContenu()) return; etat.onglet = k; afficher(); } }, v,
     k === 'ligues' && etat.enAttente ? el('span', { classe: 'compte', title: 'Ligues à approuver' }, String(etat.enAttente)) : null)));
   try {
-    const vue = { horaire: vueHoraire, ligues: vueLigues, lecteurs: vueLecteurs, contenu: vueContenu, urgence: vueUrgence }[etat.onglet];
+    const vue = { horaire: vueHoraire, ligues: vueLigues, lecteurs: vueLecteurs, contenu: vueContenu, urgence: vueUrgence,
+      etablissement: vueEtablissement }[etat.onglet];
     $('contenu').replaceChildren(await vue());
   } catch (e) {
     dire(e.message, true);

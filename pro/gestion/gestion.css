@@ -236,3 +236,14 @@ main#contenu, .vue-contenu, .editeur, .reglages, .corps-section, .liste-panneaux
 .poignee { cursor: grab; color: var(--doux); font-size: 1.1rem; padding: 0 2px; user-select: none; }
 .ligne-panneau.tiree { opacity: .4; outline: 2px dashed var(--bleu); }
 @media (pointer: coarse) { .poignee { display: none; } }
+
+.fiche-etablissement [hidden] { display: none !important; }
+.fiche-etablissement h3 { margin-top: 8px; }
+.heures { display: grid; gap: 6px; }
+.jour-heures { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.jour-heures label.case { min-width: 120px; }
+.jour-heures input[type="time"] { width: auto; }
+.liste-noms { display: grid; gap: 6px; margin-bottom: 6px; }
+.rangee-nom { display: flex; gap: 6px; align-items: center; }
+.nombre-vestiaires { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.nombre-vestiaires input { width: 90px; }

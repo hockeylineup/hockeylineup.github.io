@@ -1,5 +1,5 @@
 // EspaceLigue Pro · Gestion — les ligues EspaceLigue qui jouent chez
-// l'organisation, et les vestiaires (docs/horaire.md d'espaceligue-pro).
+// l'organisation, et le vestiaire de leurs équipes (docs/horaire.md d'espaceligue-pro).
 // Chargé après gestion.js, contenu.js et horaire.js.
 //
 // La ligue choisit l'établissement dans EspaceLigue (pro.demander_etablissement) ;
@@ -32,7 +32,6 @@ async function vueLigues() {
     lirePro('etablissements', { select: 'id,nom', organisation_id: 'eq.' + org, order: 'nom' }),
   ]);
   const plusieurs = etablissements.length > 1;
-  const nomEtab = (id) => (etablissements.find((e) => e.id === id) || {}).nom || '';
 
   const carteLigue = (l) => {
     const glaces = plateaux.filter((p) => p.etablissement_id === l.etablissement_id);
@@ -82,43 +81,14 @@ async function vueLigues() {
       el('h3', null, 'À approuver'),
       ...(enAttente.length ? enAttente.map(carteLigue) : [el('p', { classe: 'doux' }, 'Aucune demande en attente.')]),
       ...(autres.length ? [el('h3', null, 'Déjà traitées'), ...autres.map(carteLigue)] : []),
-    ] : [el('p', { classe: 'doux' }, 'Seuls l’administrateur et les gestionnaires approuvent les ligues.')]),
-    blocVestiaires(etablissements, vestiaires, modifiable, nomEtab));
+    ] : [el('p', { classe: 'doux' }, 'Seuls l’administrateur et les gestionnaires approuvent les ligues.')]));
 }
 
-// --- Vestiaires --------------------------------------------------------------------
-function blocVestiaires(etablissements, vestiaires, modifiable, nomEtab) {
-  const plusieurs = etablissements.length > 1;
-  const liste = el('div', { classe: 'puces' }, vestiaires.map((v) => el('span', { classe: 'puce' },
-    (plusieurs ? nomEtab(v.etablissement_id) + ' · ' : '') + v.nom,
-    modifiable ? el('button', { type: 'button', classe: 'discret', title: 'Retirer', onclick: async () => {
-      if (!confirm('Retirer « ' + v.nom + ' » ? Les équipes qui l’avaient n’en auront plus.')) return;
-      try { await retraitPro('vestiaires', { id: 'eq.' + v.id }); await afficher(); dire('Vestiaire retiré.'); }
-      catch (e) { dire(e.message, true); }
-    } }, '×') : null)));
-
-  const nom = el('input', { required: true, maxlength: 40, placeholder: 'ex. Vestiaire 3' });
-  const etab = el('select', null, etablissements.map((e) => el('option', { value: e.id }, e.nom)));
-  const ajout = modifiable && etablissements.length ? el('form', { classe: 'outils', onsubmit: async (ev) => {
-      ev.preventDefault();
-      try {
-        await ajoutPro('vestiaires', { organisation_id: etat.organisation, etablissement_id: etab.value, nom: nom.value.trim() });
-        await afficher();
-        dire('Vestiaire ajouté.');
-      } catch (e) { dire(e.message, true); }
-    } }, nom, plusieurs ? etab : null, el('button', { type: 'submit' }, 'Ajouter un vestiaire')) : null;
-
-  return el('div', { classe: 'fiche' },
-    el('h3', null, 'Vestiaires'),
-    el('p', { classe: 'doux' }, 'Les vestiaires de l’aréna. Chaque équipe d’une ligue acceptée reçoit le sien dans la carte de sa ligue.'),
-    vestiaires.length ? liste : el('p', { classe: 'doux' }, 'Aucun vestiaire pour l’instant.'),
-    ajout);
-}
-
+// --- Vestiaires ----------------------------------------------------------------------
 // Dans la carte d'une ligue acceptée : le vestiaire de chacune de ses équipes.
 function tableVestiaires(equipes, vestiaires, modifiable) {
   if (!equipes.length) return el('p', { classe: 'doux' }, 'Aucune équipe dans cette saison pour l’instant.');
-  if (!vestiaires.length) return el('p', { classe: 'doux' }, 'Ajoutez d’abord vos vestiaires, plus bas.');
+  if (!vestiaires.length) return el('p', { classe: 'doux' }, 'Aucun vestiaire : ajoutez-les dans l’onglet Établissement.');
   const lignes = equipes.map((q) => {
     const choix = el('select', { disabled: !modifiable, onchange: async () => {
         try {
