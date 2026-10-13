@@ -110,8 +110,7 @@ const rafraichirApercu = () => { clearTimeout(contenu.minuterie); contenu.minute
 function cadreApercu() {
   const f = el('iframe', { id: 'apercu', src: '../affichage/?apercu', title: 'Aperçu de l’affichage', tabindex: '-1' });
   f.addEventListener('load', envoyerApercu);
-  return el('div', { classe: 'apercu' }, f,
-    el('p', { classe: 'doux' }, 'Aperçu en direct, aux vraies durées.'));
+  return el('div', { classe: 'apercu' }, f);
 }
 
 // --- Vue Contenu -------------------------------------------------------------------
