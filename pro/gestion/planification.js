@@ -563,6 +563,20 @@ function saisirBloc(ev, ctx, d, c) {
 
 function ouvrirPanneau(p) { plan.panneau = p; afficher(); }
 
+// --- Courriels aux clients (Edge Function pro-courriel, fichier .ics joint) ----------
+const courrielDe = (locataireId, ctx) => ((ctx.locataires || []).find((l) => l.id === locataireId) || {}).courriel || null;
+async function envoyerCourriel(corps) {
+  try {
+    const r = await fetch(SUPABASE + '/functions/v1/pro-courriel', { method: 'POST', credentials: 'omit',
+      headers: { apikey: CLE, Authorization: 'Bearer ' + await jetonFrais(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(corps) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.erreur || d.message || 'Envoi impossible (' + r.status + ').');
+    dire('Courriel envoyé à ' + d.a + (d.n > 1 ? ' (' + d.n + ' dates).' : '.'));
+  } catch (e) { dire(e.message, true); }
+}
+const actionCourriel = (corps) => ({ libelle: '✉ Envoyer au client', fn: () => envoyerCourriel(corps) });
+
 // Une copie simple (hors série) d'une réservation saisie à la main.
 function copieDe(r, debut, fin, plateau) {
   return { organisation_id: etat.organisation, plateau_id: plateau, periode: plage(debut, fin), titre: r.titre || null,
@@ -771,16 +785,18 @@ function panneau(ctx) {
           p_surfacage: commun.surfacage }, PRO);
         plan.panneau = null;
         await afficher();
-        dire(resumeSerie(res), res.some((x) => x.etat !== 'creee'));
+        dire(resumeSerie(res), res.some((x) => x.etat !== 'creee'),
+          courrielDe(loc, ctx) && res.length ? actionCourriel({ serie_id: res[0].serie_id }) : null);
         return;
       }
       if (!r) {
-        await ajoutPro('reservations', Object.assign({ organisation_id: etat.organisation, plateau_id: plateau.value,
+        const [n] = await ajoutPro('reservations', Object.assign({ organisation_id: etat.organisation, plateau_id: plateau.value,
           periode: plage(d1, d2), statut: statut.value, source: 'manuel' }, commun, opt));
         plan.date = plan.vue === 'jour' ? debutJour(d1) : plan.date;
         plan.panneau = null;
         await afficher();
-        dire(statut.value === 'option' ? 'Option posée.' : 'Réservation ajoutée.');
+        dire(statut.value === 'option' ? 'Option posée.' : 'Réservation ajoutée.', false,
+          courrielDe(loc, ctx) ? actionCourriel({ reservation: n.id }) : null);
         return;
       }
       if (r.serie_id && portee.value === 'suivantes') {
@@ -842,6 +858,10 @@ function panneau(ctx) {
       el('button', { type: 'button', classe: 'discret', onclick: () => annuler('une') }, 'Annuler cette fois'),
       r.serie_id && peutModifier() ? el('button', { type: 'button', classe: 'discret', onclick: () => annuler('suivantes') }, '… et les suivantes') : null,
       r.serie_id && peutModifier() ? el('button', { type: 'button', classe: 'discret', onclick: () => annuler('serie') }, 'Toute la série') : null) : null,
+    r && courrielDe(r.locataire_id, ctx) ? el('button', { type: 'button', classe: 'discret lien', onclick: async () => {
+      const serie = r.serie_id && confirm('Envoyer toutes les dates à venir de la série ?\nOK : toute la série · Annuler : cette date seulement');
+      await envoyerCourriel({ reservation: r.id, serie: !!serie, motif: 'confirmation' });
+    } }, '✉ Envoyer la confirmation à ' + courrielDe(r.locataire_id, ctx)) : null,
     r && r.locataire_id ? el('button', { type: 'button', classe: 'discret lien', onclick: () => {
       plan.client = r.locataire_id; plan.sous = 'clients'; plan.panneau = null; afficher(); } }, 'Voir la fiche du client →') : null);
 }
@@ -976,7 +996,8 @@ async function ficheClient(id, modifiable) {
     modifiable ? el('div', { classe: 'actions' }, el('button', { type: 'submit' }, 'Enregistrer'),
       el('button', { type: 'button', classe: 'discret', onclick: () => { plan.sous = 'grille'; afficher(); } }, 'Voir à l’horaire')) : null,
     el('div', { classe: 'tete-panneau' }, el('h4', null, 'Prochaines réservations'),
-      el('button', { type: 'button', classe: 'discret', onclick: () => listeClient(l) }, 'Liste à imprimer')),
+      el('span', null, l.courriel ? el('button', { type: 'button', classe: 'discret', onclick: () => envoyerCourriel({ client: l.id }) }, '✉ Envoyer par courriel') : null,
+        ' ', el('button', { type: 'button', classe: 'discret', onclick: () => listeClient(l) }, 'Liste à imprimer'))),
     prochaines.length ? el('div', { classe: 'table' }, el('table', null, el('tbody', null, prochaines.map((r) => {
       const [a, b] = bornes(r.periode);
       return el('tr', null, el('td', null, a.toLocaleDateString('fr-CA', { weekday: 'short', day: 'numeric', month: 'short' })),
