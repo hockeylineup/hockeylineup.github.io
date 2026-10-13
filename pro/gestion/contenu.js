@@ -19,7 +19,7 @@ const TYPES = {
   pointage: { nom: 'Pointage en direct', aide: 'Paraît seulement pendant un match EspaceLigue.', duree: 20 },
   annonce: { nom: 'Annonce', aide: 'Un titre, un texte, une couleur, une image au besoin.', duree: 12 },
   image: { nom: 'Image', aide: 'Plein écran : commanditaire, affiche, promotion.', duree: 10 },
-  video: { nom: 'Vidéo', aide: 'Fichier MP4 ou flux en direct (.m3u8), sans le son.', duree: 30 },
+  video: { nom: 'Vidéo', aide: 'MP4, flux .m3u8, YouTube ou Vimeo, sans le son.', duree: 30 },
   rss: { nom: 'Fil d’actualités', aide: 'Les manchettes d’un fil RSS (nouvelles, résultats sportifs).', duree: 15 },
   meteo: { nom: 'Météo', aide: 'Conditions et prévisions à l’adresse de l’établissement.', duree: 12 },
 };
@@ -329,7 +329,7 @@ function lignePanneau(p, i, af, modifiable) {
       champMedia('Image (facultative)', c.image, 'image/*', (u) => { c.image = u || undefined; maj(); })],
     image: () => [champMedia('Image', c.url, 'image/*', (u) => { c.url = u; maj(); }),
       el('label', null, 'Cadrage', choixDe('ajustement', { '': 'Image entière', cover: 'Remplir l’écran' }))],
-    video: () => [champMedia('Vidéo (MP4 ou .m3u8)', c.url, 'video/mp4', (u) => { c.url = u; maj(); }),
+    video: () => [champMedia('Vidéo : MP4, .m3u8, lien YouTube ou Vimeo', c.url, 'video/mp4', (u) => { c.url = u; maj(); }),
       el('label', null, 'Cadrage', choixDe('ajustement', { '': 'Image entière', cover: 'Remplir l’écran' }))],
     rss: () => [el('label', { classe: 'large' }, 'Adresse du fil', entree('url', { placeholder: 'https://ici.radio-canada.ca/rss/…' })),
       el('label', null, 'Titre affiché', entree('titre', { placeholder: 'ex. Sports' })),

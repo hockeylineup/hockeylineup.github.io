@@ -124,6 +124,7 @@
   .annonce p { font-size: 2.6cqw; color: var(--doux); margin: 0; white-space: pre-line; }
   .annonce img { max-width: 34cqw; max-height: 70%; border-radius: 1.2cqw; }
   .image { background: #000; }
+  .video iframe { width: 100%; height: 100%; border: 0; display: block; pointer-events: none; }
   .image img, .video video { width: 100%; height: 100%; object-fit: var(--ajustement, contain); display: block; }
   .video { background: #000; }
   .rss { background: var(--fond); padding: 4cqw 5cqw; display: flex; flex-direction: column; overflow: hidden; }
@@ -446,7 +447,25 @@ function rendre(p) {
 // Vidéo muette en boucle ; le HLS (.m3u8) passe par hls.js, que Chromium
 // ne lit pas seul.
 let hlsPromesse = null;
+// YouTube et Vimeo (vidéo ou direct) : leur lecteur intégré, muet, en boucle,
+// sans commandes. Le lecteur YouTube exige un référent : on le lui donne.
+function lecteurIntegre(url) {
+  let m = String(url).match(/(?:youtube(?:-nocookie)?\.com\/(?:watch\?(?:.*&)?v=|live\/|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/i);
+  if (m) return 'https://www.youtube-nocookie.com/embed/' + m[1]
+    + '?autoplay=1&mute=1&controls=0&loop=1&playlist=' + m[1] + '&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3';
+  m = String(url).match(/vimeo\.com\/event\/(\d+)/i);
+  if (m) return 'https://vimeo.com/event/' + m[1] + '/embed?autoplay=1&muted=1';
+  m = String(url).match(/vimeo\.com\/(?:video\/)?(\d+)/i);
+  if (m) return 'https://player.vimeo.com/video/' + m[1] + '?autoplay=1&muted=1&loop=1&background=1';
+  return null;
+}
 function videoPanneau(c) {
+  const integre = lecteurIntegre(c.url);
+  if (integre) {
+    const f = Object.assign(el('iframe'), { src: integre, allow: 'autoplay; encrypted-media', referrerPolicy: 'strict-origin-when-cross-origin' });
+    f.setAttribute('frameborder', '0');
+    return el('div', 'video', f);
+  }
   const v = Object.assign(el('video'), { muted: true, autoplay: true, loop: true, playsInline: true });
   if (c.ajustement === 'cover') v.style.objectFit = 'cover';
   if (/\.m3u8(\?|$)/i.test(c.url) && !v.canPlayType('application/vnd.apple.mpegurl')) {
