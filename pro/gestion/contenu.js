@@ -101,7 +101,7 @@ function envoyerApercu() {
   const d = Object.assign({}, donneesReelles, {
     reglages: contenu.reglages,
     apparence: Object.assign({}, contenu.apparence, contenu.reglages.apparence || {}),
-    panneaux: contenu.panneaux.filter((p) => p.actif).map((p) => Object.assign({}, p, { duree: Math.min(p.duree, 8) })),
+    panneaux: contenu.panneaux.filter((p) => p.actif),
   });
   cadre.contentWindow.postMessage({ type: 'apercu', donnees: d }, location.origin);
 }
@@ -111,7 +111,7 @@ function cadreApercu() {
   const f = el('iframe', { id: 'apercu', src: '../affichage/?apercu', title: 'Aperçu de l’affichage', tabindex: '-1' });
   f.addEventListener('load', envoyerApercu);
   return el('div', { classe: 'apercu' }, f,
-    el('p', { classe: 'doux' }, 'Aperçu en direct, 8 s par panneau.'));
+    el('p', { classe: 'doux' }, 'Aperçu en direct, aux vraies durées.'));
 }
 
 // --- Vue Contenu -------------------------------------------------------------------
