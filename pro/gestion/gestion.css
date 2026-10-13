@@ -233,3 +233,6 @@ main#contenu, .vue-contenu, .editeur, .reglages, .corps-section, .liste-panneaux
   .barre-enregistrer { flex-wrap: wrap; justify-content: flex-end; }
   .barre-enregistrer span { flex-basis: 100%; }
 }
+.poignee { cursor: grab; color: var(--doux); font-size: 1.1rem; padding: 0 2px; user-select: none; }
+.ligne-panneau.tiree { opacity: .4; outline: 2px dashed var(--bleu); }
+@media (pointer: coarse) { .poignee { display: none; } }

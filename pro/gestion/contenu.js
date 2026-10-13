@@ -288,9 +288,53 @@ function listePanneaux(af, modifiable) {
     ajouter.textContent = galerie.hidden ? '+ Ajouter un panneau' : 'Fermer';
   } }, '+ Ajouter un panneau');
   return el('div', { classe: 'corps-section' },
-    contenu.panneaux.length ? el('div', { classe: 'liste-panneaux' }, contenu.panneaux.map((p, i) => lignePanneau(p, i, af, modifiable)))
+    contenu.panneaux.length ? glisserDeposer(el('div', { classe: 'liste-panneaux' }, contenu.panneaux.map((p, i) => lignePanneau(p, i, af, modifiable))), modifiable)
       : el('p', { classe: 'doux' }, 'Aucun panneau : l’écran montre l’horaire.'),
     modifiable ? ajouter : null, galerie);
+}
+
+// Glisser une rangée par sa poignée (⠿) pour changer l'ordre ; les flèches
+// restent pour le tactile. Au dépôt, on renumérote toute la liste.
+function glisserDeposer(liste, modifiable) {
+  if (!modifiable) return liste;
+  let tiree = null;
+  liste.addEventListener('mousedown', (ev) => {
+    const r = ev.target.closest('.poignee') && ev.target.closest('.ligne-panneau');
+    if (r) r.draggable = true;
+  });
+  liste.addEventListener('mouseup', () => { if (!tiree) liste.querySelectorAll('[draggable="true"]').forEach((n) => { n.draggable = false; }); });
+  liste.addEventListener('dragstart', (ev) => {
+    tiree = ev.target.closest('.ligne-panneau');
+    ev.dataTransfer.effectAllowed = 'move';
+    ev.dataTransfer.setData('text/plain', tiree.dataset.panneau);
+    setTimeout(() => tiree.classList.add('tiree'), 0);
+  });
+  liste.addEventListener('dragover', (ev) => {
+    if (!tiree) return;
+    ev.preventDefault();
+    const sous = ev.target.closest('.ligne-panneau');
+    if (!sous || sous === tiree) return;
+    const b = sous.getBoundingClientRect();
+    liste.insertBefore(tiree, ev.clientY > b.top + b.height / 2 ? sous.nextSibling : sous);
+  });
+  liste.addEventListener('dragend', async () => {
+    if (!tiree) return;
+    tiree.classList.remove('tiree');
+    tiree.draggable = false;
+    tiree = null;
+    const ids = [...liste.children].map((n) => n.dataset.panneau);
+    if (ids.join() === contenu.panneaux.map((p) => p.id).join()) return;
+    try {
+      await avantStructure();
+      await Promise.all(ids.map((id, n) => {
+        const p = contenu.panneaux.find((x) => x.id === id);
+        return p.ordre === (n + 1) * 10 ? null : majPro('panneaux', { id: 'eq.' + id }, { ordre: (n + 1) * 10 });
+      }));
+      await afficher();
+      dire('Ordre enregistré.');
+    } catch (e) { dire(e.message, true); afficher(); }
+  });
+  return liste;
 }
 
 // Ce qu'on reconnaît d'un panneau sans l'ouvrir.
@@ -376,6 +420,7 @@ function lignePanneau(p, i, af, modifiable) {
   const ligne = el('details', { classe: 'ligne-panneau' + (p.actif ? '' : ' inactif'), 'data-panneau': p.id, open: contenu.ouverts.has(p.id),
     ontoggle: () => { ligne.open ? contenu.ouverts.add(p.id) : contenu.ouverts.delete(p.id); } },
     el('summary', null,
+      modifiable ? el('span', { classe: 'poignee', title: 'Glisser pour changer l’ordre', 'aria-hidden': 'true' }, '⠿') : null,
       el('span', { classe: 'mini-type' }, VIGNETTES[p.type]()),
       el('span', { classe: 'nom-panneau' }, el('strong', null, TYPES[p.type].nom),
         resume ? el('span', { classe: 'doux' }, resume) : null,
