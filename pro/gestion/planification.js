@@ -61,7 +61,7 @@ async function vuePlanification() {
       actif: 'is.true', order: 'nom' }),
     lirePro('locataires', { select: 'id,nom,type,telephone,courriel,actif', organisation_id: 'eq.' + org, order: 'nom' }),
   ]);
-  const onglets = el('div', { classe: 'segment' }, [['grille', 'Horaire'], ['clients', 'Clients'], ['sources', 'Synchro Cal']]
+  const onglets = el('div', { classe: 'segment' }, [['grille', 'Horaire'], ['clients', 'Clients'], ['sources', 'Synchro calendriers']]
     .map(([k, v]) => el('button', { type: 'button', classe: plan.sous === k ? 'actif' : null,
       onclick: () => { plan.sous = k; plan.panneau = null; afficher(); } }, v)));
   const entete = el('div', { classe: 'entete-planif' }, el('h2', null, 'Planification'), onglets);
