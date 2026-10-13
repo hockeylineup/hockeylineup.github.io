@@ -33,6 +33,9 @@ async function vueLigues() {
   ]);
   const plusieurs = etablissements.length > 1;
 
+  const matchs = Object.fromEntries(await Promise.all(ligues.filter((l) => l.statut === 'acceptee').map(async (l) =>
+    [l.lieu_id, await rest('POST', 'rpc/matchs_ligue', { p_organisation: org, p_lieu: l.lieu_id }, PRO)])));
+
   const carteLigue = (l) => {
     const glaces = plateaux.filter((p) => p.etablissement_id === l.etablissement_id);
     const glace = el('select', { required: true },
@@ -64,6 +67,8 @@ async function vueLigues() {
         glaces.length ? el('button', { type: 'button', onclick: () => decider(true) },
           l.statut === 'acceptee' ? 'Enregistrer' : 'Accepter') : null,
         l.statut !== 'refusee' ? el('button', { type: 'button', classe: 'discret', onclick: () => decider(false) }, 'Refuser') : null),
+      l.statut === 'acceptee' ? el('div', null, el('h4', null, 'Matchs à venir'),
+        tableMatchs(matchs[l.lieu_id] || [], plateaux.filter((p) => p.etablissement_id === l.etablissement_id), modifiable)) : null,
       l.statut === 'acceptee' ? el('div', null, el('h4', null, 'Vestiaires des équipes'),
         tableVestiaires(equipes.filter((q) => q.ligue === l.ligue && q.saison === l.saison
           && q.etablissement_id === l.etablissement_id), vestiaires, modifiable)) : null);
@@ -82,6 +87,44 @@ async function vueLigues() {
       ...(enAttente.length ? enAttente.map(carteLigue) : [el('p', { classe: 'doux' }, 'Aucune demande en attente.')]),
       ...(autres.length ? [el('h3', null, 'Déjà traitées'), ...autres.map(carteLigue)] : []),
     ] : [el('p', { classe: 'doux' }, 'Seuls l’administrateur et les gestionnaires approuvent les ligues.')]));
+}
+
+// --- Matchs -----------------------------------------------------------------------
+// L'aréna corrige l'heure ou la glace d'un match : le vrai match change dans
+// EspaceLigue et les gérants de la ligue reçoivent un avis (pro.deplacer_match).
+const pourChamp = (iso) => { const d = new Date(iso); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
+
+function tableMatchs(matchs, glaces, modifiable) {
+  if (!matchs.length) return el('p', { classe: 'doux' }, 'Aucun match à venir.');
+  const lignes = matchs.map((m) => {
+    const debut = el('input', { type: 'datetime-local', valeur: pourChamp(m.debut), disabled: !modifiable });
+    const glace = el('select', { disabled: !modifiable || glaces.length < 2 },
+      glaces.map((p) => el('option', { value: p.id, selected: p.id === m.plateau_id }, p.nom)));
+    const bouton = el('button', { type: 'button', hidden: true, onclick: async () => {
+        const quand = new Date(debut.value);
+        if (isNaN(quand)) { dire('Heure invalide.', true); return; }
+        const change = quand.getTime() !== new Date(m.debut).getTime();
+        if (change && !confirm('Déplacer « ' + m.domicile + ' – ' + m.visiteur + ' » ? L’heure change aussi dans '
+          + 'EspaceLigue pour les joueurs, et les gérants de la ligue sont avisés.')) return;
+        try {
+          const etatRes = await rest('POST', 'rpc/deplacer_match', { p_organisation: etat.organisation, p_match: m.match_id,
+            p_debut: change ? quand.toISOString() : null, p_plateau: glace.value || null }, PRO);
+          await afficher();
+          dire(etatRes === 'demandee' ? 'Match enregistré, mais la glace est déjà prise à cette heure : voyez l’Horaire.'
+            : 'Match enregistré.' + (change ? ' Les gérants de la ligue sont avisés.' : ''), etatRes === 'demandee');
+        } catch (e) { dire(e.message, true); }
+      } }, 'Enregistrer');
+    const montrer = () => { bouton.hidden = false; };
+    debut.addEventListener('input', montrer);
+    glace.addEventListener('change', montrer);
+    return el('tr', null,
+      el('td', null, debut),
+      el('td', null, el('strong', null, m.domicile + ' – ' + m.visiteur),
+        m.statut === 'demandee' ? el('span', { classe: 'pastille rouge-fond', title: 'La glace était déjà prise' }, 'Conflit') : null),
+      el('td', null, glace), el('td', null, bouton));
+  });
+  return el('div', { classe: 'table' }, el('table', null, el('thead', null, el('tr', null,
+    el('th', null, 'Heure'), el('th', null, 'Match'), el('th', null, 'Glace'), el('th', null, ''))), el('tbody', null, lignes)));
 }
 
 // --- Vestiaires ----------------------------------------------------------------------
