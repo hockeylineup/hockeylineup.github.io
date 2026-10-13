@@ -42,13 +42,17 @@ function icone(k) {
   return s;
 }
 
-function dire(texte, erreur) {
+// `action` : { libelle, fn } — un bouton dans le toast (« Annuler » après un geste).
+function dire(texte, erreur, action) {
   const m = $('message');
   clearTimeout(minuterieMessage);
-  m.textContent = texte;
+  m.replaceChildren(el('span', null, texte), action ? el('button', { type: 'button', classe: 'action-toast', onclick: async () => {
+    m.hidden = true;
+    try { await action.fn(); } catch (e) { dire(e.message, true); }
+  } }, action.libelle) : null);
   m.className = 'message' + (erreur ? ' erreur' : texte ? ' succes' : '');
   m.hidden = !texte;
-  if (texte) minuterieMessage = setTimeout(() => { m.hidden = true; }, erreur ? 8000 : 3500);
+  if (texte) minuterieMessage = setTimeout(() => { m.hidden = true; }, erreur ? 8000 : action ? 7000 : 3500);
 }
 
 // Une fine barre en haut de la page pendant les échanges avec la base, et le

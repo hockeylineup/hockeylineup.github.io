@@ -94,13 +94,20 @@ async function vuePlanification() {
   // En vue Semaine, un gymnase entier ou une section montre aussi ce qui bloque l'autre.
   const lies = plan.vue === 'semaine' && plan.plateau ? plateaux.filter((p) => p.id === (plateaux.find((x) => x.id === plan.plateau) || {}).parent_id
     || p.parent_id === plan.plateau).map((p) => p.id) : [];
-  const [reservations, surf] = await Promise.all([
+  const maintenant = new Date();
+  const [reservations, surf, alertes] = await Promise.all([
     ids.length ? lirePro('reservations', {
       select: 'id,periode,titre,statut,source,serie_id,locataire_id,plateau_id,match_id,option_jusqu,surfacage,note,modifie_le,locataires(nom),calendriers(nom)',
       plateau_id: 'in.(' + ids.concat(lies).join(',') + ')', periode: 'ov.' + plage(premier, dernier), statut: 'neq.annulee', order: 'periode' }) : [],
     rest('POST', 'rpc/surfacages', { p_organisation: org, p_du: aaaammjj(premier), p_au: aaaammjj(ajouterJours(dernier, -1)) }, PRO)
       .catch(() => []),
+    // Ce qui demande une décision : les conflits à venir, et les options qui échoient dans 48 h.
+    lirePro('reservations', { select: 'id,periode,titre,statut,option_jusqu,plateau_id,locataires(nom)', organisation_id: 'eq.' + org,
+      periode: 'ov.' + plage(maintenant, ajouterJours(maintenant, 400)),
+      or: '(statut.eq.demandee,and(statut.eq.option,option_jusqu.lt.' + new Date(maintenant.getTime() + 48 * 3600000).toISOString() + '))',
+      order: 'periode', limit: 50 }).catch(() => []),
   ]);
+  plan.tous = plateaux;
   const plIds = new Set(plEtab.map((p) => p.id));
   const surfEtab = surf.filter((s) => plIds.has(s.plateau_id));
 
@@ -127,6 +134,7 @@ async function vuePlanification() {
     fin = Math.max(fin, Math.min(24 * 60, Math.ceil(minutesDe(b, j) / 60) * 60));
   }
   deb = Math.floor(deb / 60) * 60; fin = Math.ceil(fin / 60) * 60;
+  plan.derniers = reservations;
   const ctx = { deb, fin, colonnes, reservations, plateaux, locataires, etab, surf: surfEtab, defaut: visibles[0] || plEtab[0] };
 
   const nav = (n) => () => {
@@ -151,13 +159,19 @@ async function vuePlanification() {
       el('label', { classe: 'periode', title: 'Choisir la date' }, el('span', null, titrePeriode), ' ▾', dateChamp),
       nbSurf ? el('span', { classe: 'pastille surf-fond', title: 'Resurfaçages compris dans les réservations' },
         '❄ ' + nbSurf + ' resurfaçage' + (nbSurf > 1 ? 's' : '')) : null),
-    el('div', { classe: 'segment vues' }, [['jour', 'Jour'], ['semaine', 'Semaine'], ['mois', 'Mois']].map(([k, v]) =>
-      el('button', { type: 'button', classe: plan.vue === k ? 'actif' : null, onclick: () => { plan.vue = k; afficher(); } }, v))));
+    el('div', { classe: 'groupe' },
+      blocAlertes(alertes, plateaux),
+      champRecherche(locataires, plateaux),
+      el('div', { classe: 'segment vues' }, [['jour', 'Jour'], ['semaine', 'Semaine'], ['mois', 'Mois']].map(([k, v]) =>
+        el('button', { type: 'button', classe: plan.vue === k ? 'actif' : null, title: v + ' (' + v[0] + ')',
+          onclick: () => { plan.vue = k; afficher(); } }, v)))));
 
   const nouvelle = () => {
     const j = plan.vue === 'jour' ? plan.date : debutJour(new Date());
     ouvrirPanneau({ nouveau: true, plateau: (visibles[0] || plEtab[0] || {}).id, debut: aHeure(j, 18 * 60), fin: aHeure(j, 19 * 60 + 30) });
   };
+  plan.nav = nav;
+  plan.nouvelle = nouvelle;
   const volet = voletPlanif({ etablissements, plEtab, plateaux, locataires, premier, nbJours, nouvelle });
 
   const g = plan.vue === 'mois' ? grilleMois(ctx, premier, debutMois) : grille(ctx);
@@ -349,6 +363,11 @@ function colonne(ctx, c, haut) {
   for (const [r, i, n] of place) col.append(bloc(ctx, c, r, i, n, false));
 
   if (peutReserver()) col.addEventListener('pointerdown', (ev) => selectionner(ev, ctx, col));
+  // La case sous la souris : c'est là que Cmd+V colle une réservation copiée.
+  col.addEventListener('pointermove', (ev) => {
+    plan.survol = { c, ctx, minute: Math.floor((ctx.deb + (ev.clientY - col.getBoundingClientRect().top) / PX_MIN) / PAS) * PAS };
+  });
+  col.addEventListener('pointerleave', () => { plan.survol = null; });
   return col;
 }
 
@@ -429,6 +448,7 @@ function saisirBloc(ev, ctx, d, c) {
   }
   ev.preventDefault();
   const etirer = ev.target.classList.contains('poignee');
+  const dupliquer = ev.altKey && !etirer;  // Alt-glisser : une copie à l'endroit lâché
   const [a, b] = bornes(r.periode);
   const x0 = ev.clientX, y0 = ev.clientY;
   const top0 = parseFloat(d.style.top), haut0 = parseFloat(d.style.height);
@@ -455,16 +475,142 @@ function saisirBloc(ev, ctx, d, c) {
     const corps = { periode: plage(na, nb) };
     if (!etirer && c2.plateau && c2.plateau.id !== r.plateau_id) corps.plateau_id = c2.plateau.id;
     try {
+      if (dupliquer) {
+        const [n] = await ajoutPro('reservations', copieDe(r, na, nb, corps.plateau_id || r.plateau_id));
+        await afficher();
+        dire('Copiée : ' + hhmm(na) + ' – ' + hhmm(nb) + '.', false, annulerAjout(n.id));
+        return;
+      }
       await majPro('reservations', { id: 'eq.' + r.id }, corps);
-      dire((etirer ? 'Durée changée : ' : 'Déplacée : ') + hhmm(na) + ' – ' + hhmm(nb) + (corps.plateau_id ? ' · ' + c2.plateau.nom : '') + '.');
-    } catch (e) { dire(messageRefus(e), true); }
-    await afficher();
+      await afficher();
+      dire((etirer ? 'Durée changée : ' : 'Déplacée : ') + hhmm(na) + ' – ' + hhmm(nb) + (corps.plateau_id ? ' · ' + c2.plateau.nom : '') + '.',
+        false, { libelle: 'Annuler', fn: async () => {
+          await majPro('reservations', { id: 'eq.' + r.id }, { periode: r.periode, plateau_id: r.plateau_id });
+          await afficher(); dire('Retour à l’état d’avant.'); } });
+    } catch (e) { await afficher(); dire(messageRefus(e), true); }
   };
   document.addEventListener('pointermove', bouger);
   document.addEventListener('pointerup', lacher);
 }
 
 function ouvrirPanneau(p) { plan.panneau = p; afficher(); }
+
+// Une copie simple (hors série) d'une réservation saisie à la main.
+function copieDe(r, debut, fin, plateau) {
+  return { organisation_id: etat.organisation, plateau_id: plateau, periode: plage(debut, fin), titre: r.titre || null,
+    locataire_id: r.locataire_id || null, note: r.note || null, surfacage: r.surfacage !== false,
+    statut: r.statut === 'option' ? 'option' : 'confirmee', source: 'manuel' };
+}
+const annulerAjout = (id) => ({ libelle: 'Annuler', fn: async () => {
+  await retraitPro('reservations', { id: 'eq.' + id }); await afficher(); dire('Copie retirée.'); } });
+
+// Aller à une réservation : sa journée, son établissement, son plateau visible, son panneau ouvert.
+function allerA(r) {
+  const pl = (plan.tous || []).find((p) => p.id === r.plateau_id);
+  if (pl) { plan.etab = pl.etablissement_id; plan.masques.delete(pl.id); }
+  plan.date = debutJour(bornes(r.periode)[0]);
+  plan.vue = 'jour';
+  plan.sous = 'grille';
+  plan.panneau = { id: r.id };
+  plan.mini = null;
+  afficher();
+}
+const resumeResa = (r, plateaux) => {
+  const [a] = bornes(r.periode);
+  const pl = plateaux.find((p) => p.id === r.plateau_id) || {};
+  return [a.toLocaleDateString('fr-CA', { weekday: 'short', day: 'numeric', month: 'short' }) + ' ' + hhmm(a),
+    pl.nom, r.titre || (r.locataires || {}).nom || 'Réservé'].filter(Boolean).join(' · ');
+};
+
+// L'alerte : conflits à venir et options qui échoient bientôt, avec la liste au clic.
+function blocAlertes(alertes, plateaux) {
+  if (!alertes.length) return null;
+  const conflits = alertes.filter((r) => r.statut === 'demandee').length;
+  const options = alertes.length - conflits;
+  const texte = [conflits ? conflits + ' en conflit' : null, options ? options + ' option' + (options > 1 ? 's' : '') + ' échoi' + (options > 1 ? 'ent' : 't') + ' bientôt' : null]
+    .filter(Boolean).join(' · ');
+  const liste = el('div', { classe: 'pop-liste', hidden: true }, alertes.map((r) => el('button', { type: 'button', classe: 'ligne-pop',
+    onclick: () => allerA(r) }, el('span', { classe: 'pastille ' + (r.statut === 'demandee' ? 'rouge-fond' : 'ambre-fond') },
+      r.statut === 'demandee' ? 'Conflit' : 'Option'), resumeResa(r, plateaux))));
+  const bouton = el('button', { type: 'button', classe: 'alerte-planif', onclick: (ev) => { ev.stopPropagation(); liste.hidden = !liste.hidden; } },
+    '⚠ ' + texte);
+  return el('div', { classe: 'pop' }, bouton, liste);
+}
+
+// La recherche : titre ou client, de la veille à un an ; un clic mène à la réservation.
+function champRecherche(locataires, plateaux) {
+  const liste = el('div', { classe: 'pop-liste', hidden: true });
+  let minuterie = null;
+  const champ = el('input', { type: 'search', classe: 'recherche-planif', placeholder: 'Rechercher… ( / )', 'aria-label': 'Rechercher une réservation',
+    oninput: () => {
+      clearTimeout(minuterie);
+      const q = champ.value.trim();
+      if (q.length < 2) { liste.hidden = true; return; }
+      minuterie = setTimeout(async () => {
+        const motif = q.replace(/[*,()"\\]/g, ' ');
+        const clients = locataires.filter((l) => l.nom.toLowerCase().includes(q.toLowerCase())).map((l) => l.id).slice(0, 40);
+        const debut = ajouterJours(new Date(), -1);
+        try {
+          const res = await lirePro('reservations', { select: 'id,periode,titre,statut,plateau_id,locataires(nom)',
+            organisation_id: 'eq.' + etat.organisation, statut: 'neq.annulee', periode: 'ov.' + plage(debut, ajouterJours(debut, 400)),
+            or: '(titre.ilike.*' + motif + '*' + (clients.length ? ',locataire_id.in.(' + clients.join(',') + ')' : '') + ')',
+            order: 'periode', limit: 15 });
+          liste.replaceChildren(...(res.length ? res.map((r) => el('button', { type: 'button', classe: 'ligne-pop', onclick: () => allerA(r) },
+            resumeResa(r, plateaux))) : [el('div', { classe: 'doux vide-pop' }, 'Rien trouvé.')]));
+          liste.hidden = false;
+        } catch (e) { dire(e.message, true); }
+      }, 250);
+    },
+    onkeydown: (ev) => { if (ev.key === 'Escape') { champ.value = ''; liste.hidden = true; champ.blur(); }
+      if (ev.key === 'Enter') { const b = liste.querySelector('.ligne-pop'); if (b) b.click(); } } });
+  return el('div', { classe: 'pop' }, champ, liste);
+}
+
+// Cmd+V : coller la réservation copiée sous la souris (même durée), ou à la même heure
+// le lendemain si la souris n'est pas sur la grille.
+async function coller() {
+  const r = plan.presse;
+  if (!r || !peutReserver()) return;
+  const [a, b] = bornes(r.periode);
+  let debut, plateau;
+  if (plan.survol) { debut = aHeure(plan.survol.c.jour, plan.survol.minute); plateau = (plan.survol.c.plateau || {}).id || r.plateau_id; }
+  else { debut = ajouterJours(a, 1); plateau = r.plateau_id; }
+  const fin = new Date(debut.getTime() + (b - a));
+  try {
+    const [n] = await ajoutPro('reservations', copieDe(r, debut, fin, plateau));
+    await afficher();
+    dire('Collée : ' + debut.toLocaleDateString('fr-CA', { weekday: 'short', day: 'numeric' }) + ' ' + hhmm(debut) + ' – ' + hhmm(fin) + '.', false, annulerAjout(n.id));
+  } catch (e) { dire(messageRefus(e), true); }
+}
+
+// Raccourcis clavier de la grille (hors des champs de saisie).
+document.addEventListener('keydown', (ev) => {
+  if (etat.onglet !== 'horaire' || plan.sous !== 'grille' || $('app').hidden) return;
+  const cible = ev.target;
+  if (cible.closest && cible.closest('input, textarea, select, [contenteditable]')) return;
+  const cmd = ev.metaKey || ev.ctrlKey;
+  if (cmd && ev.key.toLowerCase() === 'c') {
+    const r = plan.panneau && plan.panneau.id && plan.derniers ? plan.derniers.find((x) => x.id === plan.panneau.id) : null;
+    if (r && r.source === 'manuel') { plan.presse = r; dire('Copiée. Placez la souris sur une case et faites ' + (navigator.platform.includes('Mac') ? '⌘' : 'Ctrl') + '+V.'); ev.preventDefault(); }
+    return;
+  }
+  if (cmd && ev.key.toLowerCase() === 'v') { if (plan.presse) { ev.preventDefault(); coller(); } return; }
+  if (cmd || ev.altKey) return;
+  const actions = {
+    t: () => { plan.date = debutJour(new Date()); plan.mini = null; afficher(); },
+    j: () => { plan.vue = 'jour'; afficher(); }, s: () => { plan.vue = 'semaine'; afficher(); }, m: () => { plan.vue = 'mois'; afficher(); },
+    arrowleft: () => plan.nav && plan.nav(-1)(), arrowright: () => plan.nav && plan.nav(1)(),
+    n: () => plan.nouvelle && peutReserver() && plan.nouvelle(),
+    escape: () => { if (plan.panneau) { plan.panneau = null; afficher(); } },
+    '/': () => { const c = document.querySelector('.recherche-planif'); if (c) c.focus(); },
+  };
+  const f = actions[ev.key.toLowerCase()];
+  if (f) { ev.preventDefault(); f(); }
+});
+// Un clic ailleurs referme les listes déroulantes (recherche, alertes).
+document.addEventListener('click', (ev) => {
+  if (!ev.target.closest('.pop')) document.querySelectorAll('.pop-liste').forEach((l) => { l.hidden = true; });
+});
 
 // --- Le panneau latéral ---------------------------------------------------------------
 function panneau(ctx) {
@@ -597,7 +743,9 @@ function panneau(ctx) {
       else await rest('POST', 'rpc/annuler_serie', { p_serie: r.serie_id, p_a_partir_de: quoi === 'serie' ? null : aaaammjj(a) }, PRO);
       plan.panneau = null;
       await afficher();
-      dire('Annulé.');
+      dire('Annulé.', false, quoi === 'une' ? { libelle: 'Rétablir', fn: async () => {
+        await majPro('reservations', { id: 'eq.' + r.id }, { statut: r.statut });
+        await afficher(); dire('Réservation rétablie.'); } } : null);
     } catch (e) { dire(e.message, true); }
   };
   const confirmer = async () => {
