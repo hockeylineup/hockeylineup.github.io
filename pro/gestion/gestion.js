@@ -24,12 +24,36 @@ const etat = { membres: [], organisations: [], organisation: null, onglet: 'hora
 const ONGLETS = { horaire: 'Planification', ligues: 'Ligues', contenu: 'Contenu', urgence: 'Urgence', lecteurs: 'Lecteurs',
   etablissement: 'Établissement' };
 
+// Les messages paraissent en toast ; un succès s'efface seul après quelques secondes.
+let minuterieMessage = null;
 function dire(texte, erreur) {
   const m = $('message');
+  clearTimeout(minuterieMessage);
   m.textContent = texte;
-  m.className = 'message' + (erreur ? ' erreur' : '');
+  m.className = 'message' + (erreur ? ' erreur' : texte ? ' succes' : '');
   m.hidden = !texte;
+  if (texte) minuterieMessage = setTimeout(() => { m.hidden = true; }, erreur ? 8000 : 3500);
 }
+
+// Une fine barre en haut de la page pendant les échanges avec la base, et le
+// bouton qui les a lancés reste enfoncé (« occupé ») jusqu'à la fin.
+const chargement = el('div', { classe: 'barre-chargement' });
+document.body.append(chargement);
+let enCours = 0, dernierBouton = null;
+const retenir = (b) => { dernierBouton = b; setTimeout(() => { if (dernierBouton === b) dernierBouton = null; }, 60); };
+document.addEventListener('click', (ev) => retenir(ev.target.closest('button')), true);
+document.addEventListener('submit', (ev) => retenir(ev.submitter || null), true);
+const restBrut = rest;
+rest = async (...args) => {
+  const bouton = dernierBouton;
+  if (bouton) bouton.classList.add('occupe');
+  if (++enCours === 1) chargement.classList.add('actif');
+  try { return await restBrut(...args); }
+  finally {
+    if (--enCours === 0) chargement.classList.remove('actif');
+    if (bouton) bouton.classList.remove('occupe');
+  }
+};
 
 function quand(iso) {
   return new Date(iso).toLocaleString('fr-CA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });

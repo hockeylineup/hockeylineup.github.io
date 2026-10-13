@@ -373,3 +373,116 @@ label.mini input { width: 70px; }
 .evt-mois.estompe { opacity: .3; }
 .plus-mois { font-size: .72rem; color: var(--doux); padding-left: 6px; }
 @media (max-width: 700px) { .case-mois { min-height: 64px; } .evt-mois { font-size: 0; padding: 0; height: 5px; border-left: 0; } .evt-mois .h { display: none; } }
+
+/* ===================================================================
+   Finition (13 octobre 2026) : retour visuel, profondeur, rythme.
+   =================================================================== */
+:root { --ombre: 0 1px 2px #0003, 0 4px 14px #0002; --ombre-forte: 0 10px 30px #0005; --anneau: 0 0 0 3px color-mix(in srgb, var(--bleu) 35%, transparent); --rayon: 12px; }
+:root[data-theme="light"] { --ombre: 0 1px 2px #0b17300f, 0 4px 16px #0b17300d; --ombre-forte: 0 12px 34px #0b173024; }
+body { -webkit-font-smoothing: antialiased; }
+main#contenu h2 { font-size: 1.45rem; letter-spacing: -.02em; }
+h3 { letter-spacing: -.01em; }
+
+/* Boutons */
+button { transition: background-color .15s, border-color .15s, color .15s, box-shadow .15s, transform .08s, filter .15s; position: relative; }
+button:not(:disabled):hover { filter: brightness(1.08); }
+button:not(:disabled):active { transform: translateY(1px) scale(.98); }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, .periode:focus-within { outline: none; box-shadow: var(--anneau); }
+button:not(.discret):not(.theme):not(.segment button):not(.cote nav button):not(.evt-mois):not(.ligne-client):not(.lien) { box-shadow: 0 1px 2px #0003, inset 0 1px 0 #ffffff22; }
+button.discret:not(:disabled):hover { background: color-mix(in srgb, var(--texte) 6%, transparent); color: var(--texte); border-color: color-mix(in srgb, var(--texte) 22%, var(--ligne)); filter: none; }
+button.occupe { pointer-events: none; color: transparent !important; }
+button.occupe::after { content: ""; position: absolute; inset: 0; margin: auto; width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid currentColor; border-color: #fff #fff6 #fff6 #fff6; animation: tourne .7s linear infinite; }
+button.discret.occupe::after, .segment button.occupe::after { border-color: var(--bleu) #0000 #0000 #0000; }
+@keyframes tourne { to { transform: rotate(360deg); } }
+
+/* Champs */
+input, select, textarea { transition: border-color .15s, box-shadow .15s, background-color .15s; }
+input:hover:not(:disabled), select:hover:not(:disabled), textarea:hover:not(:disabled) { border-color: color-mix(in srgb, var(--bleu) 45%, var(--ligne)); }
+input:focus, select:focus, textarea:focus { border-color: var(--bleu); }
+input:disabled, select:disabled, textarea:disabled { opacity: .65; cursor: not-allowed; }
+textarea { border: 1px solid var(--ligne); border-radius: 8px; padding: 8px 10px; background: var(--fond-2); color: var(--texte); }
+input[type="checkbox"] { accent-color: var(--bleu); width: 16px; height: 16px; }
+
+/* Cartes */
+.carte-formulaire, .fiche, .carte-planif, .panneau-planif { border-radius: var(--rayon); box-shadow: var(--ombre); }
+.cote nav button { transition: background-color .15s, color .15s; }
+.cote nav button.actif { box-shadow: 0 2px 10px color-mix(in srgb, var(--bleu) 40%, transparent); }
+
+/* Pastilles */
+.pastille { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 999px; font-size: .78rem; font-weight: 600; }
+
+/* Segments */
+.segment { box-shadow: var(--ombre); padding: 2px; gap: 2px; border-radius: 10px; }
+.segment button { border-radius: 8px !important; border: 0 !important; color: var(--doux); }
+.segment button:not(.actif):hover { background: color-mix(in srgb, var(--texte) 7%, transparent); color: var(--texte); filter: none; }
+.segment button.actif { box-shadow: 0 1px 4px color-mix(in srgb, var(--bleu) 45%, transparent); }
+
+/* Toast */
+.message { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 50; margin: 0; max-width: min(560px, calc(100vw - 32px));
+  padding: 12px 16px 12px 14px; border-radius: 12px; box-shadow: var(--ombre-forte); border: 1px solid var(--ligne);
+  display: flex; align-items: center; gap: 10px; font-weight: 500; animation: toast .25s cubic-bezier(.2, .9, .3, 1.2); }
+.message::before { content: "✓"; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; flex: none;
+  background: var(--vert); color: #fff; font-size: .8rem; font-weight: 700; }
+.message.erreur { border-color: transparent; }
+.message.erreur::before { content: "!"; background: #fff; color: var(--rouge); }
+@keyframes toast { from { opacity: 0; transform: translate(-50%, 12px) scale(.97); } }
+
+/* Barre de chargement */
+.barre-chargement { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 60; pointer-events: none; opacity: 0; transition: opacity .3s;
+  background: linear-gradient(90deg, transparent, var(--bleu), #7cc6ff, var(--bleu), transparent); background-size: 50% 100%; background-repeat: no-repeat; }
+.barre-chargement.actif { opacity: 1; animation: charge 1s ease-in-out infinite; }
+@keyframes charge { from { background-position: -50% 0; } to { background-position: 150% 0; } }
+
+/* Grille */
+.carte-planif { border-color: var(--ligne); }
+.barre-planif { background: color-mix(in srgb, var(--fond) 35%, var(--carte)); }
+.grille-planif .tetes { box-shadow: 0 1px 0 var(--ligne), 0 4px 10px #0000000d; }
+.tete-col { font-size: .82rem; letter-spacing: .01em; padding: 10px 6px; }
+.tete-col strong { font-weight: 650; }
+.tete-col.aujourdhui strong { background: var(--bleu); color: #fff; border-radius: 999px; padding: 2px 10px; }
+.regle { background: color-mix(in srgb, var(--fond) 35%, var(--carte)); }
+.regle .heure { font-variant-numeric: tabular-nums; font-size: .7rem; letter-spacing: .02em; }
+.col { transition: background-color .15s; }
+.col:hover { background: color-mix(in srgb, var(--bleu) 3%, transparent); }
+.col .trait { border-top-color: color-mix(in srgb, var(--ligne) 70%, transparent); }
+.col .maintenant { border-top: 2px solid var(--rouge); box-shadow: 0 0 8px color-mix(in srgb, var(--rouge) 50%, transparent); }
+.col:nth-child(2) .maintenant::before { content: ""; position: absolute; left: -5px; top: -6px; width: 10px; height: 10px; border-radius: 50%; background: var(--rouge); }
+.col .selection { border-radius: 8px; border-style: solid; box-shadow: 0 4px 14px color-mix(in srgb, var(--bleu) 30%, transparent); font-weight: 600; animation: apparait .12s ease-out; }
+
+/* Blocs */
+.bloc { border-radius: 8px; padding: 5px 8px; box-shadow: 0 1px 2px #0002; transition: box-shadow .15s, transform .15s, outline-color .15s;
+  background: color-mix(in srgb, var(--bleu) 14%, var(--carte)); border-left-width: 4px; }
+.bloc:hover { box-shadow: 0 6px 18px #0003; transform: translateY(-1px); z-index: 2; }
+.bloc .b-titre { font-size: .8rem; letter-spacing: -.005em; }
+.bloc .b-heure { font-variant-numeric: tabular-nums; font-size: .72rem; }
+.bloc .b-etat { font-size: .7rem; font-weight: 600; color: #c98a10; }
+.bloc.src-espaceligue .b-titre::before { content: "● "; color: var(--vert); font-size: .7em; vertical-align: middle; }
+.bloc.choisi { outline: 2px solid var(--bleu); outline-offset: 1px; box-shadow: 0 8px 22px color-mix(in srgb, var(--bleu) 35%, transparent); }
+.bloc.en-mouvement { transform: scale(1.02); cursor: grabbing; }
+.bloc .b-surf { border-radius: 0 0 6px 6px; color: var(--texte); opacity: .85; }
+.bloc .poignee::after { content: ""; position: absolute; left: 50%; bottom: 2px; width: 22px; height: 3px; margin-left: -11px; border-radius: 3px; background: currentColor; opacity: 0; transition: opacity .15s; }
+.bloc:hover .poignee::after { opacity: .35; }
+.bloc.fantome:hover { transform: none; box-shadow: none; }
+
+/* Panneau latéral */
+.panneau-planif { animation: glisse .2s cubic-bezier(.2, .9, .3, 1); border-top: 3px solid var(--bleu); }
+.panneau-planif h3 { font-size: 1.1rem; }
+.panneau-planif .tete-panneau .fermer { width: 30px; height: 30px; padding: 0; border-radius: 50%; display: grid; place-items: center; font-size: 1.1rem; }
+.panneau-planif .actions { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 4px; }
+.panneau-planif .actions button[type="submit"] { flex: 1; }
+.panneau-planif .actions.annuler { border-top: 1px solid var(--ligne); padding-top: 10px; }
+.panneau-planif .actions.annuler button { color: var(--rouge); }
+@keyframes glisse { from { opacity: 0; transform: translateX(14px); } }
+@keyframes apparait { from { opacity: 0; } }
+@media (max-width: 900px) { .panneau-planif { animation-name: monte; border-top-width: 0; } @keyframes monte { from { transform: translateY(30px); opacity: 0; } } }
+
+/* Vue Mois, clients */
+.case-mois { transition: background-color .15s; }
+.evt-mois { transition: filter .15s, transform .08s; box-shadow: none; }
+.evt-mois:hover { filter: brightness(1.06); }
+.ligne-client { transition: border-color .15s, background-color .15s; box-shadow: none; }
+.ligne-client:hover { border-color: color-mix(in srgb, var(--bleu) 50%, var(--ligne)); filter: none; }
+.ligne-client.actif { background: color-mix(in srgb, var(--bleu) 10%, var(--carte)); }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
