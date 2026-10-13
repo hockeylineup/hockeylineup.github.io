@@ -247,3 +247,11 @@ main#contenu, .vue-contenu, .editeur, .reglages, .corps-section, .liste-panneaux
 .rangee-nom { display: flex; gap: 6px; align-items: center; }
 .nombre-vestiaires { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .nombre-vestiaires input { width: 90px; }
+
+.carte-ligue > summary, .sous-repli > summary { cursor: pointer; list-style: none; position: relative; padding-right: 28px; }
+.carte-ligue > summary::-webkit-details-marker, .sous-repli > summary::-webkit-details-marker { display: none; }
+.carte-ligue > summary::after, .sous-repli > summary::after { content: "▾"; position: absolute; right: 4px; top: 0; color: var(--doux); }
+.carte-ligue[open] > summary::after, .sous-repli[open] > summary::after { content: "▴"; }
+.sous-repli { border-top: 1px solid var(--ligne); padding-top: 10px; display: grid; gap: 12px; }
+.sous-repli > summary { font-weight: 600; }
+.carte-ligue[open] { display: grid; gap: 12px; }

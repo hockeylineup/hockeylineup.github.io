@@ -10,6 +10,13 @@
 // montré à l'écran à côté de son nom.
 'use strict';
 
+const ouverts = new Set();
+function repli(cle, sommaire, contenu, classe) {
+  const d = el('details', { classe, open: ouverts.has(cle) }, sommaire, ...contenu);
+  d.addEventListener('toggle', () => { d.open ? ouverts.add(cle) : ouverts.delete(cle); });
+  return d;
+}
+
 const STATUTS_LIGUE = { demandee: 'À approuver', acceptee: 'Acceptée', refusee: 'Refusée' };
 
 // Le nombre de demandes en attente, pour l'onglet.
@@ -55,10 +62,10 @@ async function vueLigues() {
     };
     const pastille = el('span', { classe: 'pastille ' + { demandee: 'ambre-fond', acceptee: 'vert-fond', refusee: 'rouge-fond' }[l.statut] },
       STATUTS_LIGUE[l.statut]);
-    return el('div', { classe: 'carte-formulaire' },
-      el('div', null, el('strong', null, l.ligue), ' ', pastille,
-        el('div', { classe: 'doux' }, [`Saison ${l.saison}`, `lieu « ${l.lieu} »`, plusieurs ? l.etablissement : null,
-          `${l.prochains} match${l.prochains > 1 ? 's' : ''} à venir`].filter(Boolean).join(' · '))),
+    const entete = el('div', null, el('strong', null, l.ligue), ' ', pastille,
+      el('div', { classe: 'doux' }, [`Saison ${l.saison}`, `lieu « ${l.lieu} »`, plusieurs ? l.etablissement : null,
+        `${l.prochains} match${l.prochains > 1 ? 's' : ''} à venir`].filter(Boolean).join(' · ')));
+    const reglages = [
       glaces.length ? el('div', { classe: 'champs' },
         el('label', null, glaces.length > 1 ? 'Glace par défaut' : 'Glace', glace),
         el('label', null, 'Durée d’un match (min)', duree))
@@ -66,12 +73,19 @@ async function vueLigues() {
       el('div', { classe: 'actions' },
         glaces.length ? el('button', { type: 'button', onclick: () => decider(true) },
           l.statut === 'acceptee' ? 'Enregistrer' : 'Accepter') : null,
-        l.statut !== 'refusee' ? el('button', { type: 'button', classe: 'discret', onclick: () => decider(false) }, 'Refuser') : null),
-      l.statut === 'acceptee' ? el('div', null, el('h4', null, 'Matchs à venir'),
-        tableMatchs(matchs[l.lieu_id] || [], plateaux.filter((p) => p.etablissement_id === l.etablissement_id), modifiable)) : null,
-      l.statut === 'acceptee' ? el('div', null, el('h4', null, 'Vestiaires des équipes'),
-        tableVestiaires(equipes.filter((q) => q.ligue === l.ligue && q.saison === l.saison
-          && q.etablissement_id === l.etablissement_id), vestiaires, modifiable)) : null);
+        l.statut !== 'refusee' ? el('button', { type: 'button', classe: 'discret', onclick: () => decider(false) }, 'Refuser') : null)];
+    // Une ligue à approuver reste ouverte ; les autres se replient, chaque
+    // section aussi, et gardent leur état quand la page se redessine.
+    if (l.statut === 'demandee') return el('div', { classe: 'carte-formulaire' }, entete, ...reglages);
+    const nMatchs = (matchs[l.lieu_id] || []).length;
+    const eqs = equipes.filter((q) => q.ligue === l.ligue && q.saison === l.saison && q.etablissement_id === l.etablissement_id);
+    const sousTitres = [
+      ['reglages', 'Glace et durée', reglages],
+      l.statut === 'acceptee' ? ['matchs', `Matchs à venir (${nMatchs})`,
+        [tableMatchs(matchs[l.lieu_id] || [], plateaux.filter((p) => p.etablissement_id === l.etablissement_id), modifiable)]] : null,
+      l.statut === 'acceptee' ? ['vestiaires', `Vestiaires des équipes (${eqs.length})`, [tableVestiaires(eqs, vestiaires, modifiable)]] : null,
+    ].filter(Boolean).map(([k, titre, contenu]) => repli(l.lieu_id + ':' + k, el('summary', null, titre), contenu, 'sous-repli'));
+    return repli(l.lieu_id, el('summary', null, entete), sousTitres, 'carte-formulaire carte-ligue');
   };
 
   const enAttente = ligues.filter((l) => l.statut === 'demandee');
