@@ -858,10 +858,11 @@ function panneau(ctx) {
       el('button', { type: 'button', classe: 'discret', onclick: () => annuler('une') }, 'Annuler cette fois'),
       r.serie_id && peutModifier() ? el('button', { type: 'button', classe: 'discret', onclick: () => annuler('suivantes') }, '… et les suivantes') : null,
       r.serie_id && peutModifier() ? el('button', { type: 'button', classe: 'discret', onclick: () => annuler('serie') }, 'Toute la série') : null) : null,
-    r && courrielDe(r.locataire_id, ctx) ? el('button', { type: 'button', classe: 'discret lien', onclick: async () => {
+    r && r.locataire_id ? el('button', { type: 'button', classe: 'discret lien', onclick: async () => {
+      if (!courrielDe(r.locataire_id, ctx)) { dire('Ce client n’a pas de courriel : ajoutez-le dans sa fiche (Clients).', true); return; }
       const serie = r.serie_id && confirm('Envoyer toutes les dates à venir de la série ?\nOK : toute la série · Annuler : cette date seulement');
       await envoyerCourriel({ reservation: r.id, serie: !!serie, motif: 'confirmation' });
-    } }, '✉ Envoyer la confirmation à ' + courrielDe(r.locataire_id, ctx)) : null,
+    } }, '✉ Envoyer la confirmation' + (courrielDe(r.locataire_id, ctx) ? ' à ' + courrielDe(r.locataire_id, ctx) : ' au client')) : null,
     r && r.locataire_id ? el('button', { type: 'button', classe: 'discret lien', onclick: () => {
       plan.client = r.locataire_id; plan.sous = 'clients'; plan.panneau = null; afficher(); } }, 'Voir la fiche du client →') : null);
 }
@@ -996,7 +997,8 @@ async function ficheClient(id, modifiable) {
     modifiable ? el('div', { classe: 'actions' }, el('button', { type: 'submit' }, 'Enregistrer'),
       el('button', { type: 'button', classe: 'discret', onclick: () => { plan.sous = 'grille'; afficher(); } }, 'Voir à l’horaire')) : null,
     el('div', { classe: 'tete-panneau' }, el('h4', null, 'Prochaines réservations'),
-      el('span', null, l.courriel ? el('button', { type: 'button', classe: 'discret', onclick: () => envoyerCourriel({ client: l.id }) }, '✉ Envoyer par courriel') : null,
+      el('span', null, el('button', { type: 'button', classe: 'discret', title: l.courriel ? 'À ' + l.courriel : 'Ajoutez d’abord le courriel du client',
+        onclick: () => l.courriel ? envoyerCourriel({ client: l.id }) : dire('Ajoutez d’abord le courriel du client dans sa fiche, puis enregistrez.', true) }, '✉ Envoyer par courriel'),
         ' ', el('button', { type: 'button', classe: 'discret', onclick: () => listeClient(l) }, 'Liste à imprimer'))),
     prochaines.length ? el('div', { classe: 'table' }, el('table', null, el('tbody', null, prochaines.map((r) => {
       const [a, b] = bornes(r.periode);
