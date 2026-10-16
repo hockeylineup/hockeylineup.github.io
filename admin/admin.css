@@ -200,6 +200,10 @@ a.bouton { display: inline-flex; align-items: center; height: 40px; padding: 0 1
 .cle-rendue h3, .cle-rendue p { margin: 0; }
 .cle-rendue details code { display: block; margin-top: 6px; font-size: .85rem; }
 .liste-lecteurs { display: grid; gap: 12px; }
+.lecteur .versions { font-size: .88rem; }
+.lecteur .case { display: flex; align-items: center; gap: 8px; }
+.logiciel { margin-bottom: 16px; }
+.logiciel input[type="file"] { display: none; }
 .tete-lecteur { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .tete-lecteur .doux { font-size: .88rem; margin-top: 4px; }
 .tete-lecteur .droite { text-align: right; white-space: nowrap; }
@@ -222,3 +226,4 @@ a.bouton { display: inline-flex; align-items: center; height: 40px; padding: 0 1
 .vue-pro td.boutons > * + * { margin-left: 6px; }
 .sous-fiche { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--ligne); border-radius: 10px; }
 a.bouton.discret { background: transparent; color: var(--doux); border: 1px solid var(--ligne); height: auto; padding: 9px 14px; }
+.logiciel td.droite { text-align: right; }

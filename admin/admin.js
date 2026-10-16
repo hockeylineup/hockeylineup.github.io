@@ -893,7 +893,10 @@ function champ(titre, controle) {
 
 const enLigne = (l) => l.dernier_contact && Date.now() - new Date(l.dernier_contact) < 3 * 60 * 1000;
 
-function carteLecteur(l, orgs) {
+const ORDRES = { mettre_a_jour: 'Mettre à jour maintenant', redemarrer_ecran: 'Redémarrer l’écran',
+                 redemarrer: 'Redémarrer le Pi', origine: 'Revenir à la version de l’image' };
+
+function carteLecteur(l, orgs, logiciels) {
   const affichage = el('select', {}, choixAffichage(orgs, l.organisation_id, l.affichage_id));
   const nom = el('input', { value: l.nom || '', placeholder: 'ex. Hall d’entrée' });
   const statut = el('select', {}, el('option', { value: 'actif', selected: l.statut === 'actif' }, 'Actif'),
@@ -901,10 +904,23 @@ function carteLecteur(l, orgs) {
   const pastille = l.statut === 'revoque' ? el('span', { classe: 'pastille rouge-fond' }, 'Révoqué')
     : !l.affichage_id ? el('span', { classe: 'pastille ambre-fond' }, 'Sans affichage')
     : el('span', { classe: 'pastille vert-fond' }, 'Actif');
-  return el('form', { classe: 'carte-formulaire lecteur', onsubmit: (ev) => {
+  const ecran = el('select', {}, el('option', { value: '1080p', selected: l.ecran !== '4k' }, '1080p, 60 Hz'),
+                                 el('option', { value: '4k', selected: l.ecran === '4k' }, '4K, 60 Hz'));
+  const fps = el('input', { type: 'checkbox', checked: l.fps });
+  const courante = logiciels.find((g) => g.courante);
+  const logiciel = el('select', {},
+    el('option', { value: '' }, 'La courante' + (courante ? ' (' + courante.version + ')' : '')),
+    logiciels.map((g) => el('option', { value: g.version, selected: g.version === l.logiciel_vise }, g.version)));
+  const ordre = el('select', {}, el('option', { value: '' }, '— ordre —'),
+    Object.entries(ORDRES).map(([cle, titre]) => el('option', { value: cle }, titre)));
+  return el('form', { classe: 'carte-formulaire lecteur', onsubmit: async (ev) => {
       ev.preventDefault();
-      agir('pro.admin_modifier_lecteur', { p_id: l.id, p_affichage: affichage.value || null,
-        p_nom: nom.value, p_statut: statut.value }, 'Lecteur enregistré.');
+      try {
+        await rpc('pro.admin_modifier_lecteur', { p_id: l.id, p_affichage: affichage.value || null,
+          p_nom: nom.value, p_statut: statut.value });
+        await agir('pro.admin_regler_lecteur', { p_id: l.id, p_ecran: ecran.value, p_fps: fps.checked,
+          p_logiciel: logiciel.value || null }, 'Lecteur enregistré.');
+      } catch (e) { dire(e.message, true); }
     } },
     el('div', { classe: 'tete-lecteur' },
       el('div', {}, el('strong', {}, l.nom || 'Lecteur sans nom'), ' ', pastille,
@@ -912,8 +928,18 @@ function carteLecteur(l, orgs) {
       el('div', { classe: 'doux droite' }, enLigne(l) ? el('span', { classe: 'vert' }, '● En ligne')
         : ['Dernier contact', el('br'), l.dernier_contact ? date(l.dernier_contact, true) : 'jamais'])),
     el('div', { classe: 'champs' }, champ('Nom', nom), champ('Affichage', affichage), champ('Statut', statut)),
+    el('div', { classe: 'champs' }, champ('Écran', ecran), champ('Logiciel', logiciel),
+      el('label', { classe: 'case' }, fps, 'Compteur d’images')),
+    el('div', { classe: 'doux versions' }, 'Logiciel ', l.version_logiciel || '—', ' · image ', l.version_image || '—',
+      l.ordre ? [' · ', el('span', { classe: 'ambre' }, 'En attente : ' + ORDRES[l.ordre])] : null),
     el('div', { classe: 'actions' },
       el('button', { type: 'submit' }, 'Enregistrer'),
+      ordre,
+      el('button', { type: 'button', classe: 'discret', onclick: () => {
+        if (!ordre.value) return;
+        if (ordre.value === 'redemarrer' && !confirmer('Redémarrer le Pi ' + l.serie + ' ? L’écran sera noir une minute.', 'OUI')) return;
+        agir('pro.admin_ordonner_lecteur', { p_id: l.id, p_ordre: ordre.value }, 'Ordre envoyé : exécuté d’ici une minute.');
+      } }, 'Envoyer'),
       el('button', { type: 'button', classe: 'discret', onclick: async () => {
         if (!confirmer('Nouvelle clé pour ' + l.serie + ' ? L’ancienne cesse aussitôt de fonctionner : '
                        + 'il faudra refaire la carte SD.', 'CLÉ')) return;
@@ -931,8 +957,54 @@ function carteLecteur(l, orgs) {
       } }, 'Retirer')));
 }
 
+// Logiciel des lecteurs : paquets signés (EspacePlayer/tools/paquet.py)
+// déposés dans le seau public « espaceplayer ». Chaque lecteur vérifie la
+// signature : un fichier modifié est refusé. La version courante est tirée la
+// nuit par tous les lecteurs sans version visée.
+async function televerserPaquet(fichier) {
+  const m = /^espaceplayer-(\d+(?:\.\d+)*)\.paquet$/.exec(fichier.name);
+  if (!m) throw new Error('Nom attendu : espaceplayer-<version>.paquet (tel que fabriqué par tools/paquet.py).');
+  const entete = new TextDecoder().decode(await fichier.slice(0, 21).arrayBuffer());
+  if (entete !== 'ESPACEPLAYER-PAQUET 1') throw new Error('Ce fichier n’est pas un paquet EspacePlayer.');
+  const chemin = m[1] + '/' + fichier.name;
+  const r = await fetch(SUPABASE + '/storage/v1/object/espaceplayer/' + chemin, {
+    method: 'POST', credentials: 'omit',
+    headers: { apikey: CLE, Authorization: 'Bearer ' + etat.jeton, 'Content-Type': 'application/octet-stream',
+               'x-upsert': 'true' },
+    body: fichier,
+  });
+  if (!r.ok) throw new Error('Téléversement refusé (' + r.status + ').');
+  await rpc('pro.admin_publier_logiciel', { p_version: m[1], p_chemin: chemin, p_courante: false });
+  return m[1];
+}
+
+function ficheLogiciel(logiciels) {
+  const fichier = el('input', { type: 'file', accept: '.paquet', onchange: async () => {
+    if (!fichier.files[0]) return;
+    try {
+      const v = await televerserPaquet(fichier.files[0]);
+      dire('Version ' + v + ' téléversée. Visez-la pour un lecteur, ou rendez-la courante.');
+      await afficher();
+    } catch (e) { dire(e.message, true); }
+  } });
+  return el('div', { classe: 'fiche logiciel' },
+    el('h3', {}, 'Logiciel des lecteurs'),
+    logiciels.length ? tableau(['Version', 'Publiée', ''], logiciels.map((g) => el('tr', {},
+      el('td', {}, el('code', {}, g.version)), el('td', {}, date(g.publie_le, true)),
+      el('td', { classe: 'droite' }, g.courante ? el('span', { classe: 'pastille vert-fond' }, 'Courante')
+        : el('button', { classe: 'discret', onclick: () => {
+            if (confirmer('Rendre courante la version ' + g.version + ' ? Tous les lecteurs sans version visée '
+                          + 'la tireront cette nuit.', 'OUI')) {
+              agir('pro.admin_logiciel_courant', { p_version: g.version }, 'Version ' + g.version + ' courante.');
+            }
+          } }, 'Rendre courante')))))
+      : el('p', { classe: 'doux' }, 'Aucune version téléversée : les lecteurs gardent celle de leur image.'),
+    el('label', { classe: 'bouton discret' }, 'Téléverser un paquet…', fichier));
+}
+
 async function vueLecteurs(cleRendue) {
-  const [lecteurs, orgs] = await Promise.all([rpc('pro.admin_lecteurs'), rpc('pro.admin_affichages')]);
+  const [lecteurs, orgs, logiciels] = await Promise.all([rpc('pro.admin_lecteurs'), rpc('pro.admin_affichages'),
+                                                        rpc('pro.admin_logiciels')]);
   etat.args = [];  // la clé ne se montre qu'une fois, pas au prochain rechargement de la vue
 
   const serie = el('input', { placeholder: 'ex. 10000000abcdef01', required: true,
@@ -979,8 +1051,9 @@ async function vueLecteurs(cleRendue) {
       el('span', { classe: 'doux' }, lecteurs.length ? lecteurs.length + ' inscrit' + (lecteurs.length > 1 ? 's' : '') : '')),
     cleRendue ? fichierCle(cleRendue) : null,
     el('div', { classe: 'deux-colonnes' }, formulaire, etapes),
+    ficheLogiciel(logiciels),
     el('h3', {}, 'Lecteurs inscrits'),
-    lecteurs.length ? el('div', { classe: 'liste-lecteurs' }, lecteurs.map((l) => carteLecteur(l, orgs)))
+    lecteurs.length ? el('div', { classe: 'liste-lecteurs' }, lecteurs.map((l) => carteLecteur(l, orgs, logiciels)))
       : el('p', { classe: 'doux vide' }, 'Aucun lecteur pour l’instant. Le premier inscrit apparaîtra ici.'));
 }
 
