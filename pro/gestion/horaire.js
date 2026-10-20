@@ -72,8 +72,8 @@ async function blocFluxPublies(plateaux, etablissements, nomEtab, modifiable) {
       } catch (e) { dire(e.message, true); }
     } },
       el('div', { classe: 'champs' }, el('label', null, 'Portée', choix), el('label', null, 'Nom', nom)),
-      el('label', null, demandes, ' Inclure les demandes non confirmées'),
-      el('label', null, importes, ' Inclure les calendriers importés'),
+      el('label', { classe: 'case' }, demandes, ' Inclure les demandes non confirmées'),
+      el('label', { classe: 'case' }, importes, ' Inclure les calendriers importés'),
       el('details', null, el('summary', null, 'Comment s’abonner ?'),
         el('ul', null,
           el('li', null, el('strong', null, 'Outlook : '), 'Ajouter un calendrier ▸ S’abonner à partir du web ▸ collez l’adresse.'),
