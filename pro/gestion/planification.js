@@ -69,7 +69,9 @@ async function vuePlanification() {
   if (plan.sous === 'clients') return el('section', { classe: 'vue-planif' }, entete, await vueClients(locataires));
   if (plan.sous === 'sources') {
     const nomEtab = (id) => (etablissements.find((e) => e.id === id) || {}).nom || '';
-    return el('section', { classe: 'vue-planif' }, entete, await blocCalendriers(plateaux, nomEtab, peutModifier()));
+    return el('section', { classe: 'vue-planif' }, entete,
+      await blocFluxPublies(plateaux, etablissements, nomEtab, peutModifier()),
+      await blocCalendriers(plateaux, nomEtab, peutModifier()));
   }
   if (!plateaux.length) return el('section', { classe: 'vue-planif' }, entete,
     el('p', { classe: 'doux' }, 'Aucun plateau : ajoutez-en dans l’onglet Établissement.'));

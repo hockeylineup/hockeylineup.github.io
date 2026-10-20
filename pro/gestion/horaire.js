@@ -10,6 +10,10 @@
 // - un calendrier iCal par plateau (Outlook, Google, iCloud), relu toutes les
 //   15 minutes par l'Edge Function pro-calendriers.
 // Les deux dernières ne se modifient pas ici : elles reviendraient de la source.
+//
+// Dans l'autre sens, un calendrier publié (pro.flux_ics) : une adresse ICS
+// secrète, servie par l'Edge Function pro-ics, à laquelle Outlook, Google ou
+// iCloud s'abonnent ; l'horaire d'ici en est la source.
 'use strict';
 
 
@@ -26,6 +30,58 @@ const bornes = (periode) => {
   return periode.replace(/^[[(]|[\])]$/g, '').split(',').map((x) =>
     new Date(x.replace(/"/g, '').trim().replace(' ', 'T').replace(/([+-]\d\d)$/, '$1:00')));
 };
+// --- Calendriers publiés (EspaceLigue Pro → Outlook, Google, iCloud) --------------
+async function blocFluxPublies(plateaux, etablissements, nomEtab, modifiable) {
+  const flux = await lirePro('flux_ics', { select: '*', organisation_id: 'eq.' + etat.organisation, order: 'nom' });
+  const adresse = (f) => SUPABASE + '/functions/v1/pro-ics?j=' + f.jeton;
+  const portee = (f) => f.plateau_id ? (() => { const p = plateaux.find((x) => x.id === f.plateau_id); return p ? nomEtab(p.etablissement_id) + ' · ' + p.nom : '?'; })()
+    : f.etablissement_id ? nomEtab(f.etablissement_id) : 'Toute l’organisation';
+  const copier = async (texte) => { try { await navigator.clipboard.writeText(texte); dire('Adresse copiée.'); } catch { prompt('Adresse :', texte); } };
+  const lignes = flux.map((f) => el('div', { classe: 'ligne-source' },
+    el('div', null, el('strong', null, f.nom), el('div', { classe: 'doux' }, portee(f)
+      + (f.avec_demandes ? ' · demandes comprises' : '') + (f.avec_importes ? ' · importés compris' : '')
+      + ' · ' + (f.lu_le ? 'lu ' + quand(f.lu_le) : 'jamais lu'))),
+    el('div', { classe: 'actions' },
+      el('button', { type: 'button', classe: 'discret', onclick: () => copier(adresse(f)) }, 'Copier l’adresse'),
+      el('button', { type: 'button', classe: 'discret', onclick: () => { location.href = adresse(f).replace(/^https:/, 'webcal:'); } }, 'S’abonner'),
+      modifiable ? el('button', { type: 'button', classe: 'discret', onclick: async () => {
+        if (!confirm('Retirer « ' + f.nom + ' » ? Les abonnés ne recevront plus l’horaire.')) return;
+        try { await retraitPro('flux_ics', { id: 'eq.' + f.id }); await afficher(); dire('Calendrier publié retiré.'); }
+        catch (e) { dire(e.message, true); }
+      } }, 'Retirer') : null)));
+
+  const choix = el('select', null,
+    el('option', { value: '' }, 'Toute l’organisation'),
+    etablissements.map((e) => el('option', { value: 'e:' + e.id }, e.nom)),
+    plateaux.map((p) => el('option', { value: 'p:' + p.id }, nomEtab(p.etablissement_id) + ' · ' + p.nom)));
+  const nom = el('input', { required: true, maxlength: 80, placeholder: 'ex. Horaire de la glace 1' });
+  const demandes = el('input', { type: 'checkbox' });
+  const importes = el('input', { type: 'checkbox' });
+  return el('div', { classe: 'carte-formulaire' },
+    el('h3', null, 'Calendriers publiés'),
+    el('p', { classe: 'doux' }, 'EspaceLigue Pro est la source : abonnez Outlook, Google ou iCloud à l’adresse. Gardez-la pour vous.'),
+    lignes,
+    modifiable ? el('form', { classe: 'ajout-calendrier', onsubmit: async (ev) => {
+      ev.preventDefault();
+      const v = choix.value;
+      try {
+        await ajoutPro('flux_ics', { organisation_id: etat.organisation, nom: nom.value.trim(),
+          etablissement_id: v.startsWith('e:') ? v.slice(2) : null, plateau_id: v.startsWith('p:') ? v.slice(2) : null,
+          avec_demandes: demandes.checked, avec_importes: importes.checked });
+        await afficher(); dire('Calendrier publié.');
+      } catch (e) { dire(e.message, true); }
+    } },
+      el('div', { classe: 'champs' }, el('label', null, 'Portée', choix), el('label', null, 'Nom', nom)),
+      el('label', null, demandes, ' Inclure les demandes non confirmées'),
+      el('label', null, importes, ' Inclure les calendriers importés'),
+      el('details', null, el('summary', null, 'Comment s’abonner ?'),
+        el('ul', null,
+          el('li', null, el('strong', null, 'Outlook : '), 'Ajouter un calendrier ▸ S’abonner à partir du web ▸ collez l’adresse.'),
+          el('li', null, el('strong', null, 'Google Agenda : '), 'Autres agendas ▸ + ▸ À partir de l’URL ▸ collez l’adresse (relu toutes les quelques heures).'),
+          el('li', null, el('strong', null, 'iCloud : '), 'bouton « S’abonner », ou Fichier ▸ Nouvel abonnement.'))),
+      el('div', { classe: 'actions' }, el('button', { type: 'submit' }, 'Publier'))) : null);
+}
+
 // --- Calendriers iCal --------------------------------------------------------------
 async function blocCalendriers(plateaux, nomEtab, modifiable) {
   const cals = await lirePro('calendriers', { select: '*', organisation_id: 'eq.' + etat.organisation, order: 'nom' });
