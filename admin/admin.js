@@ -377,7 +377,7 @@ async function vueTableau() {
   const tuiles = [
     ['comptes', 'Comptes'], ['comptes_semaine', 'Nouveaux (7 jours)'], ['ligues', 'Ligues'],
     ['saisons_actives', 'Saisons actives'], ['equipes', 'Équipes'],
-    ['matchs_a_venir', 'Matchs à venir'], ['remplacants_communs', 'Banque commune'],
+    ['matchs_a_venir', 'Matchs à venir'], ['remplacants_communs', 'Banque générale'],
     ['demandes_ouvertes', 'Demandes ouvertes'], ['administrateurs', 'Administrateurs'],
     ['photos_en_attente', 'Photos à approuver'],
   ];
@@ -490,7 +490,7 @@ async function vueUtilisateurs(filtre) {
         el('td', {}, date(u.derniere_connexion, true)),
         el('td', {}, u.proprietaire ? el('span', { classe: 'pastille proprio' }, 'Propriétaire')
           : u.admin ? el('span', { classe: 'pastille' }, 'Admin')
-          : u.remplacant_commun ? el('span', { classe: 'pastille' }, 'Banque commune') : '')))));
+          : u.remplacant_commun ? el('span', { classe: 'pastille' }, 'Banque générale') : '')))));
 }
 
 async function vueUtilisateur(id) {
@@ -528,7 +528,7 @@ async function vueUtilisateur(id) {
           el('a', { href: '#', onclick: (ev) => { ev.preventDefault(); aller('ligue', r.ligue_id); } }, r.ligue),
           ' · ', r.role)))
       : el('p', { classe: 'doux' }, 'Aucune ligue.')),
-    u.remplacant ? [el('h3', {}, 'Banque commune'), el('div', { classe: 'fiche' },
+    u.remplacant ? [el('h3', {}, 'Banque générale'), el('div', { classe: 'fiche' },
       el('p', {}, 'Calibre ', u.remplacant.calibre || '—', ' · positions ',
         (u.remplacant.positions || []).join(', ') || '—', ' · régions ',
         (u.remplacant.regions || []).join(', ') || '—', u.remplacant.en_pause ? ' · en pause' : ''))]

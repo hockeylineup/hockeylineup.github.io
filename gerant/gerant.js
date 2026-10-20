@@ -23,7 +23,7 @@ const SUJETS = [
   ['matchs', 'Matchs'],
   ['remplacements', 'Remplacements'],
   ['statistiques', 'Statistiques et classement'],
-  ['banque', 'Banque commune'],
+  ['banque', 'Banque générale'],
   ['notifications', 'Notifications aux gérants'],
   ['tarifs', 'Tarifs de remplacement', true],
 ];
@@ -322,7 +322,7 @@ const VUES = {
   },
 
   banque() {
-    return [carte('Banque commune',
+    return [carte('Banque générale',
       choix('Région', 'region', etat.regions.map((r) => [r.code, r.nom]), 'À choisir'),
       bascule('Trouvable dans la région', 'trouvable'),
       choix('Âge moyen', 'tranche_age', TRANCHES, 'À choisir'))];
