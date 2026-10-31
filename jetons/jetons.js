@@ -12,7 +12,7 @@ const NATURES = { paquet: 'Achat de jetons', forfait: 'Forfait', debit_confirmat
 const GENRES = { remplacant: 'Remplaçant', gardien: 'Gardien', arbitre: 'Arbitre' };
 const ONGLETS = [['achat', 'Acheter'], ['transactions', 'Transactions']];
 
-const etat = { ligues: [], ligue: null, j: null, onglet: 'achat', occupe: false };
+const etat = { ligues: [], ligue: null, j: null, onglet: 'achat', occupe: false, voulue: null };
 const argent = (c) => (c / 100).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD' });
 const pluriel = (n, mot) => n + ' ' + mot + (Math.abs(n) > 1 ? 's' : '');
 const quand = (iso) => new Date(iso).toLocaleDateString('fr-CA', { dateStyle: 'medium' });
@@ -46,7 +46,7 @@ async function connecter(ev) {
   try {
     poserJetons(await auth('token?grant_type=password', { email: $('courriel').value.trim(), password: $('mdp').value }));
     $('mdp').value = '';
-    await ouvrir();
+    await ouvrir(etat.voulue);
   } catch (e) {
     $('erreur-connexion').textContent = e.message;
   } finally {
@@ -195,8 +195,8 @@ sessionPerdue = () => deconnecter('Session expirée.');
 
 document.addEventListener('DOMContentLoaded', async () => {
   const p = new URLSearchParams(location.search);
-  const ligueVoulue = p.get('ligue'), achat = p.get('achat');
-  if (achat) history.replaceState(null, '', location.pathname);
+  const ligueVoulue = etat.voulue = p.get('ligue'), achat = p.get('achat');
+  if (achat || ligueVoulue) history.replaceState(null, '', location.pathname);
   $('formulaire-connexion').addEventListener('submit', connecter);
   $('apple').addEventListener('click', () => continuerAvecApple().catch((e) => {
     $('erreur-connexion').textContent = e.message;
