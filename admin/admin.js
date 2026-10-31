@@ -19,6 +19,10 @@ const SUPABASE = LOCAL ? 'https://supabase.lautmandam.mywire.org' : 'https://wkj
 // Publique par construction : c'est la même que dans les apps.
 const CLE = LOCAL ? 'sb_publishable_sHSVbbwMhsDTqjYb93S1md_P0EIsxy4' : 'sb_publishable_aDtOKUHIXbnSLWX6qPBpuQ_bixLx_ft';
 const INACTIVITE_MS = 15 * 60 * 1000;
+// Une session ouverte survit au rafraîchissement de l'onglet une heure au plus
+// (Vincent, 31 octobre 2026) : le jeton de renouvellement va dans
+// sessionStorage, propre à l'onglet et effacé à sa fermeture.
+const SESSION_MS = 60 * 60 * 1000;
 
 if (window.top !== window.self) {
   document.documentElement.textContent = '';
@@ -82,6 +86,31 @@ function poserJetons(d) {
   etat.jeton = d.access_token;
   etat.rafraichir = d.refresh_token;
   etat.expire = Date.now() + (d.expires_in - 60) * 1000;
+  garderSession();
+}
+
+function garderSession() {
+  if (!etat.limite) return;
+  try {
+    sessionStorage.setItem('lineup-session', JSON.stringify({ rafraichir: etat.rafraichir, limite: etat.limite }));
+  } catch (e) { /* bloqué : on redemandera le mot de passe */ }
+}
+
+// Au chargement : la session de moins d'une heure reprend, 2e facteur compris.
+async function reprendreSession() {
+  let s = null;
+  try { s = JSON.parse(sessionStorage.getItem('lineup-session')); } catch (e) {}
+  if (!s || !s.rafraichir || !(s.limite > Date.now())) {
+    try { sessionStorage.removeItem('lineup-session'); } catch (e) {}
+    return;
+  }
+  etat.limite = s.limite;
+  try {
+    poserJetons(await auth('token?grant_type=refresh_token', { refresh_token: s.rafraichir }));
+    await apresConnexion();
+  } catch (e) {
+    deconnecter('');
+  }
 }
 
 async function rpc(nom, params) {
@@ -147,9 +176,8 @@ async function apresConnexion() {
 }
 
 // --- Apple (redirection, PKCE) ---------------------------------------------
-// Apple ne rend la main qu'en rechargeant la page : le vérificateur PKCE est le
-// seul secret posé dans le navigateur (sessionStorage), lu une fois puis effacé.
-// Le jeton, lui, reste en mémoire comme pour le courriel.
+// Apple ne rend la main qu'en rechargeant la page : le vérificateur PKCE va dans
+// sessionStorage, lu une fois puis effacé. Le jeton d'accès reste en mémoire.
 const B64URL = (octets) => btoa(String.fromCharCode(...new Uint8Array(octets)))
   .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 const RETOUR = location.origin + location.pathname;
@@ -287,7 +315,9 @@ async function fermerSession() {
       headers: { apikey: CLE, Authorization: 'Bearer ' + etat.jeton },
     }).catch(() => {});
   }
-  etat.jeton = etat.rafraichir = null;
+  etat.jeton = etat.rafraichir = etat.limite = null;
+  clearTimeout(etat.finSession);
+  try { sessionStorage.removeItem('lineup-session'); } catch (e) {}
 }
 
 function deconnecter(raison) {
@@ -328,6 +358,12 @@ function ouvrir() {
   $('app').hidden = false;
   $('qui').replaceChildren(el('span', { classe: 'courriel', title: etat.courriel }, etat.courriel),
     etat.proprietaire ? el('span', { classe: 'pastille proprio' }, 'Propriétaire') : null);
+  if (!etat.limite) {
+    etat.limite = Date.now() + SESSION_MS;
+    garderSession();
+  }
+  clearTimeout(etat.finSession);
+  etat.finSession = setTimeout(() => deconnecter('Session expirée après une heure.'), etat.limite - Date.now());
   reveiller();
   aller('tableau');
 }
@@ -684,15 +720,19 @@ const NATURES_JETONS = {
 async function vueJetons() {
   const j = await rpc('admin_jetons');
   const tarifs = j.tarifs.map((t) => ({ t, champ: el('input', { inputmode: 'numeric', value: t.jetons }) }));
+  const valeur = el('input', { inputmode: 'decimal', value: (j.valeur_cents / 100).toFixed(2).replace('.', ',') });
   const paquetJetons = el('input', { inputmode: 'numeric', placeholder: '100' });
   const paquetPrix = el('input', { inputmode: 'decimal', placeholder: '20,00' });
   return el('section', {}, el('h2', {}, 'Jetons'),
     el('div', { classe: 'fiche' },
-      el('label', {}, el('input', { type: 'checkbox', checked: j.actifs,
+      el('label', { classe: 'case' }, el('input', { type: 'checkbox', checked: j.actifs,
         onchange: (ev) => agir('admin_changer_parametre', { p_cle: 'jetons_actifs', p_valeur: ev.target.checked },
-          ev.target.checked ? 'Recherches payantes.' : 'Jetons en veille.') }), ' Recherches payantes'),
-      el('p', {}, 'Valeur d’un jeton : ', el('strong', {}, argent(j.valeur_cents)),
-        ' · Encours : ', el('strong', {}, j.encours + ' jetons (' + argent(j.encours * j.valeur_cents) + ')'),
+          ev.target.checked ? 'Recherches payantes.' : 'Jetons en veille.') }),
+        el('strong', {}, 'Activer les jetons'), el('span', { classe: 'doux' }, ' : les recherches dans la banque générale coûtent des jetons')),
+      el('div', { classe: 'actions' }, el('label', {}, 'Valeur d’un jeton ($)', valeur),
+        el('button', { onclick: () => agir('admin_changer_parametre',
+          { p_cle: 'jeton_valeur_cents', p_valeur: dollarsVersCents(valeur.value) }, 'Valeur enregistrée.') }, 'Enregistrer')),
+      el('p', {}, 'Encours : ', el('strong', {}, j.encours + ' jetons (' + argent(j.encours * j.valeur_cents) + ')'),
         el('span', { classe: 'doux' }, ' détenus par les ligues'))),
 
     el('h3', {}, 'Prix en jetons'),
@@ -1485,6 +1525,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('formulaire-connexion').addEventListener('submit', connecter);
   $('apple').addEventListener('click', continuerAvecApple);
   retourApple();
+  reprendreSession();
   $('deconnexion').addEventListener('click', () => deconnecter(''));
   $('formulaire-code').addEventListener('submit', validerCode);
   $('annuler-code').addEventListener('click', () => deconnecter(''));
