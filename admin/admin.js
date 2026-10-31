@@ -31,7 +31,7 @@ if (window.top !== window.self) {
 
 const etat = { attente: null, facteur: null, jeton: null, rafraichir: null, expire: 0, courriel: '', proprietaire: false,
                onglet: 'tableau', minuterie: null, regions: [],
-               finances: { periode: 'douze', volet: 'lineup' } };
+               finances: { periode: 'douze', volet: 'apercu' } };
 
 // --- Petits outils -------------------------------------------------------
 const $ = (id) => document.getElementById(id);
@@ -1309,45 +1309,57 @@ function moisEntre(debut, fin) {
   return ms;
 }
 
-// Barres groupées par mois ; `series` : [{ nom, couleur, valeurs: [cents par mois] }].
+const compact = (c) => (c / 100).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', notation: 'compact', maximumFractionDigits: 1 });
+const nomMois = (m) => { const [an, mm] = m.split('-'); return new Date(an, mm - 1, 1).toLocaleDateString('fr-CA', { month: 'short' }); };
+
+// Barres groupées par mois, sur un axe gradué ; `series` : [{ nom, couleur, valeurs: [cents par mois] }].
 function graphiqueBarres(mois, series) {
-  const L = 640, H = 220, bas = 24;
-  const max = Math.max(1, ...series.flatMap((s) => s.valeurs));
-  const groupe = L / Math.max(1, mois.length), barre = (groupe * 0.7) / series.length;
+  const L = 720, H = 200, gauche = 56, bas = 26, haut = 10;
+  const brut = Math.max(0, ...series.flatMap((s) => s.valeurs));
+  const pas = brut ? Math.pow(10, Math.floor(Math.log10(brut / 4))) * [1, 2, 2.5, 5, 10].find((f) => brut / 4 <= f * Math.pow(10, Math.floor(Math.log10(brut / 4)))) : 0;
+  const max = pas ? pas * 4 : 1;
+  const zone = L - gauche, hz = H - bas - haut;
+  const groupe = zone / Math.max(1, mois.length), barre = Math.min(18, (groupe * 0.62) / series.length);
   const g = svg('svg', { viewBox: '0 0 ' + L + ' ' + H, class: 'graphique', role: 'img' });
+  for (let k = 0; k <= 4; k++) {
+    const y = haut + hz - hz * k / 4;
+    g.append(svg('line', { x1: gauche, x2: L, y1: y, y2: y, class: k ? 'grille' : 'axe' }));
+    if (pas) g.append(svg('text', { x: gauche - 8, y: y + 4, 'text-anchor': 'end', class: 'etiquette' }, compact(pas * k * 1)));
+  }
   mois.forEach((m, i) => {
+    const centre = gauche + i * groupe + groupe / 2, depart = centre - (barre * series.length) / 2;
     series.forEach((s, k) => {
-      const h = (H - bas - 8) * s.valeurs[i] / max;
-      g.append(svg('rect', { x: i * groupe + groupe * 0.15 + k * barre, y: H - bas - h, width: barre * 0.9,
-                             height: h, fill: s.couleur, rx: 2 },
-                   svg('title', {}, s.nom + ' · ' + m + ' · ' + argent(s.valeurs[i]))));
+      const h = hz * s.valeurs[i] / max;
+      if (h > 0) g.append(svg('rect', { x: depart + k * barre + 1, y: haut + hz - h, width: barre - 2, height: h, fill: s.couleur, rx: 3 },
+        svg('title', {}, s.nom + ' · ' + nomMois(m) + ' · ' + argent(s.valeurs[i]))));
     });
-    if (mois.length <= 6 || i % 2 === 0) {
-      const [an, mm] = m.split('-');
-      g.append(svg('text', { x: i * groupe + groupe / 2, y: H - 6, 'text-anchor': 'middle', fill: '#9fb0cc', 'font-size': 12 },
-        new Date(an, mm - 1, 1).toLocaleDateString('fr-CA', { month: 'short' })));
-    }
+    if (mois.length <= 6 || i % 2 === 0 || mois.length <= 12) g.append(svg('text', { x: centre, y: H - 8, 'text-anchor': 'middle', class: 'etiquette' }, nomMois(m)));
   });
-  return el('div', {}, g, legende(series.map((s) => [s.nom, s.couleur])));
+  return el('div', { classe: 'panneau' },
+    el('div', { classe: 'panneau-tete' }, el('h3', {}, 'Par mois'), legende(series.map((s) => [s.nom, s.couleur]))),
+    brut ? g : el('p', { classe: 'vide-graphe doux' }, 'Rien à montrer pour cette période.'));
 }
 
 // Un anneau ; `parts` : [[nom, couleur, cents]].
-function graphiqueAnneau(parts) {
+function graphiqueAnneau(titre, parts) {
   const total = parts.reduce((t, p) => t + p[2], 0) || 1;
   const r = 70, c = 2 * Math.PI * r;
   const g = svg('svg', { viewBox: '0 0 200 200', class: 'anneau', role: 'img' });
+  g.append(svg('circle', { cx: 100, cy: 100, r, fill: 'none', class: 'fond-anneau', 'stroke-width': 22 }));
   let decalage = 0;
   for (const [nom, couleur, cents] of parts) {
     const long = c * cents / total;
-    g.append(svg('circle', { cx: 100, cy: 100, r, fill: 'none', stroke: couleur, 'stroke-width': 28,
+    g.append(svg('circle', { cx: 100, cy: 100, r, fill: 'none', stroke: couleur, 'stroke-width': 22,
                              'stroke-dasharray': Math.max(0, long - 2) + ' ' + c, 'stroke-dashoffset': -decalage,
-                             transform: 'rotate(-90 100 100)' },
-                 svg('title', {}, nom + ' · ' + argent(cents))));
+                             transform: 'rotate(-90 100 100)' }, svg('title', {}, nom + ' · ' + argent(cents))));
     decalage += long;
   }
-  return el('div', { classe: 'graphe-anneau' }, g,
-    el('ul', { classe: 'parts' }, parts.map(([nom, couleur, cents]) =>
-      el('li', {}, pastille(couleur), el('span', {}, nom), el('b', {}, argent(cents))))));
+  g.append(svg('text', { x: 100, y: 106, 'text-anchor': 'middle', class: 'centre-anneau' }, compact(total)));
+  return el('div', { classe: 'panneau' }, el('div', { classe: 'panneau-tete' }, el('h3', {}, titre)),
+    el('div', { classe: 'graphe-anneau' }, g,
+      el('ul', { classe: 'parts' }, parts.map(([nom, couleur, cents]) =>
+        el('li', {}, pastille(couleur), el('span', {}, nom),
+          el('span', { classe: 'doux part' }, Math.round(100 * cents / total) + ' %'), el('b', {}, argent(cents)))))));
 }
 
 function pastille(couleur) {
@@ -1357,40 +1369,50 @@ function legende(elements) {
   return el('div', { classe: 'legende' }, elements.map(([t, c]) => el('span', {}, pastille(c), t)));
 }
 
+// Un indicateur : libellé, montant, précision.
+function indicateur(libelle, valeur, sous, classe) {
+  return el('div', { classe: 'indicateur' }, el('span', { classe: 'libelle' }, libelle),
+    el('b', { classe: classe || '' }, valeur), sous ? el('span', { classe: 'sous' }, sous) : null);
+}
+
+function segments(options, choisi, rappel) {
+  return el('div', { classe: 'segments', role: 'tablist' }, options.map(([k, t]) =>
+    el('button', { type: 'button', role: 'tab', classe: k === choisi ? 'actif' : '', 'aria-selected': k === choisi ? 'true' : 'false',
+      onclick: () => rappel(k) }, t)));
+}
+
+const VOLETS = [['apercu', 'Aperçu'], ['transactions', 'Transactions'], ['jetons', 'Jetons'], ['ligues', 'Ligues'], ['categories', 'Catégories']];
+
 async function vueFinances() {
   const f0 = etat.finances;
+  if (!VOLETS.some(([k]) => k === f0.volet)) f0.volet = 'apercu';
   const [debut, fin] = bornes(f0.periode);
-  const f = await rpc('admin_finances', { p_debut: jourIso(debut), p_fin: jourIso(fin) });
+  const mois = moisEntre(debut, fin);
+  const periode = el('select', { classe: 'periode', 'aria-label': 'Période', onchange: (ev) => { f0.periode = ev.target.value; afficher(); } },
+    PERIODES.map(([k, t]) => el('option', { value: k, selected: f0.periode === k }, t)));
+  const etendue = el('span', { classe: 'doux etendue' }, date(jourIso(debut) + 'T12:00:00') + ' – ' + date(jourIso(fin) + 'T12:00:00'));
+  let f = null;
+  if (f0.volet !== 'jetons') f = await rpc('admin_finances', { p_debut: jourIso(debut), p_fin: jourIso(fin) });
+  const nouvelle = f && (f0.volet === 'apercu' || f0.volet === 'transactions')
+    ? el('button', { type: 'button', onclick: () => dialogueEcriture(f.categories) }, '+ Nouvelle transaction') : null;
+  const tete = el('div', { classe: 'tete-finances' },
+    el('div', {}, el('h2', {}, 'Finances'), etendue),
+    el('div', { classe: 'actions' }, periode, nouvelle));
+  const onglets = segments(VOLETS, f0.volet, (k) => { f0.volet = k; afficher(); });
+  let corps;
+  if (f0.volet === 'jetons') corps = await financesJetons(debut, fin, mois);
+  else if (f0.volet === 'ligues') corps = financesLigues(f.ligues);
+  else if (f0.volet === 'categories') corps = vueCategories(f.categories);
+  else corps = financesEspaceLigue(f, mois, f0.volet);
+  return el('section', { classe: 'finances' }, tete, onglets, corps);
+}
+
+function financesEspaceLigue(f, mois, volet) {
   const categorie = (id) => f.categories.find((c) => c.id === id);
   const visibles = f.ecritures.filter((e) => !(categorie(e.categorie_id) || {}).masquee);
-  const mois = moisEntre(debut, fin);
-  const choix = el('div', { classe: 'outils' },
-    el('select', { onchange: (ev) => { f0.volet = ev.target.value; afficher(); } },
-      el('option', { value: 'lineup', selected: f0.volet === 'lineup' }, 'EspaceLigue'),
-      el('option', { value: 'ligues', selected: f0.volet === 'ligues' }, 'Ligues')),
-    el('select', { onchange: (ev) => { f0.periode = ev.target.value; afficher(); } },
-      PERIODES.map(([k, t]) => el('option', { value: k, selected: f0.periode === k }, t))));
-
-  if (f0.volet === 'ligues') {
-    const l = f.ligues;
-    return el('section', {}, el('h2', {}, 'Finances · Ligues'), choix,
-      el('div', { classe: 'tuiles' },
-        el('div', { classe: 'tuile' }, el('b', { classe: 'vert' }, argent(l.paye_cents)), el('span', { classe: 'doux' }, 'Payé')),
-        el('div', { classe: 'tuile' }, el('b', { classe: 'ambre' }, argent(l.du_cents)), el('span', { classe: 'doux' }, 'À payer'))),
-      el('h3', {}, 'Par mois'),
-      graphiqueBarres(l.par_mois.map((m) => m.mois), [
-        { nom: 'Payé', couleur: '#35c07a', valeurs: l.par_mois.map((m) => m.paye_cents) },
-        { nom: 'À payer', couleur: '#f5b642', valeurs: l.par_mois.map((m) => m.du_cents) }]),
-      l.par_methode.length ? [el('h3', {}, 'Paiements par méthode'),
-        graphiqueAnneau(l.par_methode.map((m, i) => [({ carte: 'Carte', debit_preautorise: 'Prélèvement', interac: 'Interac',
-          comptant: 'Comptant' })[m.methode] || 'Autre', PALETTE[(i + 3) % PALETTE.length], m.cents]))] : null,
-      el('h3', {}, 'Par ligue'),
-      tableau(['Ligue', 'Payé', 'À payer'], l.par_ligue.map((x) => el('tr', {},
-        el('td', {}, x.ligue), el('td', {}, argent(x.paye_cents)), el('td', {}, argent(x.du_cents))))));
-  }
-
   const total = (s) => visibles.filter((e) => e.sens === s).reduce((t, e) => t + e.montant_cents, 0);
-  const revenus = total('revenu'), depenses = total('depense');
+  const revenus = total('revenu'), depenses = total('depense'), net = revenus - depenses;
+  if (volet === 'transactions') return transactions(f, categorie);
   const parCategorie = (sens) => {
     const m = new Map();
     for (const e of visibles.filter((x) => x.sens === sens)) m.set(e.categorie_id, (m.get(e.categorie_id) || 0) + e.montant_cents);
@@ -1399,98 +1421,253 @@ async function vueFinances() {
   };
   const parMois = (sens) => mois.map((m) => visibles.filter((e) => e.sens === sens && e.jour.startsWith(m))
     .reduce((t, e) => t + e.montant_cents, 0));
-  return el('section', {}, el('h2', {}, 'Finances · EspaceLigue'), choix,
-    el('div', { classe: 'tuiles' },
-      el('div', { classe: 'tuile' }, el('b', { classe: 'vert' }, argent(revenus)), el('span', { classe: 'doux' }, 'Revenus')),
-      el('div', { classe: 'tuile' }, el('b', { classe: 'rouge' }, argent(depenses)), el('span', { classe: 'doux' }, 'Dépenses')),
-      el('div', { classe: 'tuile' }, el('b', { classe: revenus >= depenses ? '' : 'rouge' }, argent(revenus - depenses)),
-         el('span', { classe: 'doux' }, 'Solde'))),
-    el('h3', {}, 'Par mois'),
-    graphiqueBarres(mois, [{ nom: 'Revenus', couleur: '#35c07a', valeurs: parMois('revenu') },
-                           { nom: 'Dépenses', couleur: '#ff5a5f', valeurs: parMois('depense') }]),
+  const nb = (s) => visibles.filter((e) => e.sens === s).length;
+  const recentes = f.ecritures.slice(0, 5);
+  return el('div', { classe: 'grille-finances' },
+    el('div', { classe: 'indicateurs' },
+      indicateur('Revenus', argent(revenus), nb('revenu') + ' transaction' + (nb('revenu') > 1 ? 's' : ''), 'vert'),
+      indicateur('Dépenses', argent(depenses), nb('depense') + ' transaction' + (nb('depense') > 1 ? 's' : '')),
+      indicateur('Résultat net', argent(net), revenus ? 'Marge ' + Math.round(100 * net / revenus) + ' %' : null, net < 0 ? 'rouge' : ''),
+      indicateur('Dépenses moyennes', argent(Math.round(depenses / Math.max(1, mois.length))), 'Par mois')),
+    graphiqueBarres(mois, [{ nom: 'Revenus', couleur: '#22C55E', valeurs: parMois('revenu') },
+                           { nom: 'Dépenses', couleur: '#F87171', valeurs: parMois('depense') }]),
     el('div', { classe: 'deux-colonnes' },
       [['revenu', 'Revenus par catégorie'], ['depense', 'Dépenses par catégorie']].map(([s, t]) => {
         const parts = parCategorie(s);
-        return parts.length ? el('div', {}, el('h3', {}, t), graphiqueAnneau(parts)) : null;
+        return parts.length ? graphiqueAnneau(t, parts)
+          : el('div', { classe: 'panneau' }, el('div', { classe: 'panneau-tete' }, el('h3', {}, t)),
+              el('p', { classe: 'vide-graphe doux' }, 'Aucune transaction.'));
       })),
-    el('h3', {}, 'Ajouter une écriture'), formulaireEcriture(f.categories, null),
-    el('h3', {}, 'Écritures'),
-    tableau(['Date', 'Catégorie', 'Note', 'Montant', ''], f.ecritures.map((e) => {
+    el('div', { classe: 'panneau' },
+      el('div', { classe: 'panneau-tete' }, el('h3', {}, 'Dernières transactions'),
+        f.ecritures.length > 5 ? el('button', { classe: 'lien', onclick: () => { etat.finances.volet = 'transactions'; afficher(); } }, 'Tout voir') : null),
+      recentes.length ? tableEcritures(recentes, categorie, false) : etatVide(f.categories)));
+}
+
+function etatVide(categories) {
+  return el('div', { classe: 'etat-vide' }, el('p', {}, 'Aucune transaction sur cette période.'),
+    el('button', { type: 'button', onclick: () => dialogueEcriture(categories) }, '+ Nouvelle transaction'));
+}
+
+function tableEcritures(liste, categorie, avecActions) {
+  return el('div', { classe: 'table' }, el('table', { classe: 'registre' },
+    el('thead', {}, el('tr', {}, el('th', {}, 'Date'), el('th', {}, 'Description'), el('th', { classe: 'col-cat' }, 'Catégorie'),
+      el('th', { classe: 'chiffre' }, 'Montant'), avecActions ? el('th', {}) : null)),
+    el('tbody', {}, liste.map((e) => {
       const c = categorie(e.categorie_id);
       return el('tr', {},
-        el('td', {}, date(e.jour + 'T12:00:00')),
-        el('td', {}, c ? [pastille(c.couleur), ' ', c.nom] : 'Sans catégorie', e.recurrence === 'mensuelle' ? el('span', { classe: 'doux' }, ' · chaque mois') : null),
-        el('td', {}, e.note || ''),
-        el('td', { classe: e.sens === 'revenu' ? 'vert' : '' }, (e.sens === 'revenu' ? '+' : '−') + argent(e.montant_cents)),
-        el('td', {}, el('button', { classe: 'discret', onclick: () => {
-          if (confirmer('Supprimer cette écriture' + (e.recurrence === 'mensuelle' ? ' et tous ses mois' : '') + ' ?', 'SUPPRIMER')) {
-            agir('admin_supprimer_ecriture', { p_id: e.id }, 'Écriture supprimée.');
+        el('td', { classe: 'date' }, date(e.jour + 'T12:00:00')),
+        el('td', {}, e.note || el('span', { classe: 'doux' }, e.sens === 'revenu' ? 'Revenu' : 'Dépense'),
+          e.recurrence === 'mensuelle' ? el('span', { classe: 'etiquette-mini' }, 'Mensuel') : null,
+          el('span', { classe: 'cat-mobile' }, pastille(c ? c.couleur : '#94A3B8'), c ? c.nom : 'Sans catégorie')),
+        el('td', { classe: 'col-cat' }, el('span', { classe: 'puce' }, pastille(c ? c.couleur : '#94A3B8'), c ? c.nom : 'Sans catégorie')),
+        el('td', { classe: 'chiffre ' + (e.sens === 'revenu' ? 'vert' : '') }, (e.sens === 'revenu' ? '' : '−') + argent(e.montant_cents)),
+        avecActions ? el('td', { classe: 'geste' }, el('button', { classe: 'icone', title: 'Supprimer', 'aria-label': 'Supprimer', onclick: () => {
+          if (confirmer('Supprimer cette transaction' + (e.recurrence === 'mensuelle' ? ' et tous ses mois' : '') + ' ?', 'SUPPRIMER')) {
+            agir('admin_supprimer_ecriture', { p_id: e.id }, 'Transaction supprimée.');
           }
-        } }, 'Supprimer')));
-    })),
-    el('h3', {}, 'Catégories'), vueCategories(f.categories));
+        } }, '×')) : null);
+    }))));
 }
 
-function formulaireEcriture(categories) {
-  const sens = el('select', {}, el('option', { value: 'depense' }, 'Dépense'), el('option', { value: 'revenu' }, 'Revenu'));
+function transactions(f, categorie) {
+  const filtre = { sens: 'tous', texte: '' };
+  const zone = el('div');
+  const champ = el('input', { type: 'search', placeholder: 'Rechercher une description ou une catégorie' });
+  const rendre = () => {
+    const t = filtre.texte.toLowerCase();
+    const liste = f.ecritures.filter((e) => (filtre.sens === 'tous' || e.sens === filtre.sens)
+      && (!t || (e.note || '').toLowerCase().includes(t) || ((categorie(e.categorie_id) || {}).nom || '').toLowerCase().includes(t)));
+    const somme = liste.reduce((s, e) => s + (e.sens === 'revenu' ? e.montant_cents : -e.montant_cents), 0);
+    zone.replaceChildren(...[].concat(liste.length
+      ? [tableEcritures(liste, categorie, true),
+         el('div', { classe: 'pied-registre' }, el('span', { classe: 'doux' }, liste.length + ' transaction' + (liste.length > 1 ? 's' : '')),
+           el('b', { classe: somme < 0 ? 'rouge' : 'vert' }, 'Net ' + argent(somme)))]
+      : f.ecritures.length ? el('p', { classe: 'vide-graphe doux' }, 'Aucune transaction ne correspond.') : etatVide(f.categories)));
+  };
+  champ.addEventListener('input', () => { filtre.texte = champ.value.trim(); rendre(); });
+  const sens = segments([['tous', 'Toutes'], ['revenu', 'Revenus'], ['depense', 'Dépenses']], 'tous', (k) => {
+    filtre.sens = k; sens.querySelectorAll('button').forEach((b, i) => b.className = ['tous', 'revenu', 'depense'][i] === k ? 'actif' : '');
+    rendre();
+  });
+  sens.classList.add('petits');
+  rendre();
+  return el('div', { classe: 'panneau' }, el('div', { classe: 'barre-filtres' }, champ, sens), zone);
+}
+
+// La fenêtre de saisie : le sens d'abord, puis le montant, comme une caisse.
+function dialogueEcriture(categories) {
+  let sensChoisi = 'depense';
   const cat = el('select', {});
   const remplir = () => cat.replaceChildren(el('option', { value: '' }, 'Sans catégorie'),
-    ...categories.filter((c) => c.sens === sens.value).map((c) => el('option', { value: c.id }, c.nom)));
-  sens.addEventListener('change', remplir); remplir();
-  const montant = el('input', { inputmode: 'decimal', placeholder: '0,00 $', required: true });
+    ...categories.filter((c) => c.sens === sensChoisi).map((c) => el('option', { value: c.id }, c.nom)));
+  const sens = segments([['depense', 'Dépense'], ['revenu', 'Revenu']], sensChoisi, (k) => {
+    sensChoisi = k; sens.querySelectorAll('button').forEach((b, i) => b.className = ['depense', 'revenu'][i] === k ? 'actif' : '');
+    remplir();
+  });
+  remplir();
+  const montant = el('input', { inputmode: 'decimal', placeholder: '0,00', required: true, classe: 'montant', autocomplete: 'off' });
   const jour = el('input', { type: 'date', value: jourIso(new Date()), required: true });
-  const note = el('input', { placeholder: 'Facultative' });
+  const note = el('input', { placeholder: 'Ex. : hébergement Supabase' });
   const mensuelle = el('input', { type: 'checkbox' });
-  const fin = el('input', { type: 'date' });
-  const champFin = el('label', { hidden: true }, 'Jusqu’au (facultatif)', fin);
+  const finSerie = el('input', { type: 'date' });
+  const champFin = el('label', { hidden: true }, 'Jusqu’au (facultatif)', finSerie);
   mensuelle.addEventListener('change', () => { champFin.hidden = !mensuelle.checked; });
-  return el('form', { classe: 'carte-formulaire', onsubmit: (ev) => {
+  const d = el('dialog', { classe: 'dialogue' });
+  const fermer = () => { d.close(); d.remove(); };
+  d.append(el('form', { onsubmit: (ev) => {
     ev.preventDefault();
-    const cents = Math.round(parseFloat(montant.value.replace(',', '.').replace(/[^0-9.]/g, '')) * 100);
-    if (!(cents > 0)) { dire('Le montant n’est pas valide.', true); return; }
-    agir('admin_enregistrer_ecriture', { p_id: null, p_jour: jour.value, p_sens: sens.value, p_montant_cents: cents,
-      p_categorie: cat.value || null, p_note: note.value, p_recurrence: mensuelle.checked ? 'mensuelle' : 'aucune',
-      p_fin: mensuelle.checked && fin.value ? fin.value : null }, 'Écriture enregistrée.');
+    const cents = dollarsVersCents(montant.value);
+    if (!(cents > 0)) { montant.focus(); dire('Le montant n’est pas valide.', true); return; }
+    fermer();
+    agir('admin_enregistrer_ecriture', { p_id: null, p_jour: jour.value, p_sens: sensChoisi, p_montant_cents: cents,
+      p_categorie: cat.value || null, p_note: note.value.trim(), p_recurrence: mensuelle.checked ? 'mensuelle' : 'aucune',
+      p_fin: mensuelle.checked && finSerie.value ? finSerie.value : null }, 'Transaction enregistrée.');
   } },
-    el('div', { classe: 'champs' },
-      el('label', {}, 'Type', sens),
-      el('label', {}, 'Montant', montant),
-      el('label', {}, 'Date', jour),
-      el('label', {}, 'Catégorie', cat),
-      el('label', { classe: 'large' }, 'Note', note)),
-    el('div', { classe: 'pied-formulaire' },
-      el('label', { classe: 'case' }, mensuelle, 'Revient chaque mois'),
-      champFin,
-      el('button', { type: 'submit' }, 'Ajouter l’écriture')));
+    el('div', { classe: 'dialogue-tete' }, el('h3', {}, 'Nouvelle transaction'),
+      el('button', { type: 'button', classe: 'icone', 'aria-label': 'Fermer', onclick: fermer }, '×')),
+    sens,
+    el('label', {}, 'Montant', el('div', { classe: 'champ-montant' }, montant, el('span', {}, '$'))),
+    el('div', { classe: 'deux' }, el('label', {}, 'Date', jour), el('label', {}, 'Catégorie', cat)),
+    el('label', {}, 'Description', note),
+    el('label', { classe: 'case' }, mensuelle, 'Revient chaque mois'), champFin,
+    el('div', { classe: 'dialogue-pied' }, el('button', { type: 'button', classe: 'discret', onclick: fermer }, 'Annuler'),
+      el('button', { type: 'submit' }, 'Enregistrer'))));
+  d.addEventListener('cancel', (ev) => { ev.preventDefault(); fermer(); });
+  document.body.append(d);
+  d.showModal();
+  montant.focus();
 }
 
-function vueCategories(categories) {
-  const ligne = (c) => {
-    const nom = el('input', { value: c.nom });
-    const couleur = el('select', {}, PALETTE.map((p) => el('option', { value: p, selected: p === c.couleur }, p)));
-    const visible = el('input', { type: 'checkbox', checked: !c.masquee });
-    return el('tr', {},
-      el('td', {}, c.sens === 'revenu' ? 'Revenu' : 'Dépense'),
-      el('td', {}, nom), el('td', {}, pastille(c.couleur), ' ', couleur),
-      el('td', {}, el('label', { classe: 'case' }, visible, 'Graphiques')),
-      el('td', { classe: 'boutons' },
-        el('button', { onclick: () => agir('admin_enregistrer_categorie', { p_id: c.id, p_nom: nom.value, p_sens: c.sens,
-          p_couleur: couleur.value, p_ordre: c.ordre, p_masquee: !visible.checked }, 'Catégorie enregistrée.') }, 'Enregistrer'),
-        el('button', { classe: 'discret', onclick: () => {
-          if (confirmer('Supprimer « ' + c.nom + ' » ? Ses écritures restent, sans catégorie.', 'SUPPRIMER')) {
-            agir('admin_supprimer_categorie', { p_id: c.id }, 'Catégorie supprimée.');
-          }
-        } }, 'Supprimer')));
+function financesLigues(l) {
+  const methodes = { carte: 'Carte', debit_preautorise: 'Prélèvement', interac: 'Interac', comptant: 'Comptant' };
+  const total = l.paye_cents + l.du_cents;
+  return el('div', { classe: 'grille-finances' },
+    el('div', { classe: 'indicateurs' },
+      indicateur('Encaissé', argent(l.paye_cents), 'Par les ligues', 'vert'),
+      indicateur('À recevoir', argent(l.du_cents), 'Soldes ouverts', l.du_cents ? 'ambre' : ''),
+      indicateur('Taux de recouvrement', total ? Math.round(100 * l.paye_cents / total) + ' %' : '—', null)),
+    graphiqueBarres(l.par_mois.map((m) => m.mois), [
+      { nom: 'Encaissé', couleur: '#22C55E', valeurs: l.par_mois.map((m) => m.paye_cents) },
+      { nom: 'À recevoir', couleur: '#F59E0B', valeurs: l.par_mois.map((m) => m.du_cents) }]),
+    l.par_methode.length ? graphiqueAnneau('Encaissements par méthode', l.par_methode.map((m, i) =>
+      [methodes[m.methode] || 'Autre', PALETTE[(i + 3) % PALETTE.length], m.cents])) : null,
+    el('div', { classe: 'panneau' }, el('div', { classe: 'panneau-tete' }, el('h3', {}, 'Par ligue')),
+      l.par_ligue.length ? el('div', { classe: 'table' }, el('table', { classe: 'registre' },
+        el('thead', {}, el('tr', {}, el('th', {}, 'Ligue'), el('th', { classe: 'chiffre' }, 'Encaissé'), el('th', { classe: 'chiffre' }, 'À recevoir'))),
+        el('tbody', {}, l.par_ligue.map((x) => el('tr', {}, el('td', {}, x.ligue),
+          el('td', { classe: 'chiffre' }, argent(x.paye_cents)),
+          el('td', { classe: 'chiffre ' + (x.du_cents ? 'ambre' : 'doux') }, argent(x.du_cents)))))))
+        : el('p', { classe: 'vide-graphe doux' }, 'Aucun paiement sur la période.')));
+}
+
+// Finances ▸ Jetons : l'argent encaissé contre le service rendu. L'encours
+// (jetons détenus) est dû aux ligues ; il devient gagné quand ils se dépensent.
+async function financesJetons(debut, fin, mois) {
+  const j = await rpc('admin_finances_jetons', { p_debut: jourIso(debut), p_fin: jourIso(fin) });
+  const t = j.totaux, v = j.valeur_cents;
+  const duMois = (m, cle) => (j.par_mois.find((x) => x.mois === m) || {})[cle] || 0;
+  const signe = (n) => (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(n);
+  const exporter = () => {
+    const cellule = (x) => '"' + String(x == null ? '' : x).replace(/"/g, '""') + '"';
+    const lignes = [['Date', 'Ligue', 'Mouvement', 'Recherche', 'Jetons', 'Montant ($)', 'Référence', 'Par', 'Motif']]
+      .concat(j.mouvements.map((m) => [m.fait_le.slice(0, 19).replace('T', ' '), m.ligue, NATURES_JETONS[m.nature] || m.nature,
+        GENRES_JETONS[m.genre] || '', m.quantite, m.prix_cents == null ? '' : (m.prix_cents / 100).toFixed(2).replace('.', ','),
+        m.reference, m.par, m.note]));
+    const csv = '﻿' + lignes.map((l) => l.map(cellule).join(';')).join('\r\n');
+    const a = el('a', { href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })),
+      download: 'jetons-' + jourIso(debut) + '-au-' + jourIso(fin) + '.csv' });
+    document.body.append(a); a.click(); a.remove();
   };
-  const sens = el('select', {}, el('option', { value: 'depense' }, 'Dépense'), el('option', { value: 'revenu' }, 'Revenu'));
-  const nom = el('input', { placeholder: 'Nouvelle catégorie', required: true });
-  const couleur = el('select', {}, PALETTE.map((p) => el('option', { value: p }, p)));
-  return el('div', {},
-    tableau(['Sens', 'Nom', 'Couleur', '', ''], categories.map(ligne)),
-    el('form', { classe: 'outils', onsubmit: (ev) => { ev.preventDefault();
-      agir('admin_enregistrer_categorie', { p_id: null, p_nom: nom.value, p_sens: sens.value, p_couleur: couleur.value,
-        p_ordre: 99, p_masquee: false }, 'Catégorie ajoutée.'); } },
-      sens, nom, couleur, el('button', { type: 'submit' }, 'Ajouter')));
+  const ligneRappro = (titre, n, fort) => el('tr', { classe: fort ? 'fort' : '' }, el('td', {}, titre),
+    el('td', { classe: 'chiffre' }, fort ? n : signe(n)), el('td', { classe: 'chiffre' }, argent(n * v)));
+  return el('div', { classe: 'grille-finances' },
+    el('div', { classe: 'indicateurs' },
+      indicateur('Ventes nettes', argent(t.ventes_cents - t.rembourses_cents),
+        t.vendus + ' jetons vendus' + (t.rembourses_cents ? ' · ' + argent(t.rembourses_cents) + ' remboursés' : ''), 'vert'),
+      indicateur('Revenu gagné', argent(t.consommes * v), t.consommes + ' jetons dépensés'),
+      indicateur('Encours dû', argent(j.encours_fin * v), j.encours_fin + ' jetons détenus', 'ambre'),
+      indicateur('Offerts', argent(t.offerts * v), t.offerts + ' jetons en prime')),
+    graphiqueBarres(mois, [
+      { nom: 'Ventes', couleur: '#22C55E', valeurs: mois.map((m) => duMois(m, 'ventes_cents')) },
+      { nom: 'Gagné', couleur: '#3B82F6', valeurs: mois.map((m) => duMois(m, 'consommes') * v) },
+      { nom: 'Offerts', couleur: '#A855F7', valeurs: mois.map((m) => duMois(m, 'offerts') * v) }]),
+    el('div', { classe: 'deux-colonnes' },
+      el('div', { classe: 'panneau' }, el('div', { classe: 'panneau-tete' }, el('h3', {}, 'Rapprochement de l’encours'),
+        el('span', { classe: 'doux' }, '1 jeton = ' + argent(v))),
+        el('table', { classe: 'registre' },
+          el('thead', {}, el('tr', {}, el('th', {}), el('th', { classe: 'chiffre' }, 'Jetons'), el('th', { classe: 'chiffre' }, 'Valeur'))),
+          el('tbody', {},
+            ligneRappro('Solde d’ouverture', j.encours_debut, true),
+            ligneRappro('Vendus', t.vendus), ligneRappro('Offerts', t.offerts),
+            ligneRappro('Dépensés', -t.consommes), ligneRappro('Retirés', -t.retires),
+            ligneRappro('Corrections', t.corriges),
+            ligneRappro('Solde de clôture', j.encours_fin, true)))),
+      el('div', { classe: 'panneau' }, el('div', { classe: 'panneau-tete' }, el('h3', {}, 'Par ligue')),
+        j.par_ligue.length ? el('div', { classe: 'table' }, el('table', { classe: 'registre' },
+          el('thead', {}, el('tr', {}, el('th', {}, 'Ligue'), el('th', { classe: 'chiffre' }, 'Ventes'),
+            el('th', { classe: 'chiffre' }, 'Dépensés'), el('th', { classe: 'chiffre' }, 'Solde'))),
+          el('tbody', {}, j.par_ligue.map((l) => el('tr', l.ligue_id ? { classe: 'cliquable', onclick: () => aller('ligue', l.ligue_id) } : {},
+            el('td', {}, l.ligue || 'Ligue effacée'), el('td', { classe: 'chiffre' }, argent(l.ventes_cents)),
+            el('td', { classe: 'chiffre' }, l.consommes), el('td', { classe: 'chiffre' }, l.ligue_id ? l.solde : '—'))))))
+          : el('p', { classe: 'vide-graphe doux' }, 'Aucun mouvement sur la période.'))),
+    el('div', { classe: 'panneau' },
+      el('div', { classe: 'panneau-tete' }, el('h3', {}, 'Mouvements'),
+        j.mouvements.length ? el('button', { classe: 'discret', onclick: exporter }, 'Exporter en CSV') : null),
+      j.mouvements.length ? el('div', { classe: 'table' }, el('table', { classe: 'registre' },
+        el('thead', {}, el('tr', {}, el('th', {}, 'Date'), el('th', {}, 'Ligue'), el('th', {}, 'Mouvement'),
+          el('th', { classe: 'chiffre' }, 'Jetons'), el('th', { classe: 'chiffre' }, 'Montant'))),
+        el('tbody', {}, j.mouvements.slice(0, 200).map((m) => el('tr', { title: [m.par, m.note].filter(Boolean).join(' · ') },
+          el('td', { classe: 'date' }, date(m.fait_le, true)), el('td', {}, m.ligue),
+          el('td', {}, NATURES_JETONS[m.nature] || m.nature, m.genre ? el('span', { classe: 'doux' }, ' · ' + GENRES_JETONS[m.genre]) : null),
+          el('td', { classe: 'chiffre ' + (m.quantite > 0 ? 'vert' : '') }, signe(m.quantite)),
+          el('td', { classe: 'chiffre' }, m.prix_cents == null ? '' : argent(m.prix_cents)))))))
+        : el('p', { classe: 'vide-graphe doux' }, 'Aucun mouvement sur la période.')));
+}
+
+// Les catégories : nom modifiable sur place, couleur en pastilles, visibilité
+// dans les graphiques. Tout s'enregistre au changement.
+function vueCategories(categories) {
+  const sauver = (c, champs, message) => agir('admin_enregistrer_categorie', Object.assign({ p_id: c.id, p_nom: c.nom,
+    p_sens: c.sens, p_couleur: c.couleur, p_ordre: c.ordre, p_masquee: c.masquee }, champs), message);
+  // La couleur passe par le CSSOM : la CSP refuse les attributs style.
+  const nuancier = (choisie, rappel) => el('div', { classe: 'nuancier' }, PALETTE.map((p) => {
+    const b = el('button', { type: 'button', classe: 'nuance' + (p === choisie ? ' choisie' : ''), 'aria-label': p,
+      onclick: () => rappel(p) });
+    b.style.setProperty('--c', p);
+    return b;
+  }));
+  const ligne = (c) => {
+    const nom = el('input', { value: c.nom, classe: 'sur-place', 'aria-label': 'Nom' });
+    nom.addEventListener('change', () => nom.value.trim() && sauver(c, { p_nom: nom.value.trim() }, 'Catégorie renommée.'));
+    const visible = el('input', { type: 'checkbox', checked: !c.masquee });
+    visible.addEventListener('change', () => sauver(c, { p_masquee: !visible.checked }, visible.checked ? 'Montrée dans les graphiques.' : 'Cachée des graphiques.'));
+    const ligneEl = el('li', { classe: 'categorie' },
+      el('button', { type: 'button', classe: 'puce-couleur', title: 'Changer la couleur', 'aria-label': 'Changer la couleur',
+        onclick: () => ligneEl.classList.toggle('ouvert') }, pastille(c.couleur)), nom,
+      nuancier(c.couleur, (p) => sauver(c, { p_couleur: p }, 'Couleur changée.')),
+      el('label', { classe: 'interrupteur', title: 'Dans les graphiques' }, visible, el('span', {})),
+      el('button', { classe: 'icone', title: 'Supprimer', 'aria-label': 'Supprimer', onclick: () => {
+        if (confirmer('Supprimer « ' + c.nom + ' » ? Ses transactions restent, sans catégorie.', 'SUPPRIMER')) {
+          agir('admin_supprimer_categorie', { p_id: c.id }, 'Catégorie supprimée.');
+        }
+      } }, '×'));
+    return ligneEl;
+  };
+  const bloc = (sens, titre) => {
+    const nom = el('input', { placeholder: 'Nouvelle catégorie', required: true });
+    let couleur = PALETTE[0];
+    const choix = nuancier(couleur, (p) => { couleur = p; choix.querySelectorAll('.nuance').forEach((b) =>
+      b.classList.toggle('choisie', b.getAttribute('aria-label') === p)); });
+    return el('div', { classe: 'panneau' },
+      el('div', { classe: 'panneau-tete' }, el('h3', {}, titre), el('span', { classe: 'doux' }, 'Graphiques')),
+      el('ul', { classe: 'categories' }, categories.filter((c) => c.sens === sens).map(ligne)),
+      el('form', { classe: 'ajout-categorie', onsubmit: (ev) => { ev.preventDefault();
+        agir('admin_enregistrer_categorie', { p_id: null, p_nom: nom.value.trim(), p_sens: sens, p_couleur: couleur,
+          p_ordre: 99, p_masquee: false }, 'Catégorie ajoutée.'); } },
+        nom, choix, el('button', { type: 'submit' }, 'Ajouter')));
+  };
+  return el('div', { classe: 'deux-colonnes' }, bloc('depense', 'Dépenses'), bloc('revenu', 'Revenus'));
 }
 
 // --- Thème clair ou foncé ------------------------------------------------
