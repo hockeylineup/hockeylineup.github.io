@@ -1,0 +1,37 @@
+/* La page Jetons reprend admin.css et gerant.css ; ici, ce qui lui est propre. */
+main#contenu { max-width: 880px; }
+.tete-jetons { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.tete-jetons h2 { margin: 0; }
+
+/* Le solde : la pièce, le chiffre, les prix. */
+.solde { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; padding: 20px;
+  background: linear-gradient(135deg, color-mix(in srgb, #f5b642 16%, var(--carte)), var(--carte) 60%);
+  border: 1px solid var(--ligne); border-radius: 16px; }
+.solde .piece { width: 76px; height: 76px; animation: balance 4s ease-in-out infinite; }
+@keyframes balance { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(8deg) translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) { .solde .piece { animation: none; } }
+.solde .chiffres { display: grid; gap: 2px; flex: 1; min-width: 180px; }
+.solde .libelle { color: var(--doux); font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.solde .chiffres b { font-size: 2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.solde .chiffres b .doux { font-size: 1rem; font-weight: 500; }
+.solde ul.prix { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; min-width: 170px; }
+.solde ul.prix li { display: flex; justify-content: space-between; gap: 16px; font-size: .9rem; }
+.solde ul.prix li span { color: var(--doux); }
+
+/* Les paquets. */
+.paquets { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+.paquet { position: relative; display: grid; gap: 6px; justify-items: center; text-align: center;
+  padding: 24px 16px 18px; background: var(--carte); border: 1px solid var(--ligne); border-radius: 16px; }
+.paquet.vedette { border: 2px solid var(--bleu); box-shadow: 0 8px 24px color-mix(in srgb, var(--bleu) 18%, transparent); }
+.paquet .ruban { position: absolute; top: -11px; padding: 3px 12px; border-radius: 999px; background: var(--bleu);
+  color: #fff; font-size: .75rem; font-weight: 700; letter-spacing: .02em; }
+.paquet .quantite { display: flex; align-items: center; gap: 8px; }
+.paquet .quantite img { width: 30px; height: 30px; }
+.paquet .quantite b { font-size: 2.2rem; font-weight: 750; font-variant-numeric: tabular-nums; }
+.paquet .quantite span { color: var(--doux); }
+.paquet .montant { font-size: 1.3rem; font-weight: 650; }
+.paquet .unitaire { font-size: .85rem; }
+.paquet .economie { color: var(--vert); font-weight: 600; }
+.paquet button { width: 100%; margin-top: 8px; height: 42px; }
+.note { margin: 0; text-align: center; font-size: .88rem; }
+.petit { font-size: .82rem; margin-top: 2px; }
