@@ -315,6 +315,7 @@ const ONGLETS = [
   ['admins', 'Administrateurs', vueAdmins],
   ['finances', 'Finances', vueFinances],
   ['commission', 'Commission', vueCommission],
+  ['jetons', 'Jetons', vueJetons],
   ['regions', 'Régions', vueRegions],
   ['parametres', 'Paramètres', vueParametres],
   ['journal', 'Journal', vueJournal],
@@ -465,6 +466,9 @@ async function vueLigue(id) {
     // Le défaut, ou un tarif négocié avec la ligue : tout administrateur.
     el('h3', {}, 'Commission EspaceLigue'),
     commissionLigue(l, defaut),
+
+    el('h3', {}, 'Jetons'),
+    await jetonsLigue(id),
 
     el('h3', {}, 'Saisons et équipes'),
     l.saisons.length ? l.saisons.map((s) => el('div', { classe: 'fiche' },
@@ -664,6 +668,97 @@ async function vueCommission() {
               await afficher();
             } catch (e) { dire(e.message, true); }
           } }, 'Enregistrer'))));
+}
+
+// --- Jetons (31 octobre 2026) ----------------------------------------------
+// Ce qu'une recherche dans la banque générale coûte à la ligue. Le solde est
+// à la ligue ; seule une recherche confirmée par quelqu'un venu de la banque
+// générale est débitée. Pendant de « Administration ▸ Jetons » dans l'app.
+const GENRES_JETONS = { remplacant: 'Remplaçant', gardien: 'Gardien', arbitre: 'Arbitre' };
+const NATURES_JETONS = {
+  achat: 'Achat', cadeau: 'Offerts', correction: 'Correction', remboursement: 'Remboursement',
+  debit: 'Recherche confirmée', annulation_debit: 'Désistement, jetons rendus',
+};
+
+async function vueJetons() {
+  const j = await rpc('admin_jetons');
+  const tarifs = j.tarifs.map((t) => ({ t, champ: el('input', { inputmode: 'numeric', value: t.jetons }) }));
+  const paquetJetons = el('input', { inputmode: 'numeric', placeholder: '100' });
+  const paquetPrix = el('input', { inputmode: 'decimal', placeholder: '20,00' });
+  return el('section', {}, el('h2', {}, 'Jetons'),
+    el('div', { classe: 'fiche' },
+      el('label', {}, el('input', { type: 'checkbox', checked: j.actifs,
+        onchange: (ev) => agir('admin_changer_parametre', { p_cle: 'jetons_actifs', p_valeur: ev.target.checked },
+          ev.target.checked ? 'Recherches payantes.' : 'Jetons en veille.') }), ' Recherches payantes'),
+      el('p', {}, 'Valeur d’un jeton : ', el('strong', {}, argent(j.valeur_cents)),
+        ' · Encours : ', el('strong', {}, j.encours + ' jetons (' + argent(j.encours * j.valeur_cents) + ')'),
+        el('span', { classe: 'doux' }, ' détenus par les ligues'))),
+
+    el('h3', {}, 'Prix en jetons'),
+    el('div', { classe: 'fiche' },
+      el('div', { classe: 'grille' }, tarifs.map(({ t, champ }) => el('label', {}, GENRES_JETONS[t.genre] || t.genre, champ))),
+      el('div', { classe: 'actions' }, el('button', { onclick: async () => {
+        try {
+          for (const { t, champ } of tarifs) {
+            const n = parseInt(champ.value, 10);
+            if (Number.isFinite(n) && n !== t.jetons) await rpc('admin_jetons_tarif', { p_genre: t.genre, p_jetons: n });
+          }
+          dire('Prix enregistrés.');
+          await afficher();
+        } catch (e) { dire(e.message, true); }
+      } }, 'Enregistrer'))),
+
+    el('h3', {}, 'Paquets'),
+    el('div', { classe: 'fiche' },
+      j.paquets.length ? tableau(['Jetons', 'Prix', 'En vente', ''], j.paquets.map((p) => el('tr', {},
+        el('td', {}, p.jetons), el('td', {}, argent(p.prix_cents)), el('td', {}, p.actif ? 'oui' : 'non'),
+        el('td', {},
+          el('button', { classe: 'discret', onclick: () => agir('admin_jetons_paquet',
+            { p_id: p.id, p_jetons: p.jetons, p_prix_cents: p.prix_cents, p_actif: !p.actif, p_ordre: null },
+            p.actif ? 'Paquet retiré de la vente.' : 'Paquet remis en vente.') }, p.actif ? 'Retirer' : 'Remettre'),
+          el('button', { classe: 'danger', onclick: () => agir('admin_jetons_paquet',
+            { p_id: p.id, p_jetons: null, p_prix_cents: null, p_actif: null, p_ordre: null }, 'Paquet effacé.') },
+            'Effacer'))))) : el('p', { classe: 'doux' }, 'Aucun paquet.'),
+      el('form', { classe: 'outils', onsubmit: (ev) => { ev.preventDefault();
+        agir('admin_jetons_paquet', { p_id: null, p_jetons: parseInt(paquetJetons.value, 10) || 0,
+          p_prix_cents: dollarsVersCents(paquetPrix.value), p_actif: true, p_ordre: null }, 'Paquet ajouté.'); } },
+        el('label', {}, 'Jetons', paquetJetons), el('label', {}, 'Prix ($)', paquetPrix),
+        el('button', { type: 'submit' }, 'Ajouter'))),
+
+    j.mois.length ? el('h3', {}, 'Par mois') : null,
+    j.mois.length ? tableau(['Mois', 'Achetés', 'Ventes', 'Dépensés', 'Offerts', 'Remboursés'],
+      j.mois.map((m) => el('tr', {}, el('td', {}, m.mois), el('td', {}, m.achetes), el('td', {}, argent(m.ventes_cents)),
+        el('td', {}, m.depenses), el('td', {}, m.offerts), el('td', {}, m.rembourses)))) : null,
+
+    el('h3', {}, 'Soldes des ligues'),
+    j.ligues.length ? tableau(['Ligue', 'Solde', 'De côté'], j.ligues.map((l) =>
+      el('tr', { classe: 'cliquable', onclick: () => aller('ligue', l.id) },
+        el('td', {}, l.nom), el('td', {}, l.total), el('td', {}, l.reserves || '')))) :
+      el('p', { classe: 'doux' }, 'Aucune ligue n’a de jetons.'));
+}
+
+// Sur la fiche d'une ligue : son solde, son historique, et les gestes.
+async function jetonsLigue(id) {
+  const d = await rpc('admin_jetons_ligue', { p_ligue: id });
+  const geste = el('select', {}, el('option', { value: 'cadeau' }, 'Offrir'),
+    el('option', { value: 'correction' }, 'Corriger'), el('option', { value: 'remboursement' }, 'Rembourser'));
+  const quantite = el('input', { inputmode: 'numeric', value: '10' });
+  const note = el('input', { placeholder: 'Note (obligatoire)' });
+  return el('div', { classe: 'fiche' },
+    el('p', {}, 'Solde : ', el('strong', {}, d.total + ' jetons'),
+      d.reserves ? el('span', { classe: 'doux' }, ' (' + d.reserves + ' de côté)') : null),
+    d.mouvements.length ? tableau(['Quand', 'Mouvement', 'Jetons', 'Par', 'Note'],
+      d.mouvements.slice(0, 50).map((m) => el('tr', {}, el('td', {}, date(m.fait_le, true)),
+        el('td', {}, NATURES_JETONS[m.nature] || m.nature), el('td', {}, (m.quantite > 0 ? '+' : '') + m.quantite),
+        el('td', {}, m.par || ''), el('td', {}, m.note || '')))) : null,
+    el('form', { classe: 'outils', onsubmit: (ev) => { ev.preventDefault();
+      // Offrir ajoute, rembourser retire : le signe suit le geste.
+      const brut = parseInt(quantite.value, 10) || 0;
+      const n = geste.value === 'cadeau' ? Math.abs(brut) : geste.value === 'remboursement' ? -Math.abs(brut) : brut;
+      agir('admin_jetons_mouvement', { p_ligue: id, p_quantite: n, p_nature: geste.value, p_note: note.value.trim() },
+        'Jetons : geste appliqué.'); } },
+      geste, quantite, note, el('button', { type: 'submit' }, 'Appliquer')),
+    el('p', { classe: 'doux' }, 'Un remboursement retire les jetons ; l’argent se rend dans Stripe.'));
 }
 
 async function vueJournal() {
