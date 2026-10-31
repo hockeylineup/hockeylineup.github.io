@@ -675,9 +675,10 @@ async function vueCommission() {
 // à la ligue ; seule une recherche confirmée par quelqu'un venu de la banque
 // générale est débitée. Pendant de « Administration ▸ Jetons » dans l'app.
 const GENRES_JETONS = { remplacant: 'Remplaçant', gardien: 'Gardien', arbitre: 'Arbitre' };
+// Les natures du MASTER Plan (page 4).
 const NATURES_JETONS = {
-  achat: 'Achat', cadeau: 'Offerts', correction: 'Correction', remboursement: 'Remboursement',
-  debit: 'Recherche confirmée', annulation_debit: 'Désistement, jetons rendus',
+  paquet: 'Paquet acheté', forfait: 'Forfait', correction: 'Correction', ajustement: 'Ajustement',
+  debit_confirmation: 'Recherche confirmée',
 };
 
 async function vueJetons() {
@@ -725,10 +726,31 @@ async function vueJetons() {
         el('label', {}, 'Jetons', paquetJetons), el('label', {}, 'Prix ($)', paquetPrix),
         el('button', { type: 'submit' }, 'Ajouter'))),
 
+    el('h3', {}, 'Forfaits'),
+    el('div', { classe: 'fiche' },
+      j.forfaits.length ? tableau(['Parties', 'Jetons en prime', 'Offert', ''], j.forfaits.map((f) => el('tr', {},
+        el('td', {}, f.parties), el('td', {}, '+' + f.jetons), el('td', {}, f.actif ? 'oui' : 'non'),
+        el('td', {},
+          el('button', { classe: 'discret', onclick: () => agir('admin_jetons_forfait',
+            { p_id: f.id, p_parties: f.parties, p_jetons: f.jetons, p_actif: !f.actif },
+            f.actif ? 'Forfait retiré.' : 'Forfait remis.') }, f.actif ? 'Retirer' : 'Remettre'),
+          el('button', { classe: 'danger', onclick: () => agir('admin_jetons_forfait',
+            { p_id: f.id, p_parties: null, p_jetons: null, p_actif: null }, 'Forfait effacé.') }, 'Effacer'))))) :
+        el('p', { classe: 'doux' }, 'Aucun forfait.'),
+      (() => {
+        const parties = el('input', { inputmode: 'numeric', placeholder: '25' });
+        const jetons = el('input', { inputmode: 'numeric', placeholder: '10' });
+        return el('form', { classe: 'outils', onsubmit: (ev) => { ev.preventDefault();
+          agir('admin_jetons_forfait', { p_id: null, p_parties: parseInt(parties.value, 10) || 0,
+            p_jetons: parseInt(jetons.value, 10), p_actif: true }, 'Forfait ajouté.'); } },
+          el('label', {}, 'Parties', parties), el('label', {}, 'Jetons en prime', jetons),
+          el('button', { type: 'submit' }, 'Ajouter'));
+      })()),
+
     j.mois.length ? el('h3', {}, 'Par mois') : null,
-    j.mois.length ? tableau(['Mois', 'Achetés', 'Ventes', 'Dépensés', 'Offerts', 'Remboursés'],
+    j.mois.length ? tableau(['Mois', 'Achetés', 'Ventes', 'Dépensés', 'Forfaits', 'Ajustés'],
       j.mois.map((m) => el('tr', {}, el('td', {}, m.mois), el('td', {}, m.achetes), el('td', {}, argent(m.ventes_cents)),
-        el('td', {}, m.depenses), el('td', {}, m.offerts), el('td', {}, m.rembourses)))) : null,
+        el('td', {}, m.depenses), el('td', {}, m.forfaits), el('td', {}, m.ajustements)))) : null,
 
     el('h3', {}, 'Soldes des ligues'),
     j.ligues.length ? tableau(['Ligue', 'Solde', 'De côté'], j.ligues.map((l) =>
@@ -737,28 +759,44 @@ async function vueJetons() {
       el('p', { classe: 'doux' }, 'Aucune ligue n’a de jetons.'));
 }
 
-// Sur la fiche d'une ligue : son solde, son historique, et les gestes.
+// Sur la fiche d'une ligue : son solde, son historique, et les gestes (MASTER
+// Plan, page 4) : accorder un forfait, ajuster, corriger. Une correction
+// renvoie au mouvement qu'elle corrige : son bouton « Corriger » dans la liste.
 async function jetonsLigue(id) {
-  const d = await rpc('admin_jetons_ligue', { p_ligue: id });
-  const geste = el('select', {}, el('option', { value: 'cadeau' }, 'Offrir'),
-    el('option', { value: 'correction' }, 'Corriger'), el('option', { value: 'remboursement' }, 'Rembourser'));
+  const [d, j] = await Promise.all([rpc('admin_jetons_ligue', { p_ligue: id }), rpc('admin_jetons')]);
+  const forfait = el('select', {}, j.forfaits.filter((f) => f.actif).map((f) =>
+    el('option', { value: f.id }, f.parties + ' parties · +' + f.jetons)));
+  const geste = el('select', {}, el('option', { value: 'ajustement' }, 'Ajuster'),
+    el('option', { value: 'correction' }, 'Corriger'));
   const quantite = el('input', { inputmode: 'numeric', value: '10' });
-  const note = el('input', { placeholder: 'Note (obligatoire)' });
+  const note = el('input', { placeholder: 'Motif (obligatoire)' });
+  const cible = el('span', { classe: 'doux' });
+  let corrige = null;
+  const choisir = (m) => {
+    corrige = m.id;
+    geste.value = 'correction';
+    cible.textContent = 'Corrige : ' + (NATURES_JETONS[m.nature] || m.nature) + ' ' + m.quantite
+      + ' (' + date(m.fait_le, true) + ')';
+  };
   return el('div', { classe: 'fiche' },
     el('p', {}, 'Solde : ', el('strong', {}, d.total + ' jetons'),
       d.reserves ? el('span', { classe: 'doux' }, ' (' + d.reserves + ' de côté)') : null),
-    d.mouvements.length ? tableau(['Quand', 'Mouvement', 'Jetons', 'Par', 'Note'],
+    d.mouvements.length ? tableau(['Quand', 'Mouvement', 'Jetons', 'Par', 'Motif', ''],
       d.mouvements.slice(0, 50).map((m) => el('tr', {}, el('td', {}, date(m.fait_le, true)),
         el('td', {}, NATURES_JETONS[m.nature] || m.nature), el('td', {}, (m.quantite > 0 ? '+' : '') + m.quantite),
-        el('td', {}, m.par || ''), el('td', {}, m.note || '')))) : null,
+        el('td', {}, m.par || ''), el('td', {}, m.note || ''),
+        el('td', {}, el('button', { classe: 'discret', onclick: () => choisir(m) }, 'Corriger'))))) : null,
+    j.forfaits.some((f) => f.actif) ? el('form', { classe: 'outils', onsubmit: (ev) => { ev.preventDefault();
+      agir('admin_jetons_accorder_forfait', { p_ligue: id, p_forfait: forfait.value }, 'Forfait accordé.'); } },
+      forfait, el('button', { type: 'submit' }, 'Accorder le forfait')) : null,
     el('form', { classe: 'outils', onsubmit: (ev) => { ev.preventDefault();
-      // Offrir ajoute, rembourser retire : le signe suit le geste.
-      const brut = parseInt(quantite.value, 10) || 0;
-      const n = geste.value === 'cadeau' ? Math.abs(brut) : geste.value === 'remboursement' ? -Math.abs(brut) : brut;
-      agir('admin_jetons_mouvement', { p_ligue: id, p_quantite: n, p_nature: geste.value, p_note: note.value.trim() },
-        'Jetons : geste appliqué.'); } },
+      if (geste.value === 'correction' && !corrige) { dire('Choisis le mouvement à corriger.', true); return; }
+      agir('admin_jetons_mouvement', { p_ligue: id, p_quantite: parseInt(quantite.value, 10) || 0,
+        p_nature: geste.value, p_note: note.value.trim(),
+        p_corrige: geste.value === 'correction' ? corrige : null }, 'Jetons : geste appliqué.'); } },
       geste, quantite, note, el('button', { type: 'submit' }, 'Appliquer')),
-    el('p', { classe: 'doux' }, 'Un remboursement retire les jetons ; l’argent se rend dans Stripe.'));
+    cible,
+    el('p', { classe: 'doux' }, 'Jamais pour rendre une annulation ou une absence.'));
 }
 
 async function vueJournal() {
