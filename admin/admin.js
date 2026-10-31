@@ -714,7 +714,7 @@ const GENRES_JETONS = { remplacant: 'Remplaçant', gardien: 'Gardien', arbitre: 
 // Les natures du MASTER Plan (page 4).
 const NATURES_JETONS = {
   paquet: 'Paquet acheté', forfait: 'Forfait', correction: 'Correction', ajustement: 'Ajustement',
-  debit_confirmation: 'Recherche confirmée',
+  debit_confirmation: 'Recherche confirmée', transfert: 'Transfert entre ligues',
 };
 
 async function vueJetons() {

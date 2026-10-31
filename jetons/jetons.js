@@ -8,7 +8,7 @@
 'use strict';
 
 const NATURES = { paquet: 'Achat de jetons', forfait: 'Forfait', debit_confirmation: 'Recherche comblée',
-                  correction: 'Correction', ajustement: 'Ajustement' };
+                  correction: 'Correction', ajustement: 'Ajustement', transfert: 'Transfert' };
 const GENRES = { remplacant: 'Remplaçant', gardien: 'Gardien', arbitre: 'Arbitre' };
 const ONGLETS = [['achat', 'Acheter'], ['transactions', 'Transactions']];
 
@@ -95,12 +95,14 @@ async function charger() {
 
 // --- Affichage -------------------------------------------------------------------
 function afficher() {
-  $('onglets').replaceChildren(...ONGLETS.map(([cle, titre]) =>
+  const onglets = ONGLETS.concat(etat.j.autres_ligues && etat.j.autres_ligues.length ? [['transfert', 'Transférer']] : []);
+  if (!onglets.some(([cle]) => cle === etat.onglet)) etat.onglet = 'achat';
+  $('onglets').replaceChildren(...onglets.map(([cle, titre]) =>
     el('button', { type: 'button', classe: cle === etat.onglet ? 'actif' : null,
                    onclick: () => { etat.onglet = cle; afficher(); } }, titre)));
   const nom = (etat.ligues.find((l) => l.ligue_id === etat.ligue) || {}).ligue || '';
   $('contenu').replaceChildren(el('div', { classe: 'tete-jetons' }, el('h2', null, 'Jetons'), el('span', { classe: 'doux' }, nom)),
-    carteSolde(), ...(etat.onglet === 'achat' ? vueAchat() : vueTransactions()));
+    carteSolde(), ...({ achat: vueAchat, transactions: vueTransactions, transfert: vueTransfert }[etat.onglet])());
 }
 
 function carteSolde() {
@@ -158,6 +160,38 @@ function vueTransactions() {
         m.note ? el('div', { classe: 'doux petit' }, m.note) : null),
       el('td', { classe: 'chiffre ' + (m.quantite > 0 ? 'vert' : '') }, (m.quantite > 0 ? '+' : '−') + Math.abs(m.quantite)),
       el('td', { classe: 'chiffre' }, m.prix_cents ? argent(m.prix_cents) : '')))))))];
+}
+
+// Le titulaire de plusieurs ligues déplace des jetons de celle-ci vers une autre.
+function vueTransfert() {
+  const j = etat.j;
+  const vers = el('select', { 'aria-label': 'Vers la ligue' }, j.autres_ligues.map((l) => el('option', { value: l.id }, l.nom)));
+  const quantite = el('input', { type: 'number', min: 1, max: j.disponibles, step: 1, inputmode: 'numeric', required: true,
+    placeholder: String(Math.min(10, j.disponibles || 10)) });
+  const note = el('input', { placeholder: 'Facultatif' });
+  const bouton = el('button', { type: 'submit', disabled: j.disponibles <= 0 }, 'Transférer');
+  return [el('form', { classe: 'panneau transfert', onsubmit: async (ev) => {
+    ev.preventDefault();
+    const n = parseInt(quantite.value, 10);
+    if (!(n > 0)) { quantite.focus(); return; }
+    const nom = vers.options[vers.selectedIndex].textContent;
+    if (!confirm('Transférer ' + pluriel(n, 'jeton') + ' vers « ' + nom + ' » ?')) return;
+    bouton.disabled = true;
+    try {
+      await rpc('jetons_transferer', { p_de: etat.ligue, p_vers: vers.value, p_quantite: n, p_note: note.value.trim() });
+      dire(pluriel(n, 'jeton') + ' transféré' + (n > 1 ? 's' : '') + ' vers « ' + nom + ' ».');
+      await charger();
+    } catch (e) {
+      dire(e.message, true);
+      bouton.disabled = false;
+    }
+  } },
+    el('div', { classe: 'panneau-tete' }, el('h3', {}, 'Transférer vers une autre ligue'),
+      el('span', { classe: 'doux' }, pluriel(j.disponibles, 'jeton') + ' disponibles')),
+    el('div', { classe: 'champs-transfert' },
+      el('label', {}, 'Vers', vers), el('label', {}, 'Jetons', quantite), el('label', {}, 'Note', note)),
+    el('div', { classe: 'pied-transfert' }, bouton)),
+    el('p', { classe: 'doux note' }, 'Seulement entre les ligues dont tu es le gérant titulaire. Les jetons de côté restent ici.')];
 }
 
 // --- Achat -------------------------------------------------------------------------
