@@ -10,7 +10,9 @@
   <link rel="icon" type="image/png" sizes="48x48" href="../favicon-48.png">
   <link rel="icon" href="../favicon.ico" sizes="any">
   <link rel="stylesheet" href="i.css?v=4">
-  <script src="i.js?v=3" defer></script>
+  <script src="../commun/langue.js?v=1" defer></script>
+  <script src="en.js?v=1" defer></script>
+  <script src="i.js?v=4" defer></script>
 </head>
 <body>
   <!-- Avec l'app installée, le téléphone ouvre l'invitation dans EspaceLigue sans
@@ -18,17 +20,17 @@
   <main>
     <img id="logo" src="../marque/icone-256.png" alt="" width="88" height="88">
     <p class="marque"><img src="../marque/mot-sombre.svg" alt="EspaceLigue"></p>
-    <h1 id="titre">Invitation</h1>
-    <p id="texte">Chargement…</p>
+    <h1 id="titre" data-tr>Invitation</h1>
+    <p id="texte" data-tr>Chargement…</p>
     <div id="bloc-code" hidden>
-      <p class="etiquette">Ton code</p>
+      <p class="etiquette" data-tr>Ton code</p>
       <p id="code" class="code"></p>
     </div>
     <div id="magasins" hidden>
-      <a id="ios" class="bouton" href="#">Installer sur iPhone</a>
-      <a id="android" class="bouton secondaire" href="#">Installer sur Android</a>
-      <a id="ouvrir" class="lien" href="#">J'ai déjà l'app : ouvrir l'invitation</a>
-      <p class="note" id="note">Installer copie le lien : EspaceLigue le retrouvera à la première ouverture.</p>
+      <a id="ios" class="bouton" href="#" data-tr>Installer sur iPhone</a>
+      <a id="android" class="bouton secondaire" href="#" data-tr>Installer sur Android</a>
+      <a id="ouvrir" class="lien" href="#" data-tr>J'ai déjà l'app : ouvrir l'invitation</a>
+      <p class="note" id="note" data-tr>Installer copie le lien : EspaceLigue le retrouvera à la première ouverture.</p>
     </div>
   </main>
 </body>

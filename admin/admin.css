@@ -352,3 +352,6 @@ label.interrupteur input:focus-visible + span { outline: 2px solid var(--bleu); 
   .barre-filtres .segments button { flex: 1; }
 }
 .panneau > * { min-width: 0; }
+/* Le choix de langue (pages connectées) : comme le bouton du thème. */
+button.langue { background: transparent; color: var(--doux); border: 1px solid var(--ligne); padding: 6px 10px; font-weight: 600; }
+.connexion button.langue { position: fixed; top: 12px; left: 12px; }

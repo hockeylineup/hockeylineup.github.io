@@ -21,8 +21,8 @@ const code = (new URLSearchParams(location.search).get('c') || '').trim().toUppe
 const lien = location.origin + '/i/?c=' + encodeURIComponent(code);
 
 function introuvable() {
-  $('titre').textContent = 'Invitation introuvable';
-  $('texte').textContent = 'Ce code est expiré ou n\'existe pas. Demande un nouveau lien à ton gérant.';
+  $('titre').textContent = tr('Invitation introuvable');
+  $('texte').textContent = tr('Ce code est expiré ou n\'existe pas. Demande un nouveau lien à ton gérant.');
 }
 
 async function copier() {
@@ -30,7 +30,7 @@ async function copier() {
 }
 
 function magasin(el, url) {
-  if (!url) { el.textContent += ' · bientôt'; el.classList.add('secondaire'); el.removeAttribute('href'); }
+  if (!url) { el.textContent += ' · ' + tr('bientôt'); el.classList.add('secondaire'); el.removeAttribute('href'); }
   el.addEventListener('click', async (ev) => {
     ev.preventDefault();
     await copier();
@@ -50,8 +50,8 @@ async function charger() {
     lignes = r.ok ? await r.json() : null;
   } catch { lignes = null; }
   if (!lignes) {
-    $('titre').textContent = 'Invitation';
-    $('texte').textContent = 'Le serveur ne répond pas. Réessaie dans un moment.';
+    $('titre').textContent = tr('Invitation');
+    $('texte').textContent = tr('Le serveur ne répond pas. Réessaie dans un moment.');
     return;
   }
   const inv = lignes[0];
@@ -64,8 +64,8 @@ async function charger() {
   }
   $('titre').textContent = inv.ligue;
   $('texte').textContent = inv.reserve
-    ? 'Tu es invité à joindre la ligue. Crée ton compte avec l\'adresse courriel qui a reçu l\'invitation.'
-    : 'Tu es invité à joindre la banque de joueurs. Un gérant approuvera ta demande.';
+    ? tr('Tu es invité à joindre la ligue. Crée ton compte avec l\'adresse courriel qui a reçu l\'invitation.')
+    : tr('Tu es invité à joindre la banque de joueurs. Un gérant approuvera ta demande.');
   $('code').textContent = code;
   $('bloc-code').hidden = false;
   // Un lien du même domaine n'ouvre pas l'app sur iOS : le schéma lineup://.
@@ -75,4 +75,5 @@ async function charger() {
   $('magasins').hidden = false;
 }
 
-charger();
+// Après la traduction du HTML (commun/langue.js), qui écrirait par-dessus.
+document.addEventListener('DOMContentLoaded', charger);

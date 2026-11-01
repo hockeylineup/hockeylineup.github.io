@@ -23,10 +23,10 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       if (!r.ok) {
         const d = await r.json().catch(() => ({}));
-        throw new Error(d.message || 'Envoi impossible. Réessaie plus tard.');
+        throw new Error(tr(d.message || 'Envoi impossible. Réessaie plus tard.'));
       }
       f.replaceChildren(Object.assign(document.createElement('p'), {
-        id: 'reponse', textContent: 'Merci ! On t\'écrit dès l\'ouverture.' }));
+        id: 'reponse', textContent: tr('Merci ! On t\'écrit dès l\'ouverture.') }));
     } catch (e) {
       reponse.className = 'erreur';
       reponse.textContent = e.message;

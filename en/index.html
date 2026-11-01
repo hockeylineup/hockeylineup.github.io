@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EspaceLigue — Hockey league management: schedule, lineups, subs</title>
+  <meta name="description" content="An app to run a hockey league: game schedule, lineups, absences, subs and player payments. On iPhone and Android.">
+  <link rel="canonical" href="https://espaceligue.ca/en/">
+  <link rel="alternate" hreflang="fr-CA" href="https://espaceligue.ca/">
+  <link rel="alternate" hreflang="en-CA" href="https://espaceligue.ca/en/">
+  <link rel="alternate" hreflang="x-default" href="https://espaceligue.ca/">
+  <meta property="og:url" content="https://espaceligue.ca/en/">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="en_CA">
+  <meta property="og:site_name" content="EspaceLigue">
+  <link rel="icon" type="image/png" sizes="192x192" href="../favicon-192.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="../favicon-48.png">
+  <link rel="icon" href="../favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+  <meta property="og:title" content="EspaceLigue Hockey">
+  <meta property="og:description" content="Hockey league management, made simple.">
+  <meta property="og:image" content="https://espaceligue.ca/marque/partage.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://espaceligue.ca/#org",
+        "name": "EspaceLigue",
+        "url": "https://espaceligue.ca/",
+        "logo": "https://espaceligue.ca/logo.png"
+      },
+      {
+        "@type": "WebSite",
+        "name": "EspaceLigue",
+        "url": "https://espaceligue.ca/en/",
+        "inLanguage": "en-CA",
+        "publisher": { "@id": "https://espaceligue.ca/#org" }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "name": "EspaceLigue",
+        "applicationCategory": "SportsApplication",
+        "operatingSystem": "iOS, Android",
+        "inLanguage": "en-CA",
+        "description": "Hockey league management: schedule, lineups, absences, subs and payments.",
+        "publisher": { "@id": "https://espaceligue.ca/#org" }
+      }
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is EspaceLigue?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "An app to run a hockey league: schedule, lineups, absences, subs and payments, in one place for the manager and the players."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Which devices?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "iPhone and Android. Players get their game notifications right on their phone."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I find a sub?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "When a player can't make it, the league's sub pool is notified. The first one available answers, and the manager confirms them."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do players pay?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "By card or Apple Pay, in the app. The manager sees who has paid, and can also record a payment received another way."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can a player be in several leagues?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. One account, one home screen for all their leagues."
+      }
+    }
+  ]
+}
+  </script>
+  <style>
+    :root {
+      --fond: #0a1428; --fond-2: #0f1e3d; --carte: rgba(255, 255, 255, .04); --bord: rgba(255, 255, 255, .09);
+      --texte: #f2f5fa; --doux: #9fb0cc; --bleu: #1f6fff;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      background: radial-gradient(ellipse 80% 60% at 70% 0%, #14295a, var(--fond) 70%) var(--fond);
+      color: var(--texte); line-height: 1.5;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    a { color: inherit; }
+    .page { width: min(1080px, 100% - 32px); margin: 0 auto; }
+    .cache { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+    /* En-tête */
+    header { display: flex; align-items: center; gap: 16px; padding: 20px 0; }
+    header .marque { display: flex; align-items: center; gap: 10px; text-decoration: none; margin-right: auto; }
+    header .marque img { height: 48px; width: auto; display: block; }
+    header nav { display: flex; align-items: center; gap: 20px; font-weight: 600; font-size: .95rem; }
+    header nav a { text-decoration: none; color: var(--doux); }
+    header nav a:hover { color: var(--texte); }
+    .bouton {
+      display: inline-block; padding: 10px 20px; border-radius: 999px; background: var(--bleu);
+      color: #fff !important; font-weight: 700; text-decoration: none; box-shadow: 0 8px 24px rgba(31, 111, 255, .4);
+    }
+    .bouton:hover { filter: brightness(1.1); }
+    header nav a.contour {
+      display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, .22); background: rgba(255, 255, 255, .04); color: var(--texte);
+    }
+    header nav a.contour:hover { border-color: rgba(255, 255, 255, .45); background: rgba(255, 255, 255, .08); }
+    header nav a { white-space: nowrap; }
+    header nav a.contour svg { width: 15px; height: 15px; }
+    .bouton.grand { padding: 15px 34px; font-size: 1.1rem; }
+
+    /* Haut de page */
+    .vedette { display: grid; grid-template-columns: 1.2fr 1fr; align-items: center; gap: 48px; padding: 56px 0 72px; }
+    .vedette h1 { margin: 0 0 18px; font-size: clamp(2.2rem, 5.2vw, 3.6rem); line-height: 1.08; letter-spacing: -.025em; }
+    .vedette h1 em { font-style: normal; color: var(--bleu); }
+    .vedette p { margin: 0 0 30px; color: var(--doux); font-size: 1.2rem; max-width: 32rem; }
+    .vedette .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; }
+    .vedette .actions span { color: var(--doux); font-size: .95rem; }
+    .vedette img.logo { width: 100%; height: auto; max-width: 380px; justify-self: center; border-radius: 22%;
+      box-shadow: 0 30px 80px rgba(31, 111, 255, .35), 0 0 0 1px rgba(255, 255, 255, .06); }
+
+    /* Sections */
+    section.bloc { padding: 56px 0; border-top: 1px solid var(--bord); }
+    section.bloc > h2 { margin: 0 0 8px; font-size: 1.7rem; letter-spacing: -.01em; }
+    section.bloc > p.intro { margin: 0 0 28px; color: var(--doux); font-size: 1.1rem; max-width: 40rem; }
+    .grille { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
+    .carte { padding: 22px; border-radius: 16px; background: var(--carte); border: 1px solid var(--bord); }
+    .carte h3 { margin: 0 0 6px; font-size: 1.05rem; }
+    .carte p { margin: 0; color: var(--doux); }
+    .carte .numero { display: block; margin-bottom: 8px; color: var(--bleu); font-weight: 800; font-size: 1.5rem; }
+    details { border-bottom: 1px solid var(--bord); padding: 16px 0; max-width: 46rem; }
+    summary { cursor: pointer; font-weight: 600; font-size: 1.05rem; }
+    details p { margin: 10px 0 0; color: var(--doux); }
+
+    footer { padding: 32px 0 48px; border-top: 1px solid var(--bord); color: var(--doux); font-size: .9rem;
+      display: flex; flex-wrap: wrap; gap: 8px 24px; }
+    footer span { margin-right: auto; }
+    footer a { color: var(--doux); text-decoration: none; }
+    footer a:hover { color: var(--texte); }
+
+    @media (max-width: 760px) {
+      header nav { gap: 8px; }
+      header nav a.contour, header nav .bouton { padding: 8px 12px; font-size: .85rem; }
+      header nav a.contour { padding: 9px 11px; }
+      header nav a.contour .libelle { display: none; }
+      .vedette { grid-template-columns: 1fr; gap: 32px; padding: 24px 0 48px; text-align: center; }
+      .vedette p { margin-inline: auto; }
+      .vedette .actions { justify-content: center; }
+      .vedette img.logo { max-width: 220px; grid-row: 1; }
+      header .marque img { height: 32px; }
+      section.bloc { padding: 40px 0; }
+      footer span { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <a class="marque" href="./"><img src="../logo/logo-horizontal-sombre.svg" alt="EspaceLigue Hockey"></a>
+      <nav>
+        <a href="../" lang="fr" hreflang="fr">FR</a>
+        <a class="contour" href="../gerant/?langue=en" aria-label="Manager Space"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" d="M4.5 7V5a3.5 3.5 0 0 1 7 0v2M3.5 7h9a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/></svg><span class="libelle">Manager Space</span></a>
+        <a class="bouton" href="../inscription/?langue=en">Sign up</a>
+      </nav>
+    </header>
+
+    <main>
+      <div class="vedette">
+        <div>
+          <h1>Hockey league management, <em>made simple.</em><span class="cache"> EspaceLigue</span></h1>
+          <p>Schedule, lineups, absences, subs and payments. In one place for the manager and the players.</p>
+          <div class="actions">
+            <a class="bouton grand" href="../inscription/?langue=en">Sign up</a>
+            <span>Coming soon to iOS and Android</span>
+          </div>
+        </div>
+        <img class="logo" src="../marque/icone-accueil.jpg" alt="EspaceLigue Hockey app icon" width="760" height="760">
+      </div>
+
+      <section class="bloc">
+        <h2>Everything you need to run the season</h2>
+        <p class="intro">For rec and beer leagues, friendly leagues between coworkers, and volunteer managers who are tired of group texts and Excel files.</p>
+        <div class="grille">
+          <div class="carte"><h3>Schedule and lineups</h3><p>The season's games and teams, up to date for everyone.</p></div>
+          <div class="carte"><h3>Absences and subs</h3><p>A player can't make it, a sub gets called.</p></div>
+          <div class="carte"><h3>Payments</h3><p>Season fees and subs paid by card or Apple Pay.</p></div>
+          <div class="carte"><h3>Players and managers</h3><p>Players say they're in; the manager runs the league.</p></div>
+        </div>
+      </section>
+
+      <section class="bloc">
+        <h2>How it works</h2>
+        <p class="intro">Three steps, and the season is rolling.</p>
+        <div class="grille">
+          <div class="carte"><span class="numero">1</span><h3>Create the league</h3><p>Season, game schedule and fees.</p></div>
+          <div class="carte"><span class="numero">2</span><h3>Invite players</h3><p>One link is all it takes; everyone joins from their phone.</p></div>
+          <div class="carte"><span class="numero">3</span><h3>Play</h3><p>Attendance, subs and payments are handled in the app.</p></div>
+        </div>
+      </section>
+
+      <section class="bloc">
+        <h2>FAQ</h2>
+      <details><summary>What is EspaceLigue?</summary><p>An app to run a hockey league: schedule, lineups, absences, subs and payments, in one place for the manager and the players.</p></details>
+      <details><summary>Which devices?</summary><p>iPhone and Android. Players get their game notifications right on their phone.</p></details>
+      <details><summary>How do I find a sub?</summary><p>When a player can't make it, the league's sub pool is notified. The first one available answers, and the manager confirms them.</p></details>
+      <details><summary>How do players pay?</summary><p>By card or Apple Pay, in the app. The manager sees who has paid, and can also record a payment received another way.</p></details>
+      <details><summary>Can a player be in several leagues?</summary><p>Yes. One account, one home screen for all their leagues.</p></details>
+      </section>
+    </main>
+
+    <footer>
+      <span>© 2026 EspaceLigue</span>
+      <a href="about/">About</a>
+      <a href="privacy/">Privacy</a>
+      <a href="terms/">Terms</a>
+      <a href="../gerant/?langue=en">Manager Space</a>
+      <a href="mailto:info@espaceligue.ca">info@espaceligue.ca</a>
+    </footer>
+  </div>
+</body>
+</html>

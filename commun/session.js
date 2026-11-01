@@ -22,6 +22,8 @@ if (window.top !== window.self) {
 }
 
 const $ = (id) => document.getElementById(id);
+// Sans commun/langue.js (l'Espace Pro), tout reste en français.
+const trad = (texte, ...v) => (typeof tr === 'function' ? tr(texte, ...v) : texte);
 
 function el(balise, attrs, ...enfants) {
   const n = document.createElement(balise);
@@ -68,7 +70,7 @@ async function auth(chemin, corps) {
     body: JSON.stringify(corps),
   });
   const d = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(ERREURS_AUTH[d.error_code] || d.error_description || d.msg || 'Connexion refusée.');
+  if (!r.ok) throw new Error(trad(ERREURS_AUTH[d.error_code] || d.error_description || d.msg || 'Connexion refusée.'));
   return d;
 }
 
@@ -117,8 +119,8 @@ async function rest(methode, chemin, corps, entetes) {
   });
   const texte = await r.text();
   const d = texte ? JSON.parse(texte) : null;
-  if (r.status === 401) { sessionPerdue(); throw new Error('Session expirée.'); }
-  if (!r.ok) throw new Error((d && d.message) || 'Erreur ' + r.status);
+  if (r.status === 401) { sessionPerdue(); throw new Error(trad('Session expirée.')); }
+  if (!r.ok) throw new Error(d && d.message ? trad(d.message) : trad('Erreur %@', r.status));
   return d;
 }
 
@@ -136,7 +138,7 @@ async function continuerAvecApple() {
   const verif = B64URL(crypto.getRandomValues(new Uint8Array(48)));
   const defi = B64URL(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verif)));
   memoriser('espaceligue-pkce', verif);
-  if (relire('espaceligue-pkce') !== verif) throw new Error('Le navigateur bloque le stockage de session.');
+  if (relire('espaceligue-pkce') !== verif) throw new Error(trad('Le navigateur bloque le stockage de session.'));
   location.assign(SUPABASE + '/auth/v1/authorize?' + new URLSearchParams({
     provider: 'apple', redirect_to: RETOUR, code_challenge: defi, code_challenge_method: 's256',
   }));
@@ -149,8 +151,8 @@ async function retourApple() {
   history.replaceState(null, '', RETOUR);
   const verif = relire('espaceligue-pkce');
   memoriser('espaceligue-pkce', null);
-  if (p.has('error')) throw new Error(p.get('error_description') || 'Apple a refusé la connexion.');
-  if (!verif) throw new Error('Connexion Apple expirée. Réessaie.');
+  if (p.has('error')) throw new Error(p.get('error_description') || trad('Apple a refusé la connexion.'));
+  if (!verif) throw new Error(trad('Connexion Apple expirée. Réessaie.'));
   poserJetons(await auth('token?grant_type=pkce', { auth_code: p.get('code'), code_verifier: verif }));
   return true;
 }
@@ -165,8 +167,8 @@ function poserTheme(t) {
   document.documentElement.setAttribute('data-theme', t);
   for (const b of document.querySelectorAll('button.theme')) {
     // Le mot se cache sur téléphone (admin.css) ; l'icône et l'aria-label restent.
-    b.replaceChildren(t === 'light' ? '☾' : '☀︎', el('span', { classe: 'libelle' }, t === 'light' ? ' Foncé' : ' Clair'));
-    b.setAttribute('aria-label', t === 'light' ? 'Passer au thème foncé' : 'Passer au thème clair');
+    b.replaceChildren(t === 'light' ? '☾' : '☀︎', el('span', { classe: 'libelle' }, ' ' + trad(t === 'light' ? 'Foncé' : 'Clair')));
+    b.setAttribute('aria-label', trad(t === 'light' ? 'Passer au thème foncé' : 'Passer au thème clair'));
   }
 }
 function basculerTheme() {

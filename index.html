@@ -6,6 +6,9 @@
   <title>EspaceLigue — Gestion de ligues de hockey : horaire, alignements, remplaçants</title>
   <meta name="description" content="Application pour gérer une ligue de hockey : horaire des matchs, alignements, absences, remplaçants et paiements des joueurs. Sur iPhone et Android.">
   <link rel="canonical" href="https://espaceligue.ca/">
+  <link rel="alternate" hreflang="fr-CA" href="https://espaceligue.ca/">
+  <link rel="alternate" hreflang="en-CA" href="https://espaceligue.ca/en/">
+  <link rel="alternate" hreflang="x-default" href="https://espaceligue.ca/">
   <meta property="og:url" content="https://espaceligue.ca/">
   <meta property="og:type" content="website">
   <meta property="og:locale" content="fr_CA">
@@ -184,8 +187,9 @@
     <header>
       <a class="marque" href="./"><img src="logo/logo-horizontal-sombre.svg" alt="EspaceLigue Hockey"></a>
       <nav>
-        <a class="contour" href="gerant/" aria-label="Espace gérant"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" d="M4.5 7V5a3.5 3.5 0 0 1 7 0v2M3.5 7h9a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/></svg><span class="libelle">Espace gérant</span></a>
-        <a class="bouton" href="inscription/">S'inscrire</a>
+        <a href="en/" lang="en" hreflang="en">EN</a>
+        <a class="contour" href="gerant/?langue=fr" aria-label="Espace gérant"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" d="M4.5 7V5a3.5 3.5 0 0 1 7 0v2M3.5 7h9a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/></svg><span class="libelle">Espace gérant</span></a>
+        <a class="bouton" href="inscription/?langue=fr">S'inscrire</a>
       </nav>
     </header>
 
@@ -195,7 +199,7 @@
           <h1>La gestion de ligues de hockey, <em>simplement.</em><span class="cache"> EspaceLigue</span></h1>
           <p>Horaire, alignements, absences, remplacements et paiements. Au même endroit pour le gérant et les joueurs.</p>
           <div class="actions">
-            <a class="bouton grand" href="inscription/">S'inscrire</a>
+            <a class="bouton grand" href="inscription/?langue=fr">S'inscrire</a>
             <span>Bientôt sur iOS et Android</span>
           </div>
         </div>
@@ -238,7 +242,7 @@
       <a href="a-propos/">À propos</a>
       <a href="confidentialite/">Confidentialité</a>
       <a href="conditions/">Conditions</a>
-      <a href="gerant/">Espace gérant</a>
+      <a href="gerant/?langue=fr">Espace gérant</a>
       <a href="mailto:info@espaceligue.ca">info@espaceligue.ca</a>
     </footer>
   </div>

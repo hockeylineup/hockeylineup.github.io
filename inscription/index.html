@@ -10,7 +10,9 @@
   <link rel="icon" type="image/png" sizes="48x48" href="../favicon-48.png">
   <link rel="icon" href="../favicon.ico" sizes="any">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; connect-src https://wkjyeyswlvdkaalhslvw.supabase.co https://supabase.lautmandam.mywire.org; base-uri 'none'; form-action 'none'">
-  <script src="attente.js?v=1" defer></script>
+  <script src="../commun/langue.js?v=1" defer></script>
+  <script src="en.js?v=1" defer></script>
+  <script src="attente.js?v=2" defer></script>
   <link rel="apple-touch-icon" href="../apple-touch-icon.png">
   <!-- Page d'attente : l'inscription (formulaire, code, Apple) reviendra ici à l'ouverture. -->
   <style>
@@ -38,20 +40,22 @@
     #reponse.erreur { color: #ff7a7f; }
     footer { margin-top: 40px; color: var(--doux); font-size: .85rem; }
     footer a { color: var(--doux); }
+    button.langue { position: fixed; top: 12px; left: 12px; padding: 6px 10px; box-shadow: none; background: transparent; color: var(--doux); border: 1px solid rgba(255, 255, 255, .15); border-radius: 8px; }
   </style>
 </head>
 <body>
-  <a href="../"><img class="logo" src="../logo.png" alt="Logo EspaceLigue Hockey"></a>
+  <button class="langue" type="button"></button>
+  <a href="../"><img class="logo" src="../logo.png" alt="Logo EspaceLigue Hockey" data-tr-attr="alt"></a>
   <h1><img src="../marque/mot-sombre.svg" alt="EspaceLigue"></h1>
-  <p>EspaceLigue sera bientôt disponible.</p>
+  <p data-tr>EspaceLigue sera bientôt disponible.</p>
   <form id="attente">
-    <h2>Préviens-moi à l'ouverture</h2>
-    <label>Courriel <input id="courriel" type="email" autocomplete="email" required maxlength="254"></label>
-    <label>Nom de ta ligue (facultatif) <input id="ligue" autocomplete="organization" maxlength="120"></label>
-    <button type="submit">M'avertir</button>
+    <h2 data-tr>Préviens-moi à l'ouverture</h2>
+    <label data-tr>Courriel <input id="courriel" type="email" autocomplete="email" required maxlength="254"></label>
+    <label data-tr>Nom de ta ligue (facultatif) <input id="ligue" autocomplete="organization" maxlength="120"></label>
+    <button type="submit" data-tr>M'avertir</button>
     <p id="reponse" role="status"></p>
   </form>
-  <p>Pour toute question : <a href="mailto:info@espaceligue.ca">info@espaceligue.ca</a></p>
-  <footer><a href="../">Retour à l'accueil</a></footer>
+  <p data-tr>Pour toute question : <a href="mailto:info@espaceligue.ca">info@espaceligue.ca</a></p>
+  <footer><a href="../" data-tr>Retour à l'accueil</a></footer>
 </body>
 </html>
