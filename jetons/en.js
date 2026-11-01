@@ -35,6 +35,8 @@ Object.assign(EN, {
   '%@ le jeton': '%@ per token',
   '%@ % d’économie': '%@% savings',
   'Acheter': 'Buy',
+  'Historique': 'History',
+  'Menu': 'Menu',
   'Seul le gérant titulaire de la ligue peut acheter des jetons.': 'Only the league’s head manager can buy tokens.',
   'Dernières transactions': 'Recent transactions',
   'Voir tout l’historique →': 'See full history →',

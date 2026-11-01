@@ -70,3 +70,74 @@ main#contenu { max-width: 1040px; }
 .filtres button { height: 32px; padding: 0 12px; border-radius: 999px; font-size: .85rem; font-weight: 500;
   background: transparent; color: var(--texte); border: 1px solid var(--ligne); }
 .filtres button.actif { background: var(--bleu); color: #fff; border-color: var(--bleu); }
+
+/* --- Téléphone : comme l'app. Une ligne en haut (icône, ligue, menu ⋯), les
+   onglets dans une barre en bas, des paquets d'une ligne (le plus gros en tête),
+   l'historique en liste. */
+.cote .plus, .cote nav .court { display: none; }
+@media (max-width: 640px) {
+  .cote { grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+  .marque { grid-column: 1; }
+  .marque strong { display: none; }
+  #choix-ligue { grid-column: 2; grid-row: 1; padding: 0; font-size: 0; }
+  #choix-ligue select { height: 36px; font-size: .95rem; font-weight: 650; }
+  .cote .plus { display: block; grid-column: 3; grid-row: 1; width: 36px; height: 36px; padding: 0; border-radius: 10px;
+    background: transparent; color: var(--texte); border: 1px solid var(--ligne); font-size: 1.2rem; line-height: 1; }
+  .compte { display: none; }
+  .compte.ouvert { display: grid; position: fixed; top: 58px; right: 12px; z-index: 40; min-width: 210px; padding: 10px;
+    border-radius: 14px; background: var(--carte); border: 1px solid var(--ligne); box-shadow: 0 16px 40px rgba(0, 0, 0, .3); }
+  .compte.ouvert #qui { display: grid; }
+  .compte.ouvert .compte-actions { display: grid; }
+  .compte.ouvert .compte-actions button { width: 100%; }
+  .compte.ouvert .compte-actions button.theme .libelle { display: inline; }
+
+  .cote nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: flex; gap: 0; overflow: visible;
+    padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid var(--ligne);
+    background: color-mix(in srgb, var(--fond) 92%, transparent); backdrop-filter: blur(14px); }
+  .cote nav button, .cote nav button.actif { flex: 1; height: 60px; display: grid; justify-items: center; align-content: center;
+    gap: 3px; padding: 0; border-radius: 0; background: transparent; color: var(--doux); font-size: .7rem; font-weight: 600; }
+  .cote nav button.actif { color: var(--bleu); }
+  .cote nav svg { width: 24px; height: 24px; }
+  .cote nav .long { display: none; }
+  .cote nav .court { display: inline; }
+  .principal { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
+  body .ac-bulle { bottom: calc(74px + env(safe-area-inset-bottom)); }
+
+  /* Le solde : le coût d'une recherche en étiquettes. */
+  .solde { gap: 14px; padding: 16px; }
+  .solde .piece { width: 56px; height: 56px; }
+  .solde .chiffres b { font-size: 1.7rem; }
+  .solde ul.prix { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; width: 100%; }
+  .solde ul.prix li.libelle { display: none; }
+  .solde ul.prix li { gap: 4px; padding: 5px 10px; border-radius: 999px; background: var(--carte); border: 1px solid var(--ligne); font-size: .82rem; }
+
+  /* Les paquets : une ligne chacun, le meilleur prix en tête. */
+  .paquets { display: flex; flex-direction: column-reverse; gap: 12px; }
+  .paquet { grid-template-columns: 1fr auto; grid-template-areas: "q b" "m b" "u b"; justify-items: start; text-align: left;
+    column-gap: 12px; row-gap: 0; padding: 14px; }
+  .paquet .ruban { left: 14px; top: -10px; }
+  .paquet .quantite { grid-area: q; gap: 6px; }
+  .paquet .quantite img { width: 24px; height: 24px; }
+  .paquet .quantite b { font-size: 1.3rem; }
+  .paquet .montant { grid-area: m; font-size: 1rem; }
+  .paquet .unitaire { grid-area: u; font-size: .8rem; }
+  .paquet button { grid-area: b; align-self: center; width: auto; margin: 0; padding: 0 16px; }
+
+  /* L'historique : une liste, sans défilement de côté. */
+  .table { overflow: visible; }
+  table.registre thead { display: none; }
+  table.registre, table.registre tbody { display: block; }
+  table.registre tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "d j" "t s";
+    column-gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--ligne); }
+  table.registre tr:last-child { border-bottom: 0; }
+  table.registre td { padding: 0; border: 0; }
+  table.registre td:nth-child(1) { grid-area: t; font-size: .8rem; color: var(--doux); }
+  table.registre td:nth-child(2) { grid-area: d; font-weight: 600; }
+  table.registre td:nth-child(3) { grid-area: j; text-align: right; font-weight: 700; }
+  table.registre td:nth-child(4) { grid-area: s; text-align: right; font-size: .8rem; color: var(--doux); font-weight: 500; }
+  table.registre td.solde-ligne::before { content: attr(data-libelle) " "; }
+  .filtres { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px; }
+  .filtres::-webkit-scrollbar { display: none; }
+  .filtres button { flex: none; }
+  .bas-achat .panneau-tete h3 { font-size: 1rem; }
+}

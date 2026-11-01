@@ -10,7 +10,9 @@
 const NATURES = { paquet: tr('Achat de jetons'), forfait: tr('Forfait'), debit_confirmation: tr('Recherche comblée'),
                   correction: tr('Correction'), ajustement: tr('Ajustement'), transfert: tr('Transfert') };
 const GENRES = { remplacant: tr('Remplaçant'), gardien: tr('Gardien'), arbitre: tr('Arbitre') };
-const ONGLETS = [['achat', tr('Acheter des jetons')], ['transactions', tr('Historique des transactions')]];
+// [clé, titre, titre court de la barre du bas sur téléphone]
+const ONGLETS = [['achat', tr('Acheter des jetons'), tr('Acheter')],
+                 ['transactions', tr('Historique des transactions'), tr('Historique')]];
 // Le filtre de l'historique : ce qu'il garde.
 const FILTRES = [['tout', tr('Toutes'), () => true], ['achat', tr('Achats'), (m) => m.nature === 'paquet'],
                  ['utilisation', tr('Utilisations'), (m) => m.nature === 'debit_confirmation'],
@@ -115,10 +117,11 @@ async function charger() {
 
 // --- Affichage -------------------------------------------------------------------
 function afficher() {
-  const onglets = ONGLETS.concat(etat.j.autres_ligues && etat.j.autres_ligues.length ? [['transfert', tr('Transférer des jetons')]] : []);
+  const onglets = ONGLETS.concat(etat.j.autres_ligues && etat.j.autres_ligues.length ? [['transfert', tr('Transférer des jetons'), tr('Transférer')]] : []);
   if (!onglets.some(([cle]) => cle === etat.onglet)) etat.onglet = 'achat';
-  $('onglets').replaceChildren(...onglets.map(([cle, titre]) =>
-    el('button', { type: 'button', classe: cle === etat.onglet ? 'actif' : null, onclick: () => aller(cle) }, icone(cle), titre)));
+  $('onglets').replaceChildren(...onglets.map(([cle, titre, court]) =>
+    el('button', { type: 'button', classe: cle === etat.onglet ? 'actif' : null, onclick: () => aller(cle) },
+      icone(cle), el('span', { classe: 'long' }, titre), el('span', { classe: 'court' }, court))));
   const nom = (etat.ligues.find((l) => l.ligue_id === etat.ligue) || {}).ligue || '';
   const titre = onglets.find(([cle]) => cle === etat.onglet)[1];
   $('contenu').replaceChildren(...[el('div', { classe: 'tete-jetons' }, el('h2', null, titre), el('span', { classe: 'doux' }, nom)),
@@ -199,7 +202,7 @@ function registre(lignes) {
         m.match_debut ? el('span', { classe: 'doux' }, ' · ' + tr('match du %@', quand(m.match_debut))) : null,
         m.note ? el('div', { classe: 'doux petit' }, m.note) : null),
       el('td', { classe: 'chiffre ' + (m.quantite > 0 ? 'vert' : 'rouge') }, (m.quantite > 0 ? '+' : '−') + Math.abs(m.quantite)),
-      el('td', { classe: 'chiffre solde-ligne' }, solde))))));
+      el('td', { classe: 'chiffre solde-ligne', 'data-libelle': tr('Solde') }, solde))))));
 }
 
 function vueTransactions() {
@@ -288,6 +291,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     $('erreur-connexion').textContent = e.message;
   }));
   $('deconnexion').addEventListener('click', () => deconnecter(''));
+  // Téléphone : le compte, le thème et la langue passent dans le menu ⋯.
+  $('plus').addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    const ouvert = document.querySelector('.compte').classList.toggle('ouvert');
+    $('plus').setAttribute('aria-expanded', ouvert);
+  });
+  document.addEventListener('click', (ev) => {
+    if (!ev.target.closest('.compte')) { document.querySelector('.compte').classList.remove('ouvert'); $('plus').setAttribute('aria-expanded', false); }
+  });
   $('ligue').addEventListener('change', (e) => {
     etat.ligue = e.target.value;
     try { localStorage.setItem('espaceligue-ligue', etat.ligue); } catch (x) { /* bloqué */ }
