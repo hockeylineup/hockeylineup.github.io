@@ -27,10 +27,7 @@ Object.assign(EN, {
   'Ligue': 'League',
   'Un instant…': 'One moment…',
   // L'Assistant-Coach (commun/assistant.js)
-  'Salut ! Pose-moi une question sur EspaceLigue.': 'Hi! Ask me a question about EspaceLigue.',
-  'Où régler les tarifs ?': 'Where do I set sub rates?',
-  'Pourquoi la recherche est refusée ?': 'Why was the search refused?',
-  'Comment acheter des jetons ?': 'How do I buy tokens?',
+  'Salut, moi c’est l’Assistant-Coach. Je connais ta ligue de A à Z : réglages, remplaçants, jetons, et même ton prochain match. Demande, je te guide.': 'Hi, I’m the Assistant Coach. I know your league inside out: settings, subs, tokens, even your next game. Just ask and I’ll guide you.',
   'Ta question…': 'Your question…',
   'Ta question': 'Your question',
   'Répond sur l’app et le site': 'Answers about the app and the site',

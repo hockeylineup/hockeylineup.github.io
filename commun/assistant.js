@@ -82,10 +82,8 @@
       return;
     }
     const fil = el('div', { classe: 'ac-fil', 'aria-live': 'polite' },
-      el('div', { classe: 'ac-msg lui' }, tr('Salut ! Pose-moi une question sur EspaceLigue.')),
-      etat.messages.length || !connecte() ? null : el('div', { classe: 'ac-suggestions' },
-        ['Où régler les tarifs ?', 'Pourquoi la recherche est refusée ?', 'Comment acheter des jetons ?']
-          .map((q) => el('button', { type: 'button', onclick: () => poser(tr(q)) }, tr(q)))),
+      el('div', { classe: 'ac-msg lui' },
+        tr('Salut, moi c’est l’Assistant-Coach. Je connais ta ligue de A à Z : réglages, remplaçants, jetons, et même ton prochain match. Demande, je te guide.')),
       etat.messages.map(message));
     const champ = el('input', { placeholder: tr('Ta question…'), 'aria-label': tr('Ta question'), maxlength: 500,
                                 disabled: !connecte() });

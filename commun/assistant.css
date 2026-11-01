@@ -42,12 +42,8 @@
 .ac-msg.erreur { color: var(--ac-rouge); }
 .ac-msg a { color: var(--ac-bleu); font-weight: 600; }
 .ac-coupee { display: block; margin-top: 6px; font-size: .8rem; color: var(--ac-doux); white-space: normal; }
-.ac-coupee button, .ac-suggestions button { font: inherit; cursor: pointer; box-shadow: none; }
+.ac-coupee button { font: inherit; cursor: pointer; box-shadow: none; }
 .ac-coupee button { background: none; border: 0; padding: 0; height: auto; color: var(--ac-bleu); font-weight: 600; }
-.ac-suggestions { display: flex; flex-wrap: wrap; gap: 6px; }
-.ac-suggestions button { height: auto; padding: 6px 10px; border-radius: 999px; font-size: .82rem; font-weight: 500;
-  background: transparent; color: var(--ac-texte); border: 1px solid var(--ac-ligne); }
-.ac-suggestions button:hover { border-color: var(--ac-bleu); }
 .ac-ecrit { display: inline-flex; gap: 4px; padding: 4px 0; }
 .ac-ecrit i { width: 6px; height: 6px; border-radius: 50%; background: var(--ac-doux); animation: ac-point 1s infinite; }
 .ac-ecrit i:nth-child(2) { animation-delay: .15s; }
