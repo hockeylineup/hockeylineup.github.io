@@ -368,6 +368,7 @@ function afficher() {
     window.scrollTo(0, 0);
   };
   poserNavigation('gerant', etat.sujet, droits(), aller);
+  poserSoldeNav(etat.ligue);
   if (TELEPHONE.matches && etat.liste) {
     $('contenu').replaceChildren(el('h2', null, tr('Réglages')),
       el('nav', { classe: 'liste-reglages', 'aria-label': tr('Réglages de la ligue') },

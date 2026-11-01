@@ -9,6 +9,36 @@
 .cote nav svg { width: 18px; height: 18px; flex: none; }
 .cote .plus, .cote nav .court, .cote nav .seul-mobile, .cote nav a.bouton-nav.seul-mobile { display: none; }
 
+/* Ordinateur : la barre aux couleurs d'EspaceLigue. La ligue en carte, les
+   icônes en pastilles, l'entrée active marquée d'un trait bleu, le solde au pied. */
+@media (min-width: 641px) {
+  .cote { gap: 6px; }
+  #choix-ligue { margin: 10px 0 6px; padding: 10px; border-radius: 12px; background: var(--carte);
+    border: 1px solid var(--ligne); font-size: .75rem; }
+  #choix-ligue select { border: 0; background: transparent; padding: 2px 0 0; font-weight: 650; color: var(--texte); }
+  .cote nav .groupe-nav { text-transform: none; letter-spacing: 0; font-weight: 600; font-size: .78rem; margin: 14px 10px 4px; }
+  .cote nav button, .cote nav a.bouton-nav { position: relative; padding: 6px 10px; border-radius: 10px;
+    transition: background .15s, color .15s; }
+  .cote nav svg { width: 30px; height: 30px; padding: 6px; border-radius: 9px; box-sizing: border-box;
+    background: color-mix(in srgb, var(--doux) 14%, transparent); transition: background .15s, color .15s; }
+  .cote nav button.actif { background: color-mix(in srgb, var(--bleu) 13%, transparent); color: var(--texte); }
+  .cote nav button.actif svg { background: var(--bleu); color: #fff; }
+  .cote nav button.actif::before { content: ""; position: absolute; left: -14px; top: 8px; bottom: 8px; width: 3px;
+    border-radius: 0 3px 3px 0; background: var(--bleu); }
+  .solde-nav { display: flex; align-items: center; gap: 10px; margin-top: auto; padding: 10px 12px; border-radius: 12px;
+    border: 1px solid var(--ligne); background: var(--carte); color: var(--doux); text-decoration: none;
+    transition: border-color .15s; }
+  .solde-nav:hover { border-color: var(--bleu); }
+  .solde-nav img { width: 26px; height: 26px; }
+  .solde-nav span:nth-of-type(1) { flex: 1; }
+  .solde-nav b { color: var(--texte); font-size: 1.05rem; }
+  .solde-nav .fleche { font-size: 1.2rem; }
+  .solde-nav + .compte { margin-top: 6px; }
+  .solde-nav[hidden] + .compte { margin-top: auto; }
+}
+@media (max-width: 640px) { .solde-nav { display: none; } }
+@media (prefers-reduced-motion: reduce) { .cote nav button, .cote nav svg, .solde-nav { transition: none; } }
+
 /* Téléphone : comme l'app. Une ligne en haut (icône, ligue, menu ⋯) ; en bas,
    « Réglages » et les jetons. */
 @media (max-width: 640px) {

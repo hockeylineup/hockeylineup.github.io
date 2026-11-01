@@ -38,6 +38,8 @@ Object.assign(EN, {
   'Notifications aux gérants': 'Manager notifications',
   'Tarifs de remplacement': 'Sub rates',
   'Jetons': 'Tokens',
+  'jetons': 'tokens',
+  'jeton': 'token',
   'Acheter des jetons': 'Buy tokens',
   'Historique des transactions': 'Transaction history',
   'Transférer des jetons': 'Transfer tokens',

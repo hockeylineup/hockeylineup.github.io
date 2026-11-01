@@ -104,6 +104,7 @@ function afficher() {
   const droits = { titulaire: etat.j.titulaire, transfert: !!(etat.j.autres_ligues && etat.j.autres_ligues.length) };
   if (!entreesNav(droits).some(([p, cle]) => p === 'jetons' && cle === etat.onglet)) etat.onglet = 'achat';
   poserNavigation('jetons', etat.onglet, droits, aller);
+  poserSoldeNav(etat.ligue, etat.j.disponibles);
   const nom = (etat.ligues.find((l) => l.ligue_id === etat.ligue) || {}).ligue || '';
   const titre = titreNav('jetons', etat.onglet);
   $('contenu').replaceChildren(...[el('div', { classe: 'tete-jetons' }, el('h2', null, titre), el('span', { classe: 'doux' }, nom)),

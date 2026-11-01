@@ -75,6 +75,29 @@ function poserNavigation(page, actif, droits, aller) {
   $('onglets').replaceChildren(...enfants);
 }
 
+/**
+ * Le solde de la ligue au pied de la barre, avec la pièce : un lien vers
+ * Jetons. `n` connu (page Jetons) ou lu de `jetons_ligue` ; caché si la
+ * lecture échoue (jetons éteints, droits).
+ */
+const soldesNav = {};
+async function poserSoldeNav(ligue, n) {
+  let a = document.querySelector('.solde-nav');
+  if (!a) {
+    a = el('a', { classe: 'solde-nav', href: '/jetons/?onglet=achat' },
+      el('img', { src: '/jetons/jeton.png', alt: '' }), el('span', {}), el('span', { classe: 'fleche', 'aria-hidden': 'true' }, '›'));
+    document.querySelector('.cote').insertBefore(a, document.querySelector('.cote .compte'));
+  }
+  if (n === undefined) {
+    if (!(ligue in soldesNav)) {
+      try { soldesNav[ligue] = (await rpc('jetons_ligue', { p_ligue: ligue })).disponibles; } catch (e) { soldesNav[ligue] = null; }
+    }
+    n = soldesNav[ligue];
+  } else soldesNav[ligue] = n;
+  a.hidden = n === null || n === undefined;
+  if (!a.hidden) a.children[1].replaceChildren(el('b', {}, String(n)), ' ', tr(Math.abs(n) > 1 ? 'jetons' : 'jeton'));
+}
+
 // Téléphone : le compte, le thème et la langue passent dans le menu ⋯.
 document.addEventListener('DOMContentLoaded', () => {
   const plus = $('plus'), compte = document.querySelector('.compte');
