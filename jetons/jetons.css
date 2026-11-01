@@ -9,7 +9,20 @@ main#contenu { max-width: 1040px; }
   border: 1px solid var(--ligne); border-radius: 16px; }
 .solde .piece { width: 76px; height: 76px; animation: balance 4s ease-in-out infinite; }
 @keyframes balance { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(8deg) translateY(-3px); } }
-@media (prefers-reduced-motion: reduce) { .solde .piece { animation: none; } }
+.solde .piece.arrivee { animation: arrivee .8s ease-out, balance 4s ease-in-out .8s infinite; }
+@keyframes arrivee { 0% { transform: scale(.3); opacity: 0; } 60% { transform: scale(1.15) rotateY(360deg); opacity: 1; }
+  100% { transform: scale(1) rotateY(360deg); } }
+/* Le transfert : la pièce qui part vers l'autre ligue. */
+.panneau.transfert { position: relative; overflow: hidden; }
+.panneau.transfert .envol { position: absolute; top: 50%; left: 6%; width: 36px; height: 36px; margin-top: -18px;
+  pointer-events: none; animation: envol .9s ease-in-out forwards; }
+@keyframes envol { 0% { left: 6%; opacity: 0; transform: rotate(0); } 15%, 85% { opacity: 1; }
+  100% { left: calc(94% - 36px); opacity: 0; transform: rotate(360deg); } }
+/* Acheter : un léger soulèvement au survol. */
+.paquet button { transition: transform .18s ease, filter .18s ease; }
+.paquet button:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.1); }
+@media (prefers-reduced-motion: reduce) { .solde .piece, .solde .piece.arrivee { animation: none; }
+  .paquet button { transition: none; } .paquet button:hover:not(:disabled) { transform: none; } }
 .solde .chiffres { display: grid; gap: 2px; flex: 1; min-width: 180px; }
 .solde .libelle { color: var(--doux); font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
 .solde .chiffres b { font-size: 2rem; font-weight: 700; font-variant-numeric: tabular-nums; }

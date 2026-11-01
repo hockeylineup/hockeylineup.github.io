@@ -214,8 +214,9 @@ function vueTransfert() {
     bouton.disabled = true;
     try {
       await rpc('jetons_transferer', { p_de: etat.ligue, p_vers: vers.value, p_quantite: n, p_note: note.value.trim() });
-      dire(tr(n > 1 ? '%@ transférés vers « %@ ».' : '%@ transféré vers « %@ ».', jetons(n), nom));
+      await envoler(ev.target);
       await charger();
+      reussir(tr(n > 1 ? '%@ transférés vers « %@ ».' : '%@ transféré vers « %@ ».', jetons(n), nom));
     } catch (e) {
       dire(e.message, true);
       bouton.disabled = false;
@@ -254,9 +255,32 @@ async function attendreCredit(avant) {
   for (let i = 0; i < 10; i++) {
     await new Promise((r) => setTimeout(r, 2000));
     await charger();
-    if (etat.j.total > avant) { dire(tr('Merci ! Les jetons sont dans la banque de la ligue.')); return; }
+    if (etat.j.total > avant) { celebrer(etat.j.total - avant); return; }
   }
   dire(tr('Paiement reçu. Les jetons paraîtront dans quelques minutes.'));
+}
+
+// Une opération réussie : l'avis devient le badge bleu.
+function reussir(texte, gras) {
+  dire(texte);
+  const m = $('message');
+  m.classList.add('reussi');
+  if (gras) m.prepend(el('b', {}, gras), ' ');
+}
+
+// Un transfert fait : une pièce traverse le panneau avant qu'on le recharge.
+function envoler(panneau) {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return Promise.resolve();
+  const piece = el('img', { src: 'jeton.png', alt: '', classe: 'envol' });
+  panneau.append(piece);
+  return new Promise((r) => piece.addEventListener('animationend', r, { once: true }));
+}
+
+// Le crédit arrivé : la pièce fait un tour et l'avis devient le badge bleu.
+function celebrer(n) {
+  reussir(tr('Merci ! Les jetons sont dans la banque de la ligue.'), '+' + jetons(n));
+  const piece = document.querySelector('.solde .piece');
+  if (piece) { piece.classList.remove('arrivee'); void piece.offsetWidth; piece.classList.add('arrivee'); }
 }
 
 // --- Démarrage -----------------------------------------------------------------
@@ -285,7 +309,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Le solde d'avant le crédit : si le webhook a déjà crédité, la boucle s'arrête au premier tour.
         const ventes = etat.j.mouvements.filter((m) => m.nature === 'paquet');
         const recent = ventes[0] && Date.now() - new Date(ventes[0].fait_le) < 10 * 60000;
-        if (recent) dire(tr('Merci ! Les jetons sont dans la banque de la ligue.'));
+        if (recent) celebrer(ventes[0].quantite);
         else attendreCredit(etat.j.total);
       } else if (achat === 'annule') {
         dire(tr('Achat annulé. Rien n’a été facturé.'));

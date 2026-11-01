@@ -24,10 +24,11 @@ const etat = { ligues: [], ligue: null, parametres: null, regions: [], positions
                 saisons: [], lieux: [], arenas: [], liens: {} };
 const STATUTS_ARENA = { demandee: tr('En attente de l’aréna'), acceptee: tr('Acceptée par l’aréna'), refusee: tr('Refusée par l’aréna') };
 
-function dire(texte, erreur) {
+// `reussi` : le badge bleu d'une opération réussie.
+function dire(texte, erreur, reussi) {
   const m = $('message');
   m.textContent = texte;
-  m.className = 'message' + (erreur ? ' erreur' : '');
+  m.className = 'message' + (erreur ? ' erreur' : '') + (reussi ? ' reussi' : '');
   m.hidden = !texte;
 }
 
@@ -140,7 +141,7 @@ async function changer(maj) {
                          maj, { Prefer: 'return=representation' });
     if (!p || !p.length) throw new Error(tr('Modification refusée.'));
     etat.parametres = p[0];
-    dire(tr('Enregistré.'));
+    dire(tr('Enregistré.'), false, true);
   } catch (e) {
     dire(e.message, true);
   } finally {
@@ -155,7 +156,7 @@ async function enregistrerTarif(position, sens, montantCents) {
     await rest('POST', 'tarifs_remplacement?on_conflict=ligue_id,position', ligne,
                { Prefer: 'resolution=merge-duplicates,return=minimal' });
     etat.tarifs = etat.tarifs.filter((t) => t.position !== position).concat([ligne]);
-    dire(tr('Tarif enregistré.'));
+    dire(tr('Tarif enregistré.'), false, true);
   } catch (e) {
     dire(e.message, true);
   }
