@@ -1,0 +1,73 @@
+/* L'Assistant-Coach (commun/assistant.js). Ses propres couleurs : il vit aussi
+   sur les pages publiques, qui n'ont pas les variables de l'Espace gérant. */
+.ac-bulle, .ac-encadre {
+  --ac-bleu: #1f6fff; --ac-fond: #0a1428; --ac-carte: #13244a; --ac-ligne: #22386a;
+  --ac-texte: #f2f5fa; --ac-doux: #9fb0cc; --ac-rouge: #ff7a7f;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+/* Le thème clair n'existe que sur les pages connectées (bouton Clair/Foncé). */
+:root[data-theme="light"] body:has(.coquille, .connexion) :is(.ac-bulle, .ac-encadre) {
+  --ac-bleu: #1a5fe0; --ac-fond: #f3f6fb; --ac-carte: #ffffff; --ac-ligne: #d5deec;
+  --ac-texte: #0b1730; --ac-doux: #5a6a85; --ac-rouge: #c62f37;
+}
+
+.ac-bulle { position: fixed; right: 20px; bottom: 20px; z-index: 50; display: flex; align-items: center; gap: 10px;
+  height: 52px; padding: 0 20px 0 8px; border-radius: 999px; border: 0; cursor: pointer;
+  background: var(--ac-bleu); color: #fff; font-weight: 700; font-size: .95rem;
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--ac-bleu) 45%, transparent); }
+.ac-bulle:hover { filter: brightness(1.08); }
+.ac-bulle .ac-avatar { width: 38px; height: 38px; }
+.ac-avatar { display: grid; place-items: center; border-radius: 50%; background: #fff; color: var(--ac-bleu); flex: none; }
+.ac-avatar svg { width: 60%; height: 60%; }
+
+.ac-encadre { position: fixed; right: 20px; bottom: 20px; z-index: 51; width: 380px; height: min(560px, calc(100vh - 40px));
+  display: flex; flex-direction: column; overflow: hidden; border-radius: 18px; color: var(--ac-texte);
+  background: var(--ac-fond); border: 1px solid var(--ac-ligne); box-shadow: 0 24px 60px rgba(0, 0, 0, .35); }
+.ac-tete { display: flex; align-items: center; gap: 10px; padding: 12px 12px 12px 14px; color: #fff;
+  background: linear-gradient(135deg, var(--ac-bleu), color-mix(in srgb, var(--ac-bleu) 70%, #000)); }
+.ac-tete .ac-avatar { width: 34px; height: 34px; }
+.ac-titre { flex: 1; min-width: 0; }
+.ac-titre b { display: block; font-size: .98rem; }
+.ac-titre small { opacity: .8; font-size: .78rem; }
+.ac-tete button { background: transparent; border: 0; color: #fff; padding: 6px; height: auto; border-radius: 8px;
+  opacity: .85; cursor: pointer; box-shadow: none; }
+.ac-tete button:hover { background: rgba(255, 255, 255, .15); opacity: 1; }
+.ac-tete svg { width: 18px; height: 18px; display: block; }
+
+.ac-fil { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.ac-msg { max-width: 85%; padding: 9px 12px; border-radius: 14px; font-size: .92rem; line-height: 1.45;
+  white-space: pre-wrap; overflow-wrap: anywhere; }
+.ac-msg.lui { align-self: flex-start; background: var(--ac-carte); border: 1px solid var(--ac-ligne); border-bottom-left-radius: 4px; }
+.ac-msg.moi { align-self: flex-end; background: var(--ac-bleu); color: #fff; border-bottom-right-radius: 4px; }
+.ac-msg.erreur { color: var(--ac-rouge); }
+.ac-msg a { color: var(--ac-bleu); font-weight: 600; }
+.ac-coupee { display: block; margin-top: 6px; font-size: .8rem; color: var(--ac-doux); white-space: normal; }
+.ac-coupee button, .ac-suggestions button { font: inherit; cursor: pointer; box-shadow: none; }
+.ac-coupee button { background: none; border: 0; padding: 0; height: auto; color: var(--ac-bleu); font-weight: 600; }
+.ac-suggestions { display: flex; flex-wrap: wrap; gap: 6px; }
+.ac-suggestions button { height: auto; padding: 6px 10px; border-radius: 999px; font-size: .82rem; font-weight: 500;
+  background: transparent; color: var(--ac-texte); border: 1px solid var(--ac-ligne); }
+.ac-suggestions button:hover { border-color: var(--ac-bleu); }
+.ac-ecrit { display: inline-flex; gap: 4px; padding: 4px 0; }
+.ac-ecrit i { width: 6px; height: 6px; border-radius: 50%; background: var(--ac-doux); animation: ac-point 1s infinite; }
+.ac-ecrit i:nth-child(2) { animation-delay: .15s; }
+.ac-ecrit i:nth-child(3) { animation-delay: .3s; }
+@keyframes ac-point { 0%, 60%, 100% { opacity: .3; } 30% { opacity: 1; } }
+
+.ac-saisie { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--ac-ligne); margin: 0; }
+.ac-saisie input { flex: 1; min-width: 0; height: 40px; border-radius: 999px; padding: 0 14px; font: inherit;
+  color: var(--ac-texte); background: var(--ac-carte); border: 1px solid var(--ac-ligne); }
+.ac-saisie button { width: 40px; height: 40px; padding: 0; border-radius: 50%; border: 0; display: grid; place-items: center;
+  background: var(--ac-bleu); color: #fff; cursor: pointer; box-shadow: none; }
+.ac-saisie button:disabled { opacity: .5; cursor: default; }
+.ac-saisie svg { width: 18px; height: 18px; }
+.ac-connexion { margin: 0; padding: 14px; border-top: 1px solid var(--ac-ligne); font-size: .9rem; color: var(--ac-doux); text-align: center; }
+.ac-connexion a { color: var(--ac-bleu); font-weight: 600; }
+.ac-pied { margin: 0; padding: 0 12px 10px; font-size: .72rem; color: var(--ac-doux); text-align: center; }
+
+@media (max-width: 560px) {
+  .ac-encadre { inset: 0; width: auto; height: auto; border-radius: 0; }
+  .ac-bulle { right: 14px; bottom: 14px; padding: 0 7px; }
+  .ac-bulle .ac-libelle { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .ac-ecrit i { animation: none; } }

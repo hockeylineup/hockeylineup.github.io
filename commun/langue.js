@@ -15,6 +15,9 @@
 const EN = {};
 
 const LANGUE = (() => {
+  // Les pages de contenu ont une adresse par langue : elles imposent la leur.
+  const fixe = document.documentElement.dataset.langue;
+  if (fixe === 'en' || fixe === 'fr') return fixe;
   const voulue = new URLSearchParams(location.search).get('langue');
   if (voulue === 'en' || voulue === 'fr') {
     try { localStorage.setItem('langue', voulue); } catch (e) { /* bloqué */ }

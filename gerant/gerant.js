@@ -375,6 +375,9 @@ function afficher() {
 sessionPerdue = () => deconnecter(tr('Session expirée.'));
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // ?sujet=tarifs : un lien de l'Assistant-Coach ouvre ce réglage.
+  const voulu = new URLSearchParams(location.search).get('sujet');
+  if (SUJETS.some(([c]) => c === voulu)) etat.sujet = voulu;
   $('formulaire-connexion').addEventListener('submit', connecter);
   $('apple').addEventListener('click', () => continuerAvecApple().catch((e) => {
     $('erreur-connexion').textContent = e.message;

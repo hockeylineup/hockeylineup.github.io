@@ -280,6 +280,8 @@ sessionPerdue = () => deconnecter(tr('Session expirée.'));
 document.addEventListener('DOMContentLoaded', async () => {
   const p = new URLSearchParams(location.search);
   const ligueVoulue = etat.voulue = p.get('ligue'), achat = p.get('achat');
+  // ?onglet=transactions : un lien de l'Assistant-Coach ouvre cet onglet.
+  if (['achat', 'transactions', 'transfert'].includes(p.get('onglet'))) etat.onglet = p.get('onglet');
   if (achat || ligueVoulue) history.replaceState(null, '', location.pathname);
   $('formulaire-connexion').addEventListener('submit', connecter);
   $('apple').addEventListener('click', () => continuerAvecApple().catch((e) => {
