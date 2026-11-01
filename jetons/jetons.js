@@ -10,33 +10,17 @@
 const NATURES = { paquet: tr('Achat de jetons'), forfait: tr('Forfait'), debit_confirmation: tr('Recherche comblée'),
                   correction: tr('Correction'), ajustement: tr('Ajustement'), transfert: tr('Transfert') };
 const GENRES = { remplacant: tr('Remplaçant'), gardien: tr('Gardien'), arbitre: tr('Arbitre') };
-// [clé, titre, titre court de la barre du bas sur téléphone]
-const ONGLETS = [['achat', tr('Acheter des jetons'), tr('Acheter')],
-                 ['transactions', tr('Historique des transactions'), tr('Historique')]];
 // Le filtre de l'historique : ce qu'il garde.
 const FILTRES = [['tout', tr('Toutes'), () => true], ['achat', tr('Achats'), (m) => m.nature === 'paquet'],
                  ['utilisation', tr('Utilisations'), (m) => m.nature === 'debit_confirmation'],
                  ['recu', tr('Transferts reçus'), (m) => m.nature === 'transfert' && m.quantite > 0],
                  ['envoye', tr('Transferts envoyés'), (m) => m.nature === 'transfert' && m.quantite < 0]];
-// Les icônes du menu (tracés 24 × 24).
-const ICONES = { achat: ['M2 7a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2zM2 10h20'],
-                 transactions: ['M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0zM12 7v5l3 2'],
-                 transfert: ['M4 8h14l-4-4M20 16H6l4 4'] };
-
 const etat = { ligues: [], ligue: null, j: null, onglet: 'achat', filtre: 'tout', occupe: false, voulue: null };
 const argent = (c) => (c / 100).toLocaleString(LOCALE, { style: 'currency', currency: 'CAD' });
 const jetons = (n) => tr(Math.abs(n) > 1 ? '%@ jetons' : '%@ jeton', n);
 const quand = (iso) => new Date(iso).toLocaleDateString(LOCALE, { dateStyle: 'medium' });
 const quandHeure = (iso) => new Date(iso).toLocaleString(LOCALE, { dateStyle: 'medium', timeStyle: 'short' });
 
-function icone(cle) {
-  const ns = 'http://www.w3.org/2000/svg';
-  const s = document.createElementNS(ns, 'svg');
-  for (const [k, v] of Object.entries({ viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2,
-    'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' })) s.setAttribute(k, v);
-  for (const d of ICONES[cle]) { const p = document.createElementNS(ns, 'path'); p.setAttribute('d', d); s.append(p); }
-  return s;
-}
 const aller = (cle) => { etat.onglet = cle; afficher(); window.scrollTo(0, 0); };
 
 function dire(texte, erreur) {
@@ -117,13 +101,11 @@ async function charger() {
 
 // --- Affichage -------------------------------------------------------------------
 function afficher() {
-  const onglets = ONGLETS.concat(etat.j.autres_ligues && etat.j.autres_ligues.length ? [['transfert', tr('Transférer des jetons'), tr('Transférer')]] : []);
-  if (!onglets.some(([cle]) => cle === etat.onglet)) etat.onglet = 'achat';
-  $('onglets').replaceChildren(...onglets.map(([cle, titre, court]) =>
-    el('button', { type: 'button', classe: cle === etat.onglet ? 'actif' : null, onclick: () => aller(cle) },
-      icone(cle), el('span', { classe: 'long' }, titre), el('span', { classe: 'court' }, court))));
+  const droits = { titulaire: etat.j.titulaire, transfert: !!(etat.j.autres_ligues && etat.j.autres_ligues.length) };
+  if (!entreesNav(droits).some(([p, cle]) => p === 'jetons' && cle === etat.onglet)) etat.onglet = 'achat';
+  poserNavigation('jetons', etat.onglet, droits, aller);
   const nom = (etat.ligues.find((l) => l.ligue_id === etat.ligue) || {}).ligue || '';
-  const titre = onglets.find(([cle]) => cle === etat.onglet)[1];
+  const titre = titreNav('jetons', etat.onglet);
   $('contenu').replaceChildren(...[el('div', { classe: 'tete-jetons' }, el('h2', null, titre), el('span', { classe: 'doux' }, nom)),
     etat.onglet === 'transactions' ? null : carteSolde(),
     ...({ achat: vueAchat, transactions: vueTransactions, transfert: vueTransfert }[etat.onglet])()].filter(Boolean));
@@ -291,15 +273,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     $('erreur-connexion').textContent = e.message;
   }));
   $('deconnexion').addEventListener('click', () => deconnecter(''));
-  // Téléphone : le compte, le thème et la langue passent dans le menu ⋯.
-  $('plus').addEventListener('click', (ev) => {
-    ev.stopPropagation();
-    const ouvert = document.querySelector('.compte').classList.toggle('ouvert');
-    $('plus').setAttribute('aria-expanded', ouvert);
-  });
-  document.addEventListener('click', (ev) => {
-    if (!ev.target.closest('.compte')) { document.querySelector('.compte').classList.remove('ouvert'); $('plus').setAttribute('aria-expanded', false); }
-  });
   $('ligue').addEventListener('change', (e) => {
     etat.ligue = e.target.value;
     try { localStorage.setItem('espaceligue-ligue', etat.ligue); } catch (x) { /* bloqué */ }

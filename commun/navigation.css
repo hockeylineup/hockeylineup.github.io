@@ -1,0 +1,48 @@
+/* La barre commune à l'Espace gérant et à Jetons (commun/navigation.js). */
+.cote nav .groupe-nav { margin: 12px 12px 4px; color: var(--doux); font-size: .72rem; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase; }
+.cote nav .groupe-nav:first-child { margin-top: 0; }
+.cote nav a.bouton-nav { text-decoration: none; text-align: left; color: var(--doux); font-weight: 500;
+  padding: 9px 12px; border-radius: 8px; }
+.cote nav a.bouton-nav:hover { background: var(--carte); color: var(--texte); }
+.cote nav button, .cote nav a.bouton-nav { display: flex; align-items: center; gap: 10px; }
+.cote nav svg { width: 18px; height: 18px; flex: none; }
+.cote .plus, .cote nav .court, .cote nav .seul-mobile, .cote nav a.bouton-nav.seul-mobile { display: none; }
+
+/* Téléphone : comme l'app. Une ligne en haut (icône, ligue, menu ⋯) ; en bas,
+   « Réglages » et les jetons. */
+@media (max-width: 640px) {
+  .cote { grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+  .marque { grid-column: 1; }
+  .marque strong { display: none; }
+  #choix-ligue { grid-column: 2; grid-row: 1; padding: 0; font-size: 0; }
+  #choix-ligue select { height: 36px; font-size: .95rem; font-weight: 650; }
+  .cote .plus { display: block; grid-column: 3; grid-row: 1; width: 36px; height: 36px; padding: 0; border-radius: 10px;
+    background: transparent; color: var(--texte); border: 1px solid var(--ligne); font-size: 1.2rem; line-height: 1; }
+  .compte { display: none; }
+  .compte.ouvert { display: grid; position: fixed; top: 58px; right: 12px; z-index: 40; min-width: 210px; padding: 10px;
+    border-radius: 14px; background: var(--carte); border: 1px solid var(--ligne); box-shadow: 0 16px 40px rgba(0, 0, 0, .3); }
+  .compte.ouvert #qui { display: grid; }
+  .compte.ouvert .compte-actions { display: grid; }
+  .compte.ouvert .compte-actions button { width: 100%; }
+  .compte.ouvert .compte-actions button.theme .libelle { display: inline; }
+
+  .cote nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: flex; gap: 0; overflow: visible;
+    padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid var(--ligne);
+    background: color-mix(in srgb, var(--fond) 92%, transparent); backdrop-filter: blur(14px); }
+  .cote nav button, .cote nav button.actif { flex: 1; height: 60px; display: grid; justify-items: center; align-content: center;
+    gap: 3px; padding: 0; border-radius: 0; background: transparent; color: var(--doux); font-size: .7rem; font-weight: 600; }
+  .cote nav button.actif { color: var(--bleu); }
+  .cote nav svg { width: 24px; height: 24px; }
+  .cote nav .long { display: none; }
+  .cote nav .court { display: inline; }
+  .principal { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
+  body .ac-bulle { bottom: calc(74px + env(safe-area-inset-bottom)); }
+
+  .cote nav .groupe-nav, .cote nav .reglage, .cote nav button.reglage.actif, .cote nav a.bouton-nav.reglage { display: none; }
+  .cote nav .seul-mobile, .cote nav a.bouton-nav.seul-mobile { display: grid; order: -1; }
+  .cote nav a.bouton-nav { flex: 1; height: 60px; display: grid; justify-items: center; align-content: center;
+    gap: 3px; padding: 0; border-radius: 0; color: var(--doux); font-size: .7rem; font-weight: 600; }
+  .cote nav a.bouton-nav:hover { background: transparent; }
+  .cote nav .actif, .cote nav button.actif { color: var(--bleu); }
+}

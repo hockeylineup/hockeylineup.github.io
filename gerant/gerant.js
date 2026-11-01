@@ -16,17 +16,8 @@ const TRANCHES = [['moins_30', tr('Moins de 30 ans')], ['30_44', tr('30 à 44 an
 const SENS = [['aucun', tr('Gratuit')], ['remplacant_paie', tr('Le remplaçant paie')], ['remplacant_paye', tr('Le remplaçant est payé')]];
 const JOURS_RAPPEL = [1, 2, 3, 5, 7];
 
-// Les sujets de Gestion (SujetReglages) ; les tarifs au gérant titulaire seulement.
-const SUJETS = [
-  ['ligue', tr('Nom de la ligue')],
-  ['lieux', tr('Lieux et arénas')],
-  ['matchs', tr('Matchs')],
-  ['remplacements', tr('Remplacements')],
-  ['statistiques', tr('Statistiques et classement')],
-  ['banque', tr('Banque générale')],
-  ['notifications', tr('Notifications aux gérants')],
-  ['tarifs', tr('Tarifs de remplacement'), true],
-];
+// Les sujets de Gestion (SujetReglages) sont dans commun/navigation.js, avec
+// ceux de Jetons : les tarifs au gérant titulaire seulement.
 
 const etat = { ligues: [], ligue: null, parametres: null, regions: [], positions: [], tarifs: [], sujet: 'ligue', occupe: false,
                 saisons: [], lieux: [], arenas: [], liens: {} };
@@ -41,6 +32,8 @@ function dire(texte, erreur) {
 
 const ligueChoisie = () => etat.ligues.find((l) => l.ligue_id === etat.ligue);
 const titulaire = () => { const l = ligueChoisie(); return l && !l.moderateur; };
+// Transférer des jetons : titulaire de cette ligue et d'au moins une autre.
+const droits = () => ({ titulaire: titulaire(), transfert: titulaire() && etat.ligues.filter((l) => !l.moderateur).length > 1 });
 
 // --- Connexion ---------------------------------------------------------------
 async function connecter(ev) {
@@ -111,7 +104,7 @@ async function chargerLigue() {
     dire(e.message, true);
     return;
   }
-  if (!SUJETS.some(([c, , t]) => c === etat.sujet && (!t || titulaire()))) etat.sujet = 'ligue';
+  if (!entreesNav(droits()).some(([p, c]) => p === 'gerant' && c === etat.sujet)) etat.sujet = 'ligue';
   afficher();
 }
 
@@ -364,11 +357,15 @@ function ouvrirLigues() {
 
 function afficher() {
   if (!etat.parametres) return;
-  $('onglets').replaceChildren(...SUJETS.filter(([, , t]) => !t || titulaire()).map(([cle, titre]) =>
-    el('button', { type: 'button', classe: cle === etat.sujet ? 'actif' : null,
-                   onclick: () => { etat.sujet = cle; dire(''); afficher(); } }, titre)));
-  const titre = SUJETS.find(([c]) => c === etat.sujet)[1];
-  $('contenu').replaceChildren(el('h2', null, titre), ...VUES[etat.sujet]());
+  const aller = (cle) => { etat.sujet = cle; dire(''); afficher(); window.scrollTo(0, 0); };
+  poserNavigation('gerant', etat.sujet, droits(), aller);
+  // Téléphone : la barre du bas n'a qu'« Réglages » ; les sujets défilent en tête.
+  const sujets = el('nav', { classe: 'sujets-mobile', 'aria-label': tr('Réglages') },
+    entreesNav(droits()).filter(([p]) => p === 'gerant').map(([, cle, titre]) =>
+      el('button', { type: 'button', classe: cle === etat.sujet ? 'actif' : null, onclick: () => aller(cle) }, tr(titre))));
+  $('contenu').replaceChildren(sujets, el('h2', null, titreNav('gerant', etat.sujet)), ...VUES[etat.sujet]());
+  const actif = sujets.querySelector('.actif');
+  if (actif) sujets.scrollLeft = actif.offsetLeft - 16;
 }
 
 // --- Démarrage -----------------------------------------------------------------
@@ -377,7 +374,7 @@ sessionPerdue = () => deconnecter(tr('Session expirée.'));
 document.addEventListener('DOMContentLoaded', async () => {
   // ?sujet=tarifs : un lien de l'Assistant-Coach ouvre ce réglage.
   const voulu = new URLSearchParams(location.search).get('sujet');
-  if (SUJETS.some(([c]) => c === voulu)) etat.sujet = voulu;
+  if (NAVIGATION.some(([p, c]) => p === 'gerant' && c === voulu)) etat.sujet = voulu;
   $('formulaire-connexion').addEventListener('submit', connecter);
   $('apple').addEventListener('click', () => continuerAvecApple().catch((e) => {
     $('erreur-connexion').textContent = e.message;
