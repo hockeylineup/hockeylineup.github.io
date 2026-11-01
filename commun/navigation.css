@@ -37,6 +37,24 @@
   .solde-nav[hidden] + .compte { margin-top: auto; }
 }
 @media (max-width: 640px) { .solde-nav { display: none; } }
+
+/* Ordinateur : la barre toujours en bleu marine, avec le logo empilé
+   officiel, quel que soit le thème de la page (maquette du 1er novembre). */
+.marque img.logo-empile { display: none; }
+@media (min-width: 641px) {
+  .cote { --fond-2: #0E1E3A; --carte: #16294d; --ligne: #22386a; --texte: #f2f5fa; --doux: #9fb0cc; --bleu: #2D7DFF;
+    color: var(--texte); border-right: 0;
+    background: radial-gradient(120% 35% at 0% 100%, #2D7DFF40, transparent 65%), linear-gradient(180deg, #0E1E3A, #081226); }
+  .marque { flex-direction: column; gap: 4px; padding: 6px 0 14px; }
+  .marque img, .marque strong { display: none; }
+  .marque img.logo-empile { display: block; width: 150px; height: auto; border-radius: 0; }
+  .marque em { margin: 0; }
+  .cote nav button.actif { background: linear-gradient(90deg, #2D7DFF, #4a8dff); color: #fff;
+    box-shadow: 0 6px 18px #2D7DFF55; }
+  .cote nav button.actif svg { background: #ffffff26; }
+  .cote nav button.actif::before { display: none; }
+  .cote .compte button.discret, .cote button.theme { color: var(--doux); border-color: var(--ligne); }
+}
 @media (prefers-reduced-motion: reduce) { .cote nav button, .cote nav svg, .solde-nav { transition: none; } }
 
 /* Téléphone : comme l'app. Une ligne en haut (icône, ligue, menu ⋯) ; en bas,
