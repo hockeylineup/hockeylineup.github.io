@@ -10,12 +10,32 @@
 const NATURES = { paquet: 'Achat de jetons', forfait: 'Forfait', debit_confirmation: 'Recherche comblée',
                   correction: 'Correction', ajustement: 'Ajustement', transfert: 'Transfert' };
 const GENRES = { remplacant: 'Remplaçant', gardien: 'Gardien', arbitre: 'Arbitre' };
-const ONGLETS = [['achat', 'Acheter'], ['transactions', 'Transactions']];
+const ONGLETS = [['achat', 'Acheter des jetons'], ['transactions', 'Historique des transactions']];
+// Le filtre de l'historique : ce qu'il garde.
+const FILTRES = [['tout', 'Toutes', () => true], ['achat', 'Achats', (m) => m.nature === 'paquet'],
+                 ['utilisation', 'Utilisations', (m) => m.nature === 'debit_confirmation'],
+                 ['recu', 'Transferts reçus', (m) => m.nature === 'transfert' && m.quantite > 0],
+                 ['envoye', 'Transferts envoyés', (m) => m.nature === 'transfert' && m.quantite < 0]];
+// Les icônes du menu (tracés 24 × 24).
+const ICONES = { achat: ['M2 7a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2zM2 10h20'],
+                 transactions: ['M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0zM12 7v5l3 2'],
+                 transfert: ['M4 8h14l-4-4M20 16H6l4 4'] };
 
-const etat = { ligues: [], ligue: null, j: null, onglet: 'achat', occupe: false, voulue: null };
+const etat = { ligues: [], ligue: null, j: null, onglet: 'achat', filtre: 'tout', occupe: false, voulue: null };
 const argent = (c) => (c / 100).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD' });
 const pluriel = (n, mot) => n + ' ' + mot + (Math.abs(n) > 1 ? 's' : '');
 const quand = (iso) => new Date(iso).toLocaleDateString('fr-CA', { dateStyle: 'medium' });
+const quandHeure = (iso) => new Date(iso).toLocaleString('fr-CA', { dateStyle: 'medium', timeStyle: 'short' });
+
+function icone(cle) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const s = document.createElementNS(ns, 'svg');
+  for (const [k, v] of Object.entries({ viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2,
+    'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' })) s.setAttribute(k, v);
+  for (const d of ICONES[cle]) { const p = document.createElementNS(ns, 'path'); p.setAttribute('d', d); s.append(p); }
+  return s;
+}
+const aller = (cle) => { etat.onglet = cle; afficher(); window.scrollTo(0, 0); };
 
 function dire(texte, erreur) {
   const m = $('message');
@@ -95,14 +115,15 @@ async function charger() {
 
 // --- Affichage -------------------------------------------------------------------
 function afficher() {
-  const onglets = ONGLETS.concat(etat.j.autres_ligues && etat.j.autres_ligues.length ? [['transfert', 'Transférer']] : []);
+  const onglets = ONGLETS.concat(etat.j.autres_ligues && etat.j.autres_ligues.length ? [['transfert', 'Transférer des jetons']] : []);
   if (!onglets.some(([cle]) => cle === etat.onglet)) etat.onglet = 'achat';
   $('onglets').replaceChildren(...onglets.map(([cle, titre]) =>
-    el('button', { type: 'button', classe: cle === etat.onglet ? 'actif' : null,
-                   onclick: () => { etat.onglet = cle; afficher(); } }, titre)));
+    el('button', { type: 'button', classe: cle === etat.onglet ? 'actif' : null, onclick: () => aller(cle) }, icone(cle), titre)));
   const nom = (etat.ligues.find((l) => l.ligue_id === etat.ligue) || {}).ligue || '';
-  $('contenu').replaceChildren(el('div', { classe: 'tete-jetons' }, el('h2', null, 'Jetons'), el('span', { classe: 'doux' }, nom)),
-    carteSolde(), ...({ achat: vueAchat, transactions: vueTransactions, transfert: vueTransfert }[etat.onglet])());
+  const titre = onglets.find(([cle]) => cle === etat.onglet)[1];
+  $('contenu').replaceChildren(...[el('div', { classe: 'tete-jetons' }, el('h2', null, titre), el('span', { classe: 'doux' }, nom)),
+    etat.onglet === 'transactions' ? null : carteSolde(),
+    ...({ achat: vueAchat, transactions: vueTransactions, transfert: vueTransfert }[etat.onglet])()].filter(Boolean));
 }
 
 function carteSolde() {
@@ -114,7 +135,8 @@ function carteSolde() {
     el('div', { classe: 'chiffres' },
       el('span', { classe: 'libelle' }, 'Disponibles'),
       el('b', {}, pluriel(j.disponibles, 'jeton')),
-      j.reserves ? el('span', { classe: 'doux' }, pluriel(j.reserves, 'jeton') + ' de côté pour des recherches en cours') : null),
+      j.reserves ? el('span', { classe: 'doux' }, pluriel(j.reserves, 'jeton') + ' de côté pour des recherches en cours') : null,
+      j.mouvements.length ? el('button', { type: 'button', classe: 'lien', onclick: () => aller('transactions') }, 'Voir l’historique →') : null),
     prix.length ? el('ul', { classe: 'prix' }, el('li', { classe: 'libelle' }, 'Coût d’une recherche'), prix.map(([g, n]) =>
       el('li', {}, el('span', {}, GENRES[g] || g), el('b', {}, pluriel(n, 'jeton'))))) : null);
 }
@@ -140,26 +162,54 @@ function vueAchat() {
           ? el('button', { type: 'button', onclick: (ev) => acheter(p, ev.currentTarget) }, 'Acheter')
           : null);
     })),
-    j.titulaire
-      ? el('p', { classe: 'doux note' }, 'Paiement sécurisé par Stripe. Les jetons n’expirent pas.')
-      : el('p', { classe: 'doux note' }, 'Seul le gérant titulaire de la ligue peut acheter des jetons.'),
+    j.titulaire ? null : el('p', { classe: 'doux note' }, 'Seul le gérant titulaire de la ligue peut acheter des jetons.'),
+    el('div', { classe: 'bas-achat' },
+      j.mouvements.length ? el('section', { classe: 'panneau' },
+        el('div', { classe: 'panneau-tete' }, el('h3', {}, 'Dernières transactions'),
+          el('button', { type: 'button', classe: 'lien', onclick: () => aller('transactions') }, 'Voir tout l’historique →')),
+        registre(soldes().slice(0, 4))) : null,
+      el('aside', { classe: 'aide-jetons' }, el('h3', {}, 'Comment fonctionnent les jetons ?'), el('ul', {},
+        el('li', {}, 'Ils appartiennent à la ligue.'),
+        el('li', {}, 'Une recherche dans la banque générale met son prix de côté.'),
+        el('li', {}, 'Débités seulement si quelqu’un est confirmé ; sinon, rendus.'),
+        el('li', {}, 'Ils n’expirent pas.')))),
   ];
 }
 
-function vueTransactions() {
-  const ms = etat.j.mouvements;
-  if (!ms.length) return [el('p', { classe: 'vide' }, 'Aucune transaction pour le moment.')];
-  return [el('section', { classe: 'panneau' }, el('div', { classe: 'table' }, el('table', { classe: 'registre' },
+// Les mouvements, du plus récent, chacun avec le solde qui le suit.
+function soldes() {
+  let s = etat.j.total;
+  return etat.j.mouvements.map((m) => { const r = { m, solde: s }; s -= m.quantite; return r; });
+}
+
+function description(m) {
+  if (m.nature === 'paquet') return 'Achat de jetons (' + m.quantite + ')';
+  if (m.nature === 'transfert') return m.quantite > 0 ? 'Transfert reçu' : 'Transfert envoyé';
+  return NATURES[m.nature] || m.nature;
+}
+
+function registre(lignes) {
+  return el('div', { classe: 'table' }, el('table', { classe: 'registre' },
     el('thead', {}, el('tr', {}, el('th', {}, 'Date'), el('th', {}, 'Description'),
-      el('th', { classe: 'chiffre' }, 'Jetons'), el('th', { classe: 'chiffre' }, 'Montant'))),
-    el('tbody', {}, ms.map((m) => el('tr', {},
-      el('td', { classe: 'date' }, quand(m.fait_le)),
-      el('td', {}, NATURES[m.nature] || m.nature,
+      el('th', { classe: 'chiffre' }, 'Jetons'), el('th', { classe: 'chiffre' }, 'Solde'))),
+    el('tbody', {}, lignes.map(({ m, solde }) => el('tr', {},
+      el('td', { classe: 'date' }, quandHeure(m.fait_le)),
+      el('td', {}, description(m),
         m.genre ? el('span', { classe: 'doux' }, ' · ' + (GENRES[m.genre] || m.genre)) : null,
         m.match_debut ? el('span', { classe: 'doux' }, ' · match du ' + quand(m.match_debut)) : null,
         m.note ? el('div', { classe: 'doux petit' }, m.note) : null),
-      el('td', { classe: 'chiffre ' + (m.quantite > 0 ? 'vert' : '') }, (m.quantite > 0 ? '+' : '−') + Math.abs(m.quantite)),
-      el('td', { classe: 'chiffre' }, m.prix_cents ? argent(m.prix_cents) : '')))))))];
+      el('td', { classe: 'chiffre ' + (m.quantite > 0 ? 'vert' : 'rouge') }, (m.quantite > 0 ? '+' : '−') + Math.abs(m.quantite)),
+      el('td', { classe: 'chiffre solde-ligne' }, solde))))));
+}
+
+function vueTransactions() {
+  if (!etat.j.mouvements.length) return [el('p', { classe: 'vide' }, 'Aucune transaction pour le moment.')];
+  const garde = FILTRES.find(([cle]) => cle === etat.filtre)[2];
+  const lignes = soldes().filter(({ m }) => garde(m));
+  return [el('section', { classe: 'panneau' },
+    el('div', { classe: 'filtres' }, FILTRES.map(([cle, titre]) => el('button', { type: 'button',
+      classe: cle === etat.filtre ? 'actif' : null, onclick: () => { etat.filtre = cle; afficher(); } }, titre))),
+    lignes.length ? registre(lignes) : el('p', { classe: 'vide' }, 'Aucune transaction de ce genre.'))];
 }
 
 // Le titulaire de plusieurs ligues déplace des jetons de celle-ci vers une autre.
