@@ -31,13 +31,18 @@ a.bouton { display: block; text-align: center; text-decoration: none; font-weigh
 .lieu:first-of-type { border-top: 0; }
 .lieu label { min-width: 220px; }
 
-/* Téléphone : les sujets défilent en tête du contenu (la barre du bas n'a
-   qu'« Réglages » et les jetons, commun/navigation.css). */
-.sujets-mobile { display: none; }
+/* Téléphone : la liste des réglages (comme sur l'iPhone), puis un sujet avec
+   « ‹ Réglages ». Sur ordinateur, la barre de gauche suffit. */
+.retour-reglages { display: none; }
 @media (max-width: 640px) {
-  .sujets-mobile { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px; }
-  .sujets-mobile::-webkit-scrollbar { display: none; }
-  .sujets-mobile button { flex: none; white-space: nowrap; height: 34px; padding: 0 14px; border-radius: 999px; font-size: .85rem;
-    font-weight: 550; background: transparent; color: var(--texte); border: 1px solid var(--ligne); }
-  .sujets-mobile button.actif { background: var(--bleu); color: #fff; border-color: var(--bleu); }
+  .retour-reglages { display: inline-block; justify-self: start; height: auto; padding: 4px 0; margin-bottom: -8px;
+    background: none; border: 0; color: var(--bleu); font-weight: 600; font-size: .95rem; }
+  .liste-reglages { display: grid; border-radius: 14px; border: 1px solid var(--ligne); background: var(--carte); overflow: hidden; }
+  .liste-reglages button { display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 14px; border-radius: 0;
+    background: transparent; color: var(--texte); border: 0; font-weight: 500; font-size: 1rem; text-align: left; }
+  .liste-reglages button + button { border-top: 1px solid var(--ligne); }
+  .liste-reglages button:active { background: var(--fond-2); }
+  .liste-reglages svg { width: 22px; height: 22px; flex: none; color: var(--bleu); }
+  .liste-reglages span { flex: 1; }
+  .liste-reglages i { font-style: normal; color: var(--doux); font-size: 1.3rem; }
 }

@@ -19,7 +19,8 @@ const JOURS_RAPPEL = [1, 2, 3, 5, 7];
 // Les sujets de Gestion (SujetReglages) sont dans commun/navigation.js, avec
 // ceux de Jetons : les tarifs au gérant titulaire seulement.
 
-const etat = { ligues: [], ligue: null, parametres: null, regions: [], positions: [], tarifs: [], sujet: 'ligue', occupe: false,
+// `liste` : sur téléphone, la liste des réglages plutôt qu'un sujet (comme les Réglages de l'iPhone).
+const etat = { ligues: [], ligue: null, parametres: null, regions: [], positions: [], tarifs: [], sujet: 'ligue', liste: true, occupe: false,
                 saisons: [], lieux: [], arenas: [], liens: {} };
 const STATUTS_ARENA = { demandee: tr('En attente de l’aréna'), acceptee: tr('Acceptée par l’aréna'), refusee: tr('Refusée par l’aréna') };
 
@@ -357,16 +358,30 @@ function ouvrirLigues() {
 
 function afficher() {
   if (!etat.parametres) return;
-  const aller = (cle) => { etat.sujet = cle; dire(''); afficher(); window.scrollTo(0, 0); };
+  // Sans clé (« Réglages » de la barre du bas) : la liste, sur téléphone.
+  const aller = (cle) => {
+    etat.liste = !cle;
+    if (cle) etat.sujet = cle;
+    dire('');
+    afficher();
+    window.scrollTo(0, 0);
+  };
   poserNavigation('gerant', etat.sujet, droits(), aller);
-  // Téléphone : la barre du bas n'a qu'« Réglages » ; les sujets défilent en tête.
-  const sujets = el('nav', { classe: 'sujets-mobile', 'aria-label': tr('Réglages') },
-    entreesNav(droits()).filter(([p]) => p === 'gerant').map(([, cle, titre]) =>
-      el('button', { type: 'button', classe: cle === etat.sujet ? 'actif' : null, onclick: () => aller(cle) }, tr(titre))));
-  $('contenu').replaceChildren(sujets, el('h2', null, titreNav('gerant', etat.sujet)), ...VUES[etat.sujet]());
-  const actif = sujets.querySelector('.actif');
-  if (actif) sujets.scrollLeft = actif.offsetLeft - 16;
+  if (TELEPHONE.matches && etat.liste) {
+    $('contenu').replaceChildren(el('h2', null, tr('Réglages')),
+      el('nav', { classe: 'liste-reglages', 'aria-label': tr('Réglages de la ligue') },
+        entreesNav(droits()).filter(([p]) => p === 'gerant').map(([, cle, titre]) =>
+          el('button', { type: 'button', onclick: () => aller(cle) }, iconeNav(cle), el('span', {}, tr(titre)), el('i', { 'aria-hidden': 'true' }, '›')))));
+    return;
+  }
+  $('contenu').replaceChildren(
+    el('button', { type: 'button', classe: 'retour-reglages', onclick: () => aller(null) }, '‹ ' + tr('Réglages')),
+    el('h2', null, titreNav('gerant', etat.sujet)), ...VUES[etat.sujet]());
 }
+
+// Le téléphone : la liste des réglages, puis un sujet avec « ‹ Réglages ».
+const TELEPHONE = window.matchMedia('(max-width: 640px)');
+TELEPHONE.addEventListener('change', () => afficher());
 
 // --- Démarrage -----------------------------------------------------------------
 sessionPerdue = () => deconnecter(tr('Session expirée.'));
@@ -374,7 +389,7 @@ sessionPerdue = () => deconnecter(tr('Session expirée.'));
 document.addEventListener('DOMContentLoaded', async () => {
   // ?sujet=tarifs : un lien de l'Assistant-Coach ouvre ce réglage.
   const voulu = new URLSearchParams(location.search).get('sujet');
-  if (NAVIGATION.some(([p, c]) => p === 'gerant' && c === voulu)) etat.sujet = voulu;
+  if (NAVIGATION.some(([p, c]) => p === 'gerant' && c === voulu)) { etat.sujet = voulu; etat.liste = false; }
   $('formulaire-connexion').addEventListener('submit', connecter);
   $('apple').addEventListener('click', () => continuerAvecApple().catch((e) => {
     $('erreur-connexion').textContent = e.message;

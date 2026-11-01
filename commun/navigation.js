@@ -53,7 +53,7 @@ const titreNav = (page, cle) => tr((NAVIGATION.find(([p, c]) => p === page && c 
 
 /**
  * Remplit la barre : `page` est la page courante, `actif` sa section, `aller`
- * change de section sans quitter la page. Une entrée de l'autre page est un
+ * change de section sans quitter la page (sans clé : la liste des réglages, sur téléphone). Une entrée de l'autre page est un
  * lien ; sur téléphone, la barre du bas ne garde que « Réglages » et les jetons.
  */
 function poserNavigation(page, actif, droits, aller) {
@@ -70,7 +70,7 @@ function poserNavigation(page, actif, droits, aller) {
   // Téléphone : une seule entrée pour tous les réglages, dans la barre du bas.
   const reglages = [iconeNav('ligue'), el('span', { classe: 'court' }, tr('Réglages'))];
   enfants.push(page === 'gerant'
-    ? el('button', { type: 'button', classe: 'seul-mobile actif' }, ...reglages)
+    ? el('button', { type: 'button', classe: 'seul-mobile actif', onclick: () => aller(null) }, ...reglages)
     : el('a', { classe: 'bouton-nav seul-mobile', href: '/gerant/' }, ...reglages));
   $('onglets').replaceChildren(...enfants);
 }
