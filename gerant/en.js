@@ -191,4 +191,7 @@ Object.assign(EN, {
   'Choisir les dates': 'Choose dates',
   'Modalité par joueur': 'Per-player plan',
   'Modalité': 'Plan',
+  'Payé': 'Paid',
+  'En retard': 'Overdue',
+  'À venir': 'Upcoming',
 });
