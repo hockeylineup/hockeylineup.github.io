@@ -49,7 +49,7 @@ function rendreFinances(f, boite) {
          d.echeance || ''),
       el('td', { classe: 'montant' }, argent(d.montant_cents)),
       el('td', { classe: 'montant' }, d.reste_cents ? argent(d.reste_cents) : tr('Réglé')),
-      el('td', null, f.paiement_manuel && d.sens === 'entree' && d.reste_cents
+      el('td', null, f.paiement_manuel && d.reste_cents
         ? el('button', { type: 'button', onclick: () => noterPaiement(d, boite) }, tr('Noter un paiement')) : null)))))
     : el('p', { classe: 'doux' }, tr('Rien pour cette saison.')));
 
@@ -90,18 +90,27 @@ async function supprimerEcriture(e, boite) {
   try { await rpc('supprimer_ecriture_ligue', { p_id: e.id }); chargerFinances(boite); } catch (err) { dire(err.message, true); }
 }
 
-async function noterPaiement(d, boite) {
-  const saisi = prompt(tr('Montant reçu ($) de %@ :', d.nom || ''), (d.reste_cents / 100).toFixed(2));
+// Un paiement reçu, réparti sur les versements impayés, du plus ancien au
+// plus récent : 500 $ d'un coup soldent 4 versements de 125 $ (21 novembre 2026).
+async function noterPaiement(d, boite, versements) {
+  const liste = (versements || [d]).filter((x) => x.reste_cents > 0);
+  const total = liste.reduce((n, x) => n + x.reste_cents, 0);
+  const saisi = prompt(tr('Montant reçu ($) de %@ :', d.nom || ''), (total / 100).toFixed(2));
   if (saisi == null) return;
-  const cents = Math.min(Math.round(Number(saisi.replace(',', '.')) * 100), d.reste_cents);
+  let cents = Math.min(Math.round(Number(saisi.replace(',', '.')) * 100), total);
   if (!(cents > 0)) { dire(tr('Entre un montant.'), true); return; }
   const methode = confirm(tr('Payé par Interac ? (Annuler = comptant)')) ? 'interac' : 'comptant';
   try {
-    await rest('POST', 'paiements', { du_id: d.id, ligue_id: etat.ligue, montant_cents: cents, methode },
-               { Prefer: 'return=minimal' });
+    for (const x of liste) {
+      if (cents <= 0) break;
+      const part = Math.min(cents, x.reste_cents);
+      await rest('POST', 'paiements', { du_id: x.id, ligue_id: etat.ligue, montant_cents: part, methode },
+                 { Prefer: 'return=minimal' });
+      cents -= part;
+    }
     dire(tr('Paiement noté.'), false, true);
-    chargerFinances(boite);
   } catch (err) { dire(err.message, true); }
+  chargerFinances(boite);
 }
 
 function exporterCsv(f) {
@@ -200,6 +209,6 @@ function tableJoueurs(f, dus, boite) {
       el('td', { classe: 'montant' + (j.reste ? '' : ' regle') }, argent(j.total - j.reste) + ' / ' + argent(j.total)),
       el('td', null, el('div', { classe: 'versements' }, j.liste.map((d, i) => pastille(d, i, j.liste.length)))),
       el('td', null, f.paiement_manuel && j.prochain && j.prochain.sens === 'entree'
-        ? el('button', { type: 'button', onclick: () => noterPaiement(j.prochain, boite) }, tr('Noter un paiement')) : null)))))
+        ? el('button', { type: 'button', onclick: () => noterPaiement(j.prochain, boite, j.liste) }, tr('Noter un paiement')) : null)))))
     : el('p', { classe: 'doux' }, tr('Rien pour cette saison.')));
 }
