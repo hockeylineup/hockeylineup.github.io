@@ -203,7 +203,7 @@ const VUES = {
         const n = champ.value.trim();
         if (n && n !== etat.parametres.nom) changer({ nom: n }).then(() => ouvrirLigues());
       } }, champ, el('button', { type: 'submit' }, tr('Renommer'))),
-      el('p', { classe: 'doux' }, tr('Le logo, les saisons et les membres se gèrent dans l\'app pour l\'instant.')))];
+      el('p', { classe: 'doux' }, tr('Le logo et les invitations se gèrent dans l\'app pour l\'instant.')))];
   },
 
   // Une aréna d'EspaceLigue Pro, ou un lieu avec son adresse seulement
@@ -333,6 +333,8 @@ const VUES = {
   finances() { return vueFinances(); },
 
   saisons() { return vueSaisons(); },
+
+  joueurs() { return vueJoueurs(); },
 
   tarifs() {
     return [carte(tr('Tarifs de remplacement'), ...etat.positions.map((pos) => {

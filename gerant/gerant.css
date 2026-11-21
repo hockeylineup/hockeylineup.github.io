@@ -70,3 +70,16 @@ table.tableau-gerant td button { white-space: nowrap; padding: 6px 10px; font-si
 .versement.avenir { color: inherit; }
 td.regle { color: #1E7A3C; }
 .retard { color: #B3261E; font-weight: 600; }
+
+/* Banque de joueurs */
+.filtres-banque { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.filtres-banque input[type=search] { flex: 1 1 200px; min-width: 0; }
+.joueur-banque { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--bordure, #ddd); }
+.joueur-banque:last-child { border-bottom: 0; }
+.joueur-banque strong { flex: 1 1 8em; min-width: 0; }
+.joueur-banque input[type=number] { width: 4.5em; }
+.joueur-banque button { white-space: nowrap; padding: 6px 10px; font-size: 14px; }
+.joueur-banque.inactif strong { opacity: .55; }
+.joueur-banque select, .filtres-banque select { width: auto; flex: 0 1 auto; }
+.joueur-banque input[type=number] { flex: 0 0 4.5em; }
+.joueur-banque .case, .filtres-banque .case { width: auto; margin: 0; }
