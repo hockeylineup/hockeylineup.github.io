@@ -46,3 +46,8 @@ a.bouton { display: block; text-align: center; text-decoration: none; font-weigh
   .liste-reglages span { flex: 1; }
   .liste-reglages i { font-style: normal; color: var(--doux); font-size: 1.3rem; }
 }
+/* Finances */
+table.finances { width: 100%; border-collapse: collapse; }
+table.finances th, table.finances td { padding: 6px 8px; border-bottom: 1px solid var(--bordure, #ddd); text-align: left; }
+table.finances td.montant { text-align: right; white-space: nowrap; }
+@media (max-width: 640px) { table.finances { font-size: 14px; } table.finances th:nth-child(2), table.finances td:nth-child(2) { display: none; } }
