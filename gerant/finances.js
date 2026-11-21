@@ -25,7 +25,7 @@ async function chargerFinances(boite) {
   boite.replaceChildren(el('p', { classe: 'doux' }, tr('Chargement…')));
   try {
     const f = await rpc('finances_ligue', { p_ligue: etat.ligue, p_saison: fin.saison });
-    boite.replaceChildren(...rendreFinances(f, boite));
+    boite.replaceChildren(...rendreFinances(f, boite).filter(Boolean));
   } catch (e) {
     boite.replaceChildren();
     dire(e.message, true);
@@ -36,12 +36,12 @@ function rendreFinances(f, boite) {
   const t = f.totaux;
   const solde = t.encaisse_cents - t.depense_cents;
   const ligne = (a, b) => el('tr', null, el('td', null, a), el('td', { classe: 'montant' }, b));
-  const totaux = carte(tr('Sommaire'), el('table', { classe: 'finances' }, el('tbody', null,
+  const totaux = carte(tr('Sommaire'), el('table', { classe: 'tableau-gerant' }, el('tbody', null,
     ligne(tr('Encaissé'), argent(t.encaisse_cents)), ligne(tr('À recevoir'), argent(t.a_recevoir_cents)),
     ligne(tr('Dépensé'), argent(t.depense_cents)), ligne(tr('À payer'), argent(t.a_payer_cents)),
     ligne(el('strong', null, tr('Solde')), el('strong', null, argent(solde))))));
 
-  const tableDus = (titre, dus) => carte(titre, dus.length ? el('table', { classe: 'finances' },
+  const tableDus = (titre, dus) => carte(titre, dus.length ? el('table', { classe: 'tableau-gerant' },
     el('thead', null, el('tr', null, ...[tr('Nom'), tr('Motif'), tr('Échéance'), tr('Montant'), tr('Reste'), ''].map((x) => el('th', null, x)))),
     el('tbody', null, dus.map((d) => el('tr', null,
       el('td', null, d.nom || tr('Compte supprimé')), el('td', null, motif(d)),
@@ -57,7 +57,7 @@ function rendreFinances(f, boite) {
   const remplacements = f.dus.filter((d) => d.motif === 'remplacement');
   return [totaux, f.plan && f.plan.frais_cents ? cartePlan(f, boite) : null, tableDus(tr('Joueurs'), joueurs), tableDus(tr('Remplacements'), remplacements),
     carte(tr('Dépenses et revenus'), formulaireEcriture(null, boite),
-      f.ecritures.length ? el('table', { classe: 'finances' }, el('tbody', null, f.ecritures.map((e) => el('tr', null,
+      f.ecritures.length ? el('table', { classe: 'tableau-gerant' }, el('tbody', null, f.ecritures.map((e) => el('tr', null,
         el('td', null, e.jour), el('td', null, (CATEGORIES.find(([c]) => c === e.categorie) || [, ''])[1]),
         el('td', null, e.note || ''),
         el('td', { classe: 'montant' }, (e.sens === 'revenu' ? '+' : '−') + argent(e.montant_cents)),
@@ -136,7 +136,7 @@ function cartePlan(f, boite) {
   };
   [modalite, nb, choisir].forEach((x) => x.addEventListener('change', remplirDates));
   remplirDates();
-  const joueurs = el('table', { classe: 'finances' }, el('tbody', null, f.joueurs.map((j) => {
+  const joueurs = el('table', { classe: 'tableau-gerant' }, el('tbody', null, f.joueurs.map((j) => {
     const m = el('select', null, el('option', { value: '' }, tr('Comme la saison')), MODALITES.map(([v, t]) => el('option', { value: v }, t)));
     m.value = j.modalite || '';
     const n = el('input', { type: 'number', min: 2, max: 12, step: 1, valeur: j.nb_versements || 2, 'aria-label': tr('Versements') });
