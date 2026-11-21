@@ -15,6 +15,7 @@ const NAVIGATION = [
   ['gerant', 'banque', 'Banque générale'],
   ['gerant', 'notifications', 'Notifications aux gérants'],
   ['gerant', 'tarifs', 'Tarifs de remplacement', null, 'titulaire'],
+  ['gerant', 'finances', 'Finances', null, 'titulaire'],
   ['jetons', 'achat', 'Acheter des jetons', 'Acheter'],
   ['jetons', 'transactions', 'Historique des transactions', 'Historique'],
   ['jetons', 'transfert', 'Transférer des jetons', 'Transférer', 'transfert'],
@@ -23,6 +24,7 @@ const GROUPES = { gerant: 'Réglages de la ligue', jetons: 'Jetons' };
 
 // Les icônes (tracés 24 × 24).
 const ICONES_NAV = {
+  finances: ['M12 2v20', 'M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6'],
   ligue: ['M5 21V4h11l-2 4 2 4H5'],
   lieux: ['M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z', 'M12 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z'],
   matchs: ['M4 6h16v14H4zM4 10h16M8 3v4M16 3v4'],

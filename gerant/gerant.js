@@ -330,6 +330,8 @@ const VUES = {
       choix(tr('Un remplaçant est retenu'), 'avis_retenue', PORTEES))];
   },
 
+  finances() { return vueFinances(); },
+
   tarifs() {
     return [carte(tr('Tarifs de remplacement'), ...etat.positions.map((pos) => {
       const t = etat.tarifs.find((x) => x.position === pos.code) || { sens: 'aucun', montant_cents: 0 };
