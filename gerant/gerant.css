@@ -60,3 +60,4 @@ input[type=color] { width: 44px; min-width: 44px; height: 38px; padding: 2px; }
 form.ajout-match { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
 form.ajout-match button { grid-column: 1 / -1; justify-self: start; }
 section table.finances { width: 100%; }
+table.finances td.retard { color: var(--alerte, #c0392b); font-weight: 600; }

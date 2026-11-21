@@ -42,9 +42,11 @@ function rendreFinances(f, boite) {
     ligne(el('strong', null, tr('Solde')), el('strong', null, argent(solde))))));
 
   const tableDus = (titre, dus) => carte(titre, dus.length ? el('table', { classe: 'finances' },
-    el('thead', null, el('tr', null, ...[tr('Nom'), tr('Motif'), tr('Montant'), tr('Reste'), ''].map((x) => el('th', null, x)))),
+    el('thead', null, el('tr', null, ...[tr('Nom'), tr('Motif'), tr('Échéance'), tr('Montant'), tr('Reste'), ''].map((x) => el('th', null, x)))),
     el('tbody', null, dus.map((d) => el('tr', null,
       el('td', null, d.nom || tr('Compte supprimé')), el('td', null, motif(d)),
+      el('td', { classe: d.reste_cents && d.echeance && d.echeance < new Date().toLocaleDateString('en-CA') ? 'retard' : '' },
+         d.echeance || ''),
       el('td', { classe: 'montant' }, argent(d.montant_cents)),
       el('td', { classe: 'montant' }, d.reste_cents ? argent(d.reste_cents) : tr('Réglé')),
       el('td', null, f.paiement_manuel && d.sens === 'entree' && d.reste_cents
@@ -53,7 +55,7 @@ function rendreFinances(f, boite) {
 
   const joueurs = f.dus.filter((d) => d.motif !== 'remplacement');
   const remplacements = f.dus.filter((d) => d.motif === 'remplacement');
-  return [totaux, tableDus(tr('Joueurs'), joueurs), tableDus(tr('Remplacements'), remplacements),
+  return [totaux, f.plan && f.plan.frais_cents ? cartePlan(f, boite) : null, tableDus(tr('Joueurs'), joueurs), tableDus(tr('Remplacements'), remplacements),
     carte(tr('Dépenses et revenus'), formulaireEcriture(null, boite),
       f.ecritures.length ? el('table', { classe: 'finances' }, el('tbody', null, f.ecritures.map((e) => el('tr', null,
         el('td', null, e.jour), el('td', null, (CATEGORIES.find(([c]) => c === e.categorie) || [, ''])[1]),
@@ -112,4 +114,57 @@ function exporterCsv(f) {
   const lien = el('a', { href: URL.createObjectURL(new Blob(['﻿' + lignes.join('\n')], { type: 'text/csv' })),
                          download: 'finances.csv' });
   document.body.append(lien); lien.click(); lien.remove();
+}
+
+const MODALITES = [['unique', tr('Un paiement')], ['versements', tr('Versements')], ['mensuel', tr('Au mois')]];
+
+// La modalité de la saison et ses dates, puis l'exception de chaque joueur.
+function cartePlan(f, boite) {
+  const p = f.plan;
+  const modalite = el('select', null, MODALITES.map(([v, t]) => el('option', { value: v }, t)));
+  modalite.value = p.modalite;
+  const nb = el('input', { type: 'number', min: 2, max: 12, step: 1, valeur: p.nb_versements, 'aria-label': tr('Versements') });
+  const choisir = el('input', { type: 'checkbox', checked: p.dates_choisies });
+  const dates = el('div', { classe: 'en-ligne' });
+  const remplirDates = () => {
+    const n = modalite.value === 'versements' ? Number(nb.value) || 2 : p.dates.length;
+    const vues = [...dates.querySelectorAll('input')].map((x) => x.value);
+    dates.replaceChildren(...Array.from({ length: n }, (_, i) =>
+      el('input', { type: 'date', valeur: vues[i] || p.dates[i] || p.dates[p.dates.length - 1] || '', 'aria-label': tr('Versement %@', i + 1) })));
+    dates.hidden = !choisir.checked || modalite.value === 'unique';
+    nb.hidden = modalite.value !== 'versements';
+  };
+  [modalite, nb, choisir].forEach((x) => x.addEventListener('change', remplirDates));
+  remplirDates();
+  const joueurs = el('table', { classe: 'finances' }, el('tbody', null, f.joueurs.map((j) => {
+    const m = el('select', null, el('option', { value: '' }, tr('Comme la saison')), MODALITES.map(([v, t]) => el('option', { value: v }, t)));
+    m.value = j.modalite || '';
+    const n = el('input', { type: 'number', min: 2, max: 12, step: 1, valeur: j.nb_versements || 2, 'aria-label': tr('Versements') });
+    n.hidden = m.value !== 'versements';
+    const changer = async () => {
+      n.hidden = m.value !== 'versements';
+      try {
+        await rpc('regler_paiement_joueur', { p_saison: fin.saison, p_profil: j.profil_id, p_modalite: m.value || null,
+                                              p_nb: m.value ? Number(n.value) || 2 : null });
+        dire(tr('Enregistré.'), false, true);
+        chargerFinances(boite);
+      } catch (e) { dire(e.message, true); }
+    };
+    m.addEventListener('change', changer); n.addEventListener('change', changer);
+    return el('tr', null, el('td', null, j.nom || tr('Compte supprimé')), el('td', null, m, ' ', n));
+  })));
+  return carte(tr('Paiement des frais'),
+    el('form', { classe: 'champs', onsubmit: async (ev) => {
+      ev.preventDefault();
+      const choisies = choisir.checked && modalite.value !== 'unique' ? [...dates.querySelectorAll('input')].map((x) => x.value).filter(Boolean) : null;
+      try {
+        await rpc('regler_paiement_saison', { p_saison: fin.saison, p_modalite: modalite.value,
+                                              p_nb: Number(nb.value) || 2, p_dates: choisies });
+        dire(tr('Enregistré.'), false, true);
+        chargerFinances(boite);
+      } catch (e) { dire(e.message, true); }
+    } }, el('label', null, tr('Modalité'), modalite), nb,
+       el('label', { classe: 'case' }, choisir, tr('Choisir les dates')), dates,
+       el('button', { type: 'submit' }, tr('Enregistrer'))),
+    f.joueurs.length ? el('details', null, el('summary', null, tr('Modalité par joueur')), joueurs) : null);
 }
