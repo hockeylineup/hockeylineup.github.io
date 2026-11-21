@@ -125,7 +125,7 @@ function carteJoueurs(s, boite) {
   });
   return carte(tr('Joueurs de la saison') + ' (' + sai.deLaSaison.size + ')',
     el('p', { classe: 'doux' }, tr('Un joueur de la saison est un régulier : ses frais se facturent seuls.')),
-    joueurs.length ? el('table', { classe: 'finances' }, el('tbody', null, joueurs.map((j) => {
+    joueurs.length ? el('table', { classe: 'tableau-gerant' }, el('tbody', null, joueurs.map((j) => {
       const sel = el('select', { 'aria-label': tr('Place de %@', nomJoueur(j)) },
         el('option', { value: '' }, tr('Pas dans la saison')),
         el('option', { value: 'saison' }, s.mode === 'pickup' ? tr('Régulier') : tr('Régulier, sans équipe')),
@@ -148,7 +148,7 @@ function carteHoraire(s, boite) {
   const debut = el('input', { type: 'datetime-local', required: true, 'aria-label': tr('Date et heure') });
   const lieu = el('select', null, el('option', { value: '' }, tr('Sans lieu')), lieux.map((l) => el('option', { value: l.id }, l.nom)));
   return carte(tr('Horaire') + ' (' + sai.matchs.length + ')',
-    sai.matchs.length ? el('table', { classe: 'finances' }, el('tbody', null, sai.matchs.map((m) => el('tr', null,
+    sai.matchs.length ? el('table', { classe: 'tableau-gerant' }, el('tbody', null, sai.matchs.map((m) => el('tr', null,
       el('td', null, quand(m.debut)), el('td', null, (eq[m.domicile] || '?') + ' – ' + (eq[m.visiteur] || '?')),
       el('td', null, nomLieu(m.lieu_id)),
       el('td', null, el('button', { type: 'button', onclick: () => {
