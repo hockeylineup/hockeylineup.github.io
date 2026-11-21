@@ -51,3 +51,13 @@ table.finances { width: 100%; border-collapse: collapse; }
 table.finances th, table.finances td { padding: 6px 8px; border-bottom: 1px solid var(--bordure, #ddd); text-align: left; }
 table.finances td.montant { text-align: right; white-space: nowrap; }
 @media (max-width: 640px) { table.finances { font-size: 14px; } table.finances th:nth-child(2), table.finances td:nth-child(2) { display: none; } }
+/* Saisons */
+ul.equipes { list-style: none; padding: 0; margin: 0 0 12px; display: grid; gap: 8px; }
+.ligne-equipe { display: flex; gap: 8px; align-items: center; }
+.ligne-equipe input[type=text] { flex: 1; min-width: 0; }
+input[type=color] { width: 44px; min-width: 44px; height: 38px; padding: 2px; }
+.ligne-equipe button { white-space: nowrap; }
+form.ajout-match { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+form.ajout-match button { grid-column: 1 / -1; justify-self: start; }
+section table.finances { width: 100%; }
+table.finances td.retard { color: var(--alerte, #c0392b); font-weight: 600; }

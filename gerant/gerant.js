@@ -332,6 +332,8 @@ const VUES = {
 
   finances() { return vueFinances(); },
 
+  saisons() { return vueSaisons(); },
+
   tarifs() {
     return [carte(tr('Tarifs de remplacement'), ...etat.positions.map((pos) => {
       const t = etat.tarifs.find((x) => x.position === pos.code) || { sens: 'aucun', montant_cents: 0 };
