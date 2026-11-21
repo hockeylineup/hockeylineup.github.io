@@ -194,4 +194,7 @@ Object.assign(EN, {
   'Payé': 'Paid',
   'En retard': 'Overdue',
   'À venir': 'Upcoming',
+  'Cas spécial': 'Special case',
+  'Montant à fixer': 'Amount to set',
+  '%@ cas spécial à régler': '%@ special case to settle',
 });
