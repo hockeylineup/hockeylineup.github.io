@@ -55,7 +55,7 @@ function rendreFinances(f, boite) {
 
   const joueurs = f.dus.filter((d) => d.motif !== 'remplacement');
   const remplacements = f.dus.filter((d) => d.motif === 'remplacement');
-  return [totaux, f.plan && f.plan.frais_cents ? cartePlan(f, boite) : null, tableDus(tr('Joueurs'), joueurs), tableDus(tr('Remplacements'), remplacements),
+  return [totaux, f.plan && f.plan.frais_cents ? cartePlan(f, boite) : null, tableJoueurs(f, joueurs, boite), tableDus(tr('Remplacements'), remplacements),
     carte(tr('Dépenses et revenus'), formulaireEcriture(null, boite),
       f.ecritures.length ? el('table', { classe: 'tableau-gerant' }, el('tbody', null, f.ecritures.map((e) => el('tr', null,
         el('td', null, e.jour), el('td', null, (CATEGORIES.find(([c]) => c === e.categorie) || [, ''])[1]),
@@ -167,4 +167,39 @@ function cartePlan(f, boite) {
        el('label', { classe: 'case' }, choisir, tr('Choisir les dates')), dates,
        el('button', { type: 'submit' }, tr('Enregistrer'))),
     f.joueurs.length ? el('details', null, el('summary', null, tr('Modalité par joueur')), joueurs) : null);
+}
+
+// Les frais d'un joueur sur une ligne : payé sur total, prochaine échéance,
+// puis chaque versement (payé, à venir, en retard). « Noter un paiement »
+// vise le plus ancien versement impayé.
+function tableJoueurs(f, dus, boite) {
+  const auj = new Date().toLocaleDateString('en-CA');
+  const parJoueur = new Map();
+  dus.forEach((d) => {
+    const cle = d.profil_id || d.id;
+    if (!parJoueur.has(cle)) parJoueur.set(cle, []);
+    parJoueur.get(cle).push(d);
+  });
+  const lignes = [...parJoueur.values()].map((liste) => {
+    liste.sort((a, b) => (a.echeance || '').localeCompare(b.echeance || ''));
+    const total = liste.reduce((n, d) => n + d.montant_cents, 0);
+    const reste = liste.reduce((n, d) => n + d.reste_cents, 0);
+    const prochain = liste.find((d) => d.reste_cents);
+    return { nom: liste[0].nom || tr('Compte supprimé'), liste, total, reste, prochain };
+  }).sort((a, b) => (b.reste > 0) - (a.reste > 0) || a.nom.localeCompare(b.nom, LOCALE));
+  const pastille = (d, i, n) => {
+    const etat = !d.reste_cents ? 'paye' : d.echeance && d.echeance < auj ? 'retard' : 'avenir';
+    const texte = (n > 1 ? (i + 1) + '/' + n + ' · ' : '') + argent(d.montant_cents)
+      + (d.echeance ? ' · ' + d.echeance : '');
+    return el('span', { classe: 'versement ' + etat, title: { paye: tr('Payé'), retard: tr('En retard'), avenir: tr('À venir') }[etat] }, texte);
+  };
+  return carte(tr('Joueurs'), lignes.length ? el('table', { classe: 'tableau-gerant' },
+    el('thead', null, el('tr', null, ...[tr('Nom'), tr('Payé'), tr('Versements'), ''].map((x) => el('th', null, x)))),
+    el('tbody', null, lignes.map((j) => el('tr', null,
+      el('td', null, el('strong', null, j.nom)),
+      el('td', { classe: 'montant' + (j.reste ? '' : ' regle') }, argent(j.total - j.reste) + ' / ' + argent(j.total)),
+      el('td', null, el('div', { classe: 'versements' }, j.liste.map((d, i) => pastille(d, i, j.liste.length)))),
+      el('td', null, f.paiement_manuel && j.prochain && j.prochain.sens === 'entree'
+        ? el('button', { type: 'button', onclick: () => noterPaiement(j.prochain, boite) }, tr('Noter un paiement')) : null)))))
+    : el('p', { classe: 'doux' }, tr('Rien pour cette saison.')));
 }

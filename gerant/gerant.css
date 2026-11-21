@@ -63,3 +63,9 @@ section table.tableau-gerant { width: 100%; }
 table.tableau-gerant td.retard { color: var(--alerte, #c0392b); font-weight: 600; }
 table.tableau-gerant td.retard, table.tableau-gerant td:nth-child(3) { white-space: nowrap; }
 table.tableau-gerant td button { white-space: nowrap; padding: 6px 10px; font-size: 14px; }
+.versements { display: flex; flex-wrap: wrap; gap: 6px; }
+.versement { font-size: 13px; padding: 2px 8px; border-radius: 999px; white-space: nowrap; border: 1px solid var(--bordure, #ddd); }
+.versement.paye { background: #E7F6EC; color: #1E7A3C; border-color: #BFE5CB; }
+.versement.retard { background: #FDECEA; color: #B3261E; border-color: #F5C2BE; }
+.versement.avenir { color: inherit; }
+td.regle { color: #1E7A3C; }
