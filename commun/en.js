@@ -37,6 +37,8 @@ Object.assign(EN, {
   'Banque générale': 'General pool',
   'Notifications aux gérants': 'Manager notifications',
   'Tarifs de remplacement': 'Sub rates',
+  'Saisons': 'Seasons',
+  'Banque de joueurs': 'Player pool',
   'Jetons': 'Tokens',
   'jetons': 'tokens',
   'jeton': 'token',

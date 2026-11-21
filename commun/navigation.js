@@ -9,6 +9,7 @@
 const NAVIGATION = [
   ['gerant', 'ligue', 'Nom de la ligue'],
   ['gerant', 'saisons', 'Saisons'],
+  ['gerant', 'joueurs', 'Banque de joueurs'],
   ['gerant', 'lieux', 'Lieux et arénas'],
   ['gerant', 'matchs', 'Matchs'],
   ['gerant', 'remplacements', 'Remplacements'],
@@ -26,6 +27,7 @@ const GROUPES = { gerant: 'Réglages de la ligue', jetons: 'Jetons' };
 // Les icônes (tracés 24 × 24).
 const ICONES_NAV = {
   saisons: ['M4 5h16v15H4zM4 9h16M8 3v4M16 3v4M8 13h3M8 16h6'],
+  joueurs: ['M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21v-1a6 6 0 0 1 12 0v1', 'M16 3.5a4 4 0 0 1 0 7M22 21v-1a6 6 0 0 0-4-5.6'],
   finances: ['M12 2v20', 'M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6'],
   ligue: ['M5 21V4h11l-2 4 2 4H5'],
   lieux: ['M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z', 'M12 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z'],
