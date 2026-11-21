@@ -49,7 +49,7 @@ function rendreFinances(f, boite) {
          d.echeance || ''),
       el('td', { classe: 'montant' }, argent(d.montant_cents)),
       el('td', { classe: 'montant' }, d.reste_cents ? argent(d.reste_cents) : tr('Réglé')),
-      el('td', null, f.paiement_manuel && d.sens === 'entree' && d.reste_cents
+      el('td', null, f.paiement_manuel && d.reste_cents
         ? el('button', { type: 'button', onclick: () => noterPaiement(d, boite) }, tr('Noter un paiement')) : null)))))
     : el('p', { classe: 'doux' }, tr('Rien pour cette saison.')));
 
