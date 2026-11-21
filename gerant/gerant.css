@@ -69,3 +69,4 @@ table.tableau-gerant td button { white-space: nowrap; padding: 6px 10px; font-si
 .versement.retard { background: #FDECEA; color: #B3261E; border-color: #F5C2BE; }
 .versement.avenir { color: inherit; }
 td.regle { color: #1E7A3C; }
+.retard { color: #B3261E; font-weight: 600; }

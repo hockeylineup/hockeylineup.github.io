@@ -160,7 +160,25 @@ function cartePlan(f, boite) {
       } catch (e) { dire(e.message, true); }
     };
     m.addEventListener('change', changer); n.addEventListener('change', changer);
-    return el('tr', null, el('td', null, j.nom || tr('Compte supprimé')), el('td', null, m, ' ', n));
+    // Cas spécial : un montant choisi à la main (joueur arrivé en cours de saison).
+    const sp = el('input', { type: 'checkbox', checked: j.special, 'aria-label': tr('Cas spécial') });
+    const montant = el('input', { type: 'number', min: 0, step: '0.01', inputmode: 'decimal', placeholder: tr('Montant ($)'),
+                                  valeur: j.montant_special_cents != null ? (j.montant_special_cents / 100).toFixed(2) : '' });
+    montant.hidden = !j.special;
+    const special = async () => {
+      montant.hidden = !sp.checked;
+      const cents = montant.value === '' ? null : Math.round(Number(montant.value) * 100);
+      try {
+        await rpc('regler_cas_special', { p_saison: fin.saison, p_profil: j.profil_id, p_special: sp.checked, p_montant_cents: cents });
+        dire(tr('Enregistré.'), false, true);
+        if (!sp.checked || cents != null) chargerFinances(boite);
+      } catch (e) { dire(e.message, true); }
+    };
+    sp.addEventListener('change', special); montant.addEventListener('change', special);
+    return el('tr', null, el('td', null, j.nom || tr('Compte supprimé'),
+        j.special && j.montant_special_cents == null ? el('div', { classe: 'retard' }, tr('Montant à fixer')) : null),
+      el('td', null, m, ' ', n),
+      el('td', null, el('label', { classe: 'case' }, sp, tr('Cas spécial')), montant));
   })));
   return carte(tr('Paiement des frais'),
     el('form', { classe: 'champs', onsubmit: async (ev) => {
@@ -175,7 +193,11 @@ function cartePlan(f, boite) {
     } }, el('label', null, tr('Modalité'), modalite), nb,
        el('label', { classe: 'case' }, choisir, tr('Choisir les dates')), dates,
        el('button', { type: 'submit' }, tr('Enregistrer'))),
-    f.joueurs.length ? el('details', null, el('summary', null, tr('Modalité par joueur')), joueurs) : null);
+    f.joueurs.length ? el('details', { open: f.joueurs.some((j) => j.special && j.montant_special_cents == null) },
+      el('summary', null, tr('Modalité par joueur'), (() => {
+        const n = f.joueurs.filter((j) => j.special && j.montant_special_cents == null).length;
+        return n ? el('span', { classe: 'retard' }, ' · ' + tr('%@ cas spécial à régler', n)) : null;
+      })()), joueurs) : null);
 }
 
 // Les frais d'un joueur sur une ligne : payé sur total, prochaine échéance,
