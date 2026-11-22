@@ -13,6 +13,10 @@
           {
             "/": "/i/*",
             "comment": "Une invitation à joindre une ligue"
+          },
+          {
+            "/": "/l/*",
+            "comment": "Le lien d'une ligue"
           }
         ]
       }
