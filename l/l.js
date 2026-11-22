@@ -17,7 +17,10 @@ const PLAY_STORE = '';
 
 const $ = (id) => document.getElementById(id);
 const code = (new URLSearchParams(location.search).get('c') || '').trim().toUpperCase();
-const lien = location.origin + '/l/?c=' + encodeURIComponent(code);
+// Le jeton d'une invitation par SMS : il suit le lien jusque dans l'app.
+const jeton = (new URLSearchParams(location.search).get('i') || '').trim();
+const suite = /^[0-9a-f]{32}$/.test(jeton) ? '&i=' + jeton : '';
+const lien = location.origin + '/l/?c=' + encodeURIComponent(code) + suite;
 
 function introuvable() {
   $('titre').textContent = tr('Invitation introuvable');
@@ -64,7 +67,7 @@ async function charger() {
   $('titre').textContent = inv.ligue;
   $('texte').textContent = tr('Crée ton compte avec le courriel ou le numéro où tu as reçu l\'invitation : elle t\'attendra dans l\'app.');
   // Un lien du même domaine n'ouvre pas l'app sur iOS : le schéma lineup://.
-  $('ouvrir').href = 'lineup://ligue?code=' + encodeURIComponent(code);
+  $('ouvrir').href = 'lineup://ligue?code=' + encodeURIComponent(code) + suite;
   magasin($('ios'), APP_STORE);
   magasin($('android'), PLAY_STORE);
   $('magasins').hidden = false;
