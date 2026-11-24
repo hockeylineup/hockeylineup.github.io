@@ -17,7 +17,7 @@ function vueSaisons() {
 async function chargerSaisons(boite) {
   boite.replaceChildren(el('p', { classe: 'doux' }, tr('Chargement…')));
   try {
-    sai.liste = await lire('saisons', { select: 'id,nom,debut,fin,frais_joueur_cents,mode', ligue_id: 'eq.' + etat.ligue,
+    sai.liste = await lire('saisons', { select: 'id,nom,debut,fin,frais_joueur_cents,mode,categorie', ligue_id: 'eq.' + etat.ligue,
                                         order: 'debut.desc.nullslast,nom' });
     if (!sai.liste.some((s) => s.id === sai.choisie)) sai.choisie = sai.liste[0] ? sai.liste[0].id : null;
     if (sai.choisie) await chargerDetail();
@@ -67,7 +67,12 @@ function champsSaison(s) {
   const frais = el('input', { type: 'number', min: 0, step: '0.01', inputmode: 'decimal',
                               valeur: ((s ? s.frais_joueur_cents : 0) / 100).toFixed(2) });
   frais.disabled = !titulaire();
-  return { nom, debut, fin, frais, ligne: () => ({ nom: nom.value.trim(), debut: debut.value || null, fin: fin.value || null,
+  // Vide : comme la ligue.
+  const categorie = el('select', null, el('option', { value: '' }, tr('Comme la ligue')),
+    CATEGORIES.map(([v, t]) => el('option', { value: v }, t)));
+  categorie.value = (s && s.categorie) || '';
+  return { nom, debut, fin, frais, categorie, ligne: () => ({ nom: nom.value.trim(), debut: debut.value || null, fin: fin.value || null,
+    categorie: categorie.value || null,
     ...(titulaire() ? { frais_joueur_cents: Math.max(0, Math.round(Number(frais.value) * 100) || 0) } : {}) }) };
 }
 
@@ -80,6 +85,7 @@ function carteInfos(s, boite) {
       ev.preventDefault();
       agirSaison(boite, () => rest('PATCH', 'saisons?id=eq.' + s.id, c.ligne(), { Prefer: 'return=minimal' }), tr('Enregistré.'));
     } }, el('label', null, tr('Nom'), c.nom), el('label', null, tr('Début'), c.debut), el('label', null, tr('Fin'), c.fin),
+       el('label', null, tr('Catégorie'), c.categorie),
        el('label', null, tr('Frais par joueur régulier ($)'), c.frais),
        el('button', { type: 'submit' }, tr('Enregistrer'))),
     el('p', null, el('button', { type: 'button', classe: 'danger', onclick: () => {
@@ -202,7 +208,8 @@ function carteNouvelleSaison(boite) {
       if (dates.length) await rest('POST', 'matchs', dates.map((d) => ({ saison_id: s.id, ligue_id: etat.ligue,
         domicile: blancs.id, visiteur: noirs.id, debut: d })), { Prefer: 'return=minimal' });
     }, tr('Saison créée.'));
-  } }, el('label', null, tr('Nom'), c.nom), el('label', null, tr('Mode'), mode), el('label', null, tr('Début'), c.debut),
+  } }, el('label', null, tr('Nom'), c.nom), el('label', null, tr('Mode'), mode), el('label', null, tr('Catégorie'), c.categorie),
+     el('label', null, tr('Début'), c.debut),
      el('label', null, tr('Fin'), c.fin), el('label', null, tr('Frais par joueur régulier ($)'), c.frais), horaire,
      el('button', { type: 'submit' }, tr('Créer la saison'))));
 }

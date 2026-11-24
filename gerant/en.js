@@ -211,4 +211,9 @@ Object.assign(EN, {
   'Retirer %@ de la ligue ? Il sort aussi de ses équipes.': 'Remove %@ from the league? They also leave their teams.',
   'Aucun joueur ne correspond aux filtres.': 'No player matches the filters.',
   'Le logo et les invitations se gèrent dans l\'app pour l\'instant.': 'The logo and invitations are managed in the app for now.',
+  'Catégorie': 'Category',
+  'Masculin': "Men's",
+  'Féminin': "Women's",
+  'Mixte': 'Mixed',
+  'Comme la ligue': 'Same as league',
 });

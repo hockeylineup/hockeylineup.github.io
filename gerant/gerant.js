@@ -8,11 +8,13 @@
 const COLONNES = 'id,nom,sport,mode_remplacement,avis_absence,avis_disponible,avis_retenue,recherche_auto_fixe,'
   + 'remplacement_calibre,confirmation_pickup,stats_penalites,stats_gardiens,stats_temps,stats_tirs,classement,'
   + 'points_victoire,points_nul,points_defaite,rappel_jours,nb_trios,nb_paires,region,arbitre_inclus,nb_arbitres,'
-  + 'tranche_age,trouvable';
+  + 'tranche_age,trouvable,categorie';
 
 const MODES = [['manuel', tr('Le gérant choisit')], ['automatique', tr('Premier arrivé, premier servi')]];
 const PORTEES = [['equipe', tr('Équipe')], ['ligue', tr('Ligue')], ['tous', tr('Équipe et ligue')], ['personne', tr('Personne')]];
 const TRANCHES = [['moins_30', tr('Moins de 30 ans')], ['30_44', tr('30 à 44 ans')], ['45_54', tr('45 à 54 ans')], ['55_plus', tr('55 ans et +')]];
+// Masculin, féminin ou mixte (23 novembre 2026) : filtre les recherches de remplaçants.
+const CATEGORIES = [['masculin', tr('Masculin')], ['feminin', tr('Féminin')], ['mixte', tr('Mixte')]];
 const SENS = [['aucun', tr('Gratuit')], ['remplacant_paie', tr('Le remplaçant paie')], ['remplacant_paye', tr('Le remplaçant est payé')]];
 const JOURS_RAPPEL = [1, 2, 3, 5, 7];
 
@@ -320,6 +322,7 @@ const VUES = {
     return [carte(tr('Banque générale'),
       choix(tr('Région'), 'region', etat.regions.map((r) => [r.code, r.nom]), tr('À choisir')),
       bascule(tr('Trouvable dans la région'), 'trouvable'),
+      choix(tr('Catégorie'), 'categorie', CATEGORIES),
       choix(tr('Âge moyen'), 'tranche_age', TRANCHES, tr('À choisir')))];
   },
 
